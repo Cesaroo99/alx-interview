@@ -7,6 +7,7 @@ from typing import Any
 
 from .diagnostic import diagnostic_to_dict, run_visa_diagnostic
 from .models import EmploymentStatus, FinancialProfile, TravelPurpose, UserProfile
+from .security import security_verdict_to_dict, verify_official_url
 
 
 def _parse_profile(data: dict[str, Any]) -> UserProfile:
@@ -37,30 +38,46 @@ def _parse_profile(data: dict[str, Any]) -> UserProfile:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    # Compat: ancienne forme
+    #   python -m visa_copilot_ai --profile ... [--pretty]
+    # On la mappe vers: diagnose --profile ...
+    if "--profile" in argv and (len(argv) == 0 or (argv and argv[0] not in {"diagnose", "verify-url"})):
+        argv = ["diagnose", *argv]
+
     parser = argparse.ArgumentParser(
         prog="visa-copilot-ai",
-        description="Visa Copilot AI — diagnostic visa-first (guidance, explicable, sans soumission).",
+        description="Visa Copilot AI — guidance visa-first (diagnostic + anti-scam, sans soumission).",
     )
-    parser.add_argument(
-        "--profile",
-        required=True,
-        help="Chemin vers un fichier JSON contenant le profil utilisateur.",
-    )
-    parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Sortie JSON indentée.",
-    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_diag = sub.add_parser("diagnose", help="Lancer le diagnostic visa-first à partir d'un profil JSON.")
+    p_diag.add_argument("--profile", required=True, help="Chemin vers un fichier JSON contenant le profil utilisateur.")
+    p_diag.add_argument("--pretty", action="store_true", help="Sortie JSON indentée.")
+
+    p_sec = sub.add_parser("verify-url", help="Vérifier une URL (anti-scam / official-only).")
+    p_sec.add_argument("--url", required=True, help="URL du portail à vérifier (embassy/gouvernement).")
+    p_sec.add_argument("--country", required=False, help="Pays attendu (optionnel) pour contexte/rappel.")
+    p_sec.add_argument("--pretty", action="store_true", help="Sortie JSON indentée.")
+
     args = parser.parse_args(argv)
 
     try:
-        with open(args.profile, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        if not isinstance(raw, dict):
-            raise ValueError("Le JSON doit être un objet.")
-        profile = _parse_profile(raw)
-        result = run_visa_diagnostic(profile)
-        payload = diagnostic_to_dict(result)
+        if args.cmd == "diagnose":
+            with open(args.profile, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            if not isinstance(raw, dict):
+                raise ValueError("Le JSON doit être un objet.")
+            profile = _parse_profile(raw)
+            result = run_visa_diagnostic(profile)
+            payload = diagnostic_to_dict(result)
+        elif args.cmd == "verify-url":
+            verdict = verify_official_url(args.url, expected_country=args.country)
+            payload = security_verdict_to_dict(verdict)
+        else:
+            raise ValueError("Commande inconnue.")
+
         if args.pretty:
             json.dump(payload, sys.stdout, ensure_ascii=False, indent=2, sort_keys=True)
         else:

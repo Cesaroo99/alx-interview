@@ -18,6 +18,12 @@ Exemple:
 python -m visa_copilot_ai --profile examples/profile_example.json --pretty
 ```
 
+### Anti-scam: vérifier une URL (official-only)
+
+```bash
+python3 -m visa_copilot_ai verify-url --url "https://travel.state.gov/" --pretty
+```
+
 ### Tests
 
 ```bash
