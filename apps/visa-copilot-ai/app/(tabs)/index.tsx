@@ -9,8 +9,10 @@ import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { ScorePill } from "@/src/ui/ScorePill";
+import { useProfile } from "@/src/state/profile";
 
 export default function HomeScreen() {
+  const { profile, clearProfile } = useProfile();
   return (
     <Screen>
       <View style={styles.hero}>
@@ -50,6 +52,22 @@ export default function HomeScreen() {
         </Text>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Vérifier une URL (anti-scam)" onPress={() => router.push("/(tabs)/security")} variant="ghost" />
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Profil</Text>
+        <Text style={styles.body}>
+          {profile ? `${profile.nationality} · ${profile.age} ans · ${profile.profession}` : "Aucun profil"}
+        </Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton
+          title="Réinitialiser le profil"
+          variant="ghost"
+          onPress={async () => {
+            await clearProfile();
+            router.replace("/onboarding");
+          }}
+        />
       </GlassCard>
     </Screen>
   );

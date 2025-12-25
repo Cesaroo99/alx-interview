@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { Mock } from "@/src/mock/data";
+import { Api, type VerifyUrlResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
@@ -9,10 +9,15 @@ import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function SecurityScreen() {
-  const [url, setUrl] = useState(Mock.security.input_url);
+  const [url, setUrl] = useState("https://travel.state.gov/");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [verdict, setVerdict] = useState<VerifyUrlResponse | null>(null);
 
-  // UI-only (mock): l’étape suivante sera l’appel API à `verify-url`.
-  const verdict = { ...Mock.security, input_url: url };
+  useEffect(() => {
+    // First run: prefill with a verdict only if API is up (optional).
+    setVerdict(null);
+  }, []);
 
   return (
     <Screen>
@@ -36,53 +41,89 @@ export default function SecurityScreen() {
           style={styles.input}
         />
         <View style={{ height: Tokens.space.md }} />
-        <PrimaryButton title="Analyser (démo)" onPress={() => undefined} />
+        <PrimaryButton
+          title={loading ? "Analyse…" : "Analyser"}
+          onPress={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const res = await Api.verifyUrl(url);
+              setVerdict(res);
+            } catch (e: any) {
+              setError(String(e?.message || e));
+            } finally {
+              setLoading(false);
+            }
+          }}
+          style={{ opacity: url.trim() ? 1 : 0.6 }}
+        />
       </GlassCard>
 
       <GlassCard>
         <Text style={styles.cardTitle}>Verdict</Text>
         <View style={{ height: Tokens.space.sm }} />
-        <View style={styles.row}>
-          <Text style={styles.k}>Domaine</Text>
-          <Text style={styles.v}>{verdict.hostname || "—"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.k}>HTTPS</Text>
-          <Text style={styles.v}>{verdict.scheme === "https" ? "Oui" : "Non"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.k}>Risque</Text>
-          <Text style={styles.v}>
-            {verdict.risk_level} ({Math.round(verdict.risk_score * 100)}%)
+        {loading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator />
+            <Text style={styles.loadingText}>Vérification…</Text>
+          </View>
+        ) : error ? (
+          <Text style={styles.error}>
+            {error}
+            {"\n"}
+            Astuce: démarrez l’API FastAPI et définissez `EXPO_PUBLIC_API_BASE_URL`.
           </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.k}>Signal officiel</Text>
-          <Text style={styles.v}>{verdict.likely_official ? "Plutôt oui" : "Inconnu / non"}</Text>
-        </View>
+        ) : verdict ? (
+          <>
+            <View style={styles.row}>
+              <Text style={styles.k}>Domaine</Text>
+              <Text style={styles.v}>{verdict.hostname || "—"}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.k}>HTTPS</Text>
+              <Text style={styles.v}>{verdict.scheme === "https" ? "Oui" : "Non"}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.k}>Risque</Text>
+              <Text style={styles.v}>
+                {verdict.risk_level} ({Math.round(verdict.risk_score * 100)}%)
+              </Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.k}>Signal officiel</Text>
+              <Text style={styles.v}>{verdict.likely_official ? "Plutôt oui" : "Inconnu / non"}</Text>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.loadingText}>Lancez une analyse pour obtenir un verdict.</Text>
+        )}
       </GlassCard>
 
-      <GlassCard>
-        <Text style={styles.cardTitle}>Pourquoi</Text>
-        <View style={{ height: Tokens.space.sm }} />
-        {verdict.reasons.map((r) => (
-          <View key={r} style={styles.bulletRow}>
-            <View style={[styles.dot, { backgroundColor: Colors.warning }]} />
-            <Text style={styles.text}>{r}</Text>
-          </View>
-        ))}
-      </GlassCard>
+      {verdict ? (
+        <>
+          <GlassCard>
+            <Text style={styles.cardTitle}>Pourquoi</Text>
+            <View style={{ height: Tokens.space.sm }} />
+            {verdict.reasons.map((r) => (
+              <View key={r} style={styles.bulletRow}>
+                <View style={[styles.dot, { backgroundColor: Colors.warning }]} />
+                <Text style={styles.text}>{r}</Text>
+              </View>
+            ))}
+          </GlassCard>
 
-      <GlassCard>
-        <Text style={styles.cardTitle}>Étapes sûres</Text>
-        <View style={{ height: Tokens.space.sm }} />
-        {verdict.next_safe_steps.map((s) => (
-          <View key={s} style={styles.bulletRow}>
-            <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
-            <Text style={styles.text}>{s}</Text>
-          </View>
-        ))}
-      </GlassCard>
+          <GlassCard>
+            <Text style={styles.cardTitle}>Étapes sûres</Text>
+            <View style={{ height: Tokens.space.sm }} />
+            {verdict.next_safe_steps.map((s) => (
+              <View key={s} style={styles.bulletRow}>
+                <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
+                <Text style={styles.text}>{s}</Text>
+              </View>
+            ))}
+          </GlassCard>
+        </>
+      ) : null}
     </Screen>
   );
 }
@@ -102,6 +143,9 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: Tokens.font.size.md,
   },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
+  error: { color: Colors.warning, fontSize: Tokens.font.size.md, lineHeight: 22 },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
   k: { color: Colors.faint, fontSize: Tokens.font.size.sm, width: 110 },
   v: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold, flex: 1 },

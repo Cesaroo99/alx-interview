@@ -78,3 +78,15 @@ npm run web
 # npm run ios (sur macOS, sinon via Expo Go)
 ```
 
+### API pour connecter le frontend
+
+L’API FastAPI est dans `api/` (elle expose les modules Python via JSON).
+
+```bash
+python3 -m pip install -r api/requirements.txt
+python3 -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Dans le frontend, configurez la variable:
+- `EXPO_PUBLIC_API_BASE_URL` (ex: `http://localhost:8000`)
+
