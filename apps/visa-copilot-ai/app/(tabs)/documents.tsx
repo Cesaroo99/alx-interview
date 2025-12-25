@@ -1,9 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
@@ -20,7 +22,8 @@ export default function DocumentsScreen() {
         </Text>
       </View>
 
-      <GlassCard>
+      <AnimatedIn delayMs={0}>
+        <GlassCard>
         <Text style={styles.cardTitle}>Votre coffre</Text>
         <Text style={styles.body}>
           Ajoutez vos documents (passeport, relevés, attestations). On vous dira quoi corriger.
@@ -33,39 +36,51 @@ export default function DocumentsScreen() {
             <PrimaryButton title="Tout supprimer" variant="ghost" onPress={() => clearAll()} />
           </>
         ) : null}
-      </GlassCard>
+        </GlassCard>
+      </AnimatedIn>
 
       {docs.length ? (
-        <GlassCard>
-          <Text style={styles.cardTitle}>Fichiers</Text>
-          <View style={{ height: Tokens.space.sm }} />
-          {docs.map((d) => (
-            <View key={d.id} style={styles.docRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.docName}>{d.filename}</Text>
-                <Text style={styles.docMeta}>{d.doc_type}</Text>
+        <AnimatedIn delayMs={120}>
+          <GlassCard>
+            <Text style={styles.cardTitle}>Fichiers</Text>
+            <View style={{ height: Tokens.space.sm }} />
+            {docs.map((d) => (
+              <View key={d.id} style={styles.docRow}>
+                <View style={styles.icon}>
+                  <FontAwesome name="file-text" size={18} color={Colors.brandB} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={styles.docName}>
+                    {d.filename}
+                  </Text>
+                  <Text style={styles.docMeta}>
+                    {d.doc_type} · {d.size ? `${Math.round(d.size / 1024)} KB` : "—"}
+                  </Text>
+                </View>
+                <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} />
               </View>
-              <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} />
-            </View>
-          ))}
-        </GlassCard>
+            ))}
+          </GlassCard>
+        </AnimatedIn>
       ) : null}
 
-      <GlassCard>
-        <Text style={styles.cardTitle}>Badges</Text>
-        <View style={{ height: Tokens.space.sm }} />
-        <View style={styles.badgeRow}>
-          <View style={[styles.badge, { backgroundColor: "rgba(39,226,164,0.12)", borderColor: "rgba(39,226,164,0.35)" }]}>
-            <Text style={styles.badgeText}>Valide</Text>
+      <AnimatedIn delayMs={200}>
+        <GlassCard>
+          <Text style={styles.cardTitle}>Badges</Text>
+          <View style={{ height: Tokens.space.sm }} />
+          <View style={styles.badgeRow}>
+            <View style={[styles.badge, { backgroundColor: "rgba(39,226,164,0.12)", borderColor: "rgba(39,226,164,0.35)" }]}>
+              <Text style={styles.badgeText}>Valide</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: "rgba(255,176,32,0.12)", borderColor: "rgba(255,176,32,0.35)" }]}>
+              <Text style={styles.badgeText}>À corriger</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: "rgba(255,77,109,0.12)", borderColor: "rgba(255,77,109,0.35)" }]}>
+              <Text style={styles.badgeText}>Critique</Text>
+            </View>
           </View>
-          <View style={[styles.badge, { backgroundColor: "rgba(255,176,32,0.12)", borderColor: "rgba(255,176,32,0.35)" }]}>
-            <Text style={styles.badgeText}>À corriger</Text>
-          </View>
-          <View style={[styles.badge, { backgroundColor: "rgba(255,77,109,0.12)", borderColor: "rgba(255,77,109,0.35)" }]}>
-            <Text style={styles.badgeText}>Critique</Text>
-          </View>
-        </View>
-      </GlassCard>
+        </GlassCard>
+      </AnimatedIn>
     </Screen>
   );
 }
@@ -82,5 +97,15 @@ const styles = StyleSheet.create({
   docRow: { flexDirection: "row", gap: 10, alignItems: "center", marginTop: Tokens.space.md },
   docName: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold },
   docMeta: { color: Colors.faint, fontSize: Tokens.font.size.sm, marginTop: 4 },
+  icon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "rgba(46,233,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(46,233,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 

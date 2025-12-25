@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
@@ -48,9 +49,11 @@ export default function CopilotScreen() {
             keyExtractor={(m) => m.id}
             contentContainerStyle={{ paddingBottom: Tokens.space.md }}
             renderItem={({ item }) => (
-              <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
-                <Text style={styles.bubbleText}>{item.text}</Text>
-              </View>
+              <AnimatedIn delayMs={0} direction="up">
+                <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
+                  <Text style={styles.bubbleText}>{item.text}</Text>
+                </View>
+              </AnimatedIn>
             )}
           />
         </GlassCard>
