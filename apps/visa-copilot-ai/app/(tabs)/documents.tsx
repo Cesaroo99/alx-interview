@@ -1,8 +1,9 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
+import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
@@ -10,7 +11,10 @@ import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
+import { SkeletonCard } from "@/src/ui/Skeleton";
+import { ScorePill } from "@/src/ui/ScorePill";
 import { useDocuments } from "@/src/state/documents";
+import { useInsights } from "@/src/state/insights";
 import { useProfile } from "@/src/state/profile";
 
 function parseIso(s?: unknown): Date | null {
@@ -57,6 +61,24 @@ function docStatus(doc: any): { tone: "success" | "warning" | "danger" | "neutra
 export default function DocumentsScreen() {
   const { docs, clearAll, removeDoc } = useDocuments();
   const { profile } = useProfile();
+  const { setLastDossier } = useInsights();
+  const [destination, setDestination] = useState(profile?.destination_region_hint || "Zone Schengen");
+  const [visaType, setVisaType] = useState("Visa visiteur / tourisme");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [quick, setQuick] = useState<any>(null);
+
+  const payloadDocs = useMemo(
+    () =>
+      docs.map((d) => ({
+        doc_id: d.id,
+        doc_type: d.doc_type,
+        filename: d.filename,
+        extracted: d.extracted || {},
+      })),
+    [docs]
+  );
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -82,11 +104,97 @@ export default function DocumentsScreen() {
         ) : null}
           <View style={{ height: Tokens.space.md }} />
           <PrimaryButton
-            title="Vérifier le dossier (avec ces documents)"
+            title="Ouvrir la vérification dossier"
             variant="ghost"
             onPress={() => router.push("/(tabs)/dossier")}
             style={{ opacity: profile ? 1 : 0.6 }}
           />
+        </GlassCard>
+      </AnimatedIn>
+
+      <AnimatedIn delayMs={80}>
+        <GlassCard>
+          <View style={styles.rowTop}>
+            <Text style={styles.cardTitle}>Analyse rapide (Docs → Dossier)</Text>
+            {loading ? <ActivityIndicator /> : null}
+          </View>
+          <Text style={styles.body}>
+            Vérifie en 1 clic la cohérence du dossier avec les documents actuels (sans quitter l’écran).
+          </Text>
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>Destination / zone</Text>
+          <TextInput
+            value={destination}
+            onChangeText={setDestination}
+            placeholder="Ex: Zone Schengen"
+            placeholderTextColor="rgba(245,247,255,0.35)"
+            style={styles.input}
+          />
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>Type de visa</Text>
+          <TextInput
+            value={visaType}
+            onChangeText={setVisaType}
+            placeholder="Ex: Visa visiteur / tourisme"
+            placeholderTextColor="rgba(245,247,255,0.35)"
+            style={styles.input}
+          />
+          <View style={{ height: Tokens.space.lg }} />
+          <PrimaryButton
+            title={loading ? "Analyse…" : "Analyser maintenant"}
+            onPress={async () => {
+              if (!profile) {
+                setError("Profil manquant: complétez l’onboarding.");
+                return;
+              }
+              setLoading(true);
+              setError(null);
+              try {
+                const res = await Api.verifyDossier({
+                  profile,
+                  visa_type: visaType,
+                  destination_region: destination,
+                  documents: payloadDocs,
+                });
+                setQuick(res);
+                await setLastDossier({
+                  readiness_score: Number(res.readiness_score || 0),
+                  coherence_score: Number(res.coherence_score || 0),
+                  readiness_level: String(res.readiness_level || "—"),
+                  key_risks: Array.isArray(res.key_risks) ? res.key_risks : [],
+                  next_best_actions: Array.isArray(res.next_best_actions) ? res.next_best_actions : [],
+                  destination_region: destination,
+                  visa_type: visaType,
+                });
+              } catch (e: any) {
+                setError(String(e?.message || e));
+              } finally {
+                setLoading(false);
+              }
+            }}
+            style={{ opacity: profile && docs.length ? 1 : 0.6 }}
+          />
+          {loading ? (
+            <View style={{ marginTop: Tokens.space.md }}>
+              <SkeletonCard />
+            </View>
+          ) : error ? (
+            <Text style={[styles.body, { color: Colors.warning }]}>{error}</Text>
+          ) : quick ? (
+            <View style={{ marginTop: Tokens.space.md, gap: Tokens.space.sm }}>
+              <ScorePill label="Readiness dossier" value={Number(quick.readiness_score || 0)} />
+              <Text style={styles.body}>
+                Cohérence: {Math.round(Number(quick.coherence_score || 0))}/100 · Niveau: {String(quick.readiness_level || "—")}
+              </Text>
+              {(quick.key_risks || []).slice(0, 3).map((r: string) => (
+                <View key={r} style={styles.bulletRow}>
+                  <View style={[styles.bulletDot, { backgroundColor: Colors.danger }]} />
+                  <Text style={styles.bulletText}>{r}</Text>
+                </View>
+              ))}
+              <PrimaryButton title="Voir détails" variant="ghost" onPress={() => router.push("/(tabs)/dossier")} />
+            </View>
+          ) : null}
         </GlassCard>
       </AnimatedIn>
 
@@ -162,5 +270,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  label: { color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.medium, marginTop: 6 },
+  input: {
+    marginTop: 8,
+    borderRadius: Tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card2,
+    paddingHorizontal: Tokens.space.md,
+    paddingVertical: Tokens.space.md,
+    color: Colors.text,
+    fontSize: Tokens.font.size.md,
+  },
+  bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
+  bulletDot: { width: 8, height: 8, borderRadius: 99, marginTop: 6, backgroundColor: Colors.brandA },
+  bulletText: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
 });
 
