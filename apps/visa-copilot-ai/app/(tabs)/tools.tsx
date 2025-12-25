@@ -1,0 +1,73 @@
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+import { Mock } from "@/src/mock/data";
+import { Colors } from "@/src/theme/colors";
+import { Tokens } from "@/src/theme/tokens";
+import { GlassCard } from "@/src/ui/GlassCard";
+import { Screen } from "@/src/ui/Screen";
+
+export default function ToolsScreen() {
+  return (
+    <Screen>
+      <View style={styles.header}>
+        <Text style={styles.title}>Outils</Text>
+        <Text style={styles.subtitle}>Modules de support (toujours au service de la crédibilité visa).</Text>
+      </View>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Travel Intelligence (simulation)</Text>
+        <Text style={styles.body}>
+          {Mock.trip.destination} · {Mock.trip.duration_days} jours · Budget {Mock.trip.estimated_budget_usd}$ ({Mock.trip.budget_level})
+        </Text>
+        <View style={{ height: Tokens.space.sm }} />
+        {Mock.trip.itinerary_preview.map((x) => (
+          <View key={x} style={styles.row}>
+            <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
+            <Text style={styles.text}>{x}</Text>
+          </View>
+        ))}
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Estimation coûts</Text>
+        <Text style={styles.body}>
+          Total estimé: {Mock.costs.total} {Mock.costs.currency} (d’après montants officiels fournis)
+        </Text>
+        <View style={{ height: Tokens.space.sm }} />
+        {Mock.costs.items.slice(0, 3).map((i) => (
+          <View key={i.label} style={styles.row}>
+            <View style={[styles.dot, { backgroundColor: i.mandatory ? Colors.warning : Colors.faint }]} />
+            <Text style={styles.text}>
+              {i.label} — {i.amount} {Mock.costs.currency}
+            </Text>
+          </View>
+        ))}
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Refus: explication + plan B</Text>
+        <Text style={styles.body}>Quand il y a refus, on transforme ça en plan d’action clair et vérifiable.</Text>
+        <View style={{ height: Tokens.space.sm }} />
+        {Mock.refusal.plain_explanation.map((x) => (
+          <View key={x} style={styles.row}>
+            <View style={[styles.dot, { backgroundColor: Colors.danger }]} />
+            <Text style={styles.text}>{x}</Text>
+          </View>
+        ))}
+      </GlassCard>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { gap: 8 },
+  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
+  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
+  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  row: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
+  dot: { width: 10, height: 10, borderRadius: 99, marginTop: 6 },
+  text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+});
+

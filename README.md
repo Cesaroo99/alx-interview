@@ -66,3 +66,15 @@ python3 -m visa_copilot_ai guide-field --input examples/field_guidance_input_exa
 python3 -m unittest
 ```
 
+### Frontend (Web + iOS + Android)
+
+Le frontend unifié (Expo / React Native) est dans `apps/visa-copilot-ai` et tourne sur **web**, **iOS** et **Android** avec le même codebase.
+
+```bash
+cd apps/visa-copilot-ai
+npm run web
+# ou:
+# npm run android
+# npm run ios (sur macOS, sinon via Expo Go)
+```
+
