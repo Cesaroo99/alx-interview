@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: visa-copilot-ai-api
+    env: docker
+    dockerfilePath: api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars: []
+
+  - type: web
+    name: visa-copilot-ai-web
+    env: static
+    plan: free
+    autoDeploy: true
+    buildCommand: cd apps/visa-copilot-ai && npm ci && npm run web:build
+    staticPublishPath: apps/visa-copilot-ai/dist
+    envVars:
+      # IMPORTANT: remplacez par l'URL Render du backend après création du service API
+      - key: EXPO_PUBLIC_API_BASE_URL
+        value: http://localhost:8000
+

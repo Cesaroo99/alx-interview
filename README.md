@@ -90,3 +90,12 @@ python3 -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 Dans le frontend, configurez la variable:
 - `EXPO_PUBLIC_API_BASE_URL` (ex: `http://localhost:8000`)
 
+### Déploiement Render (frontend web + backend API) — prêt
+
+Le repo contient maintenant un blueprint Render `render.yaml` (déploiement “1‑clic”):
+- **Backend**: service web Docker (`api/Dockerfile`)
+- **Frontend web**: site statique (build `expo export -p web`)
+
+Important:
+- Après création sur Render, mettez `EXPO_PUBLIC_API_BASE_URL` du service web sur l’URL Render du backend (ex: `https://visa-copilot-ai-api.onrender.com`).
+
