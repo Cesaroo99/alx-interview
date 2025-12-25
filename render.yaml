@@ -3,7 +3,6 @@ services:
     name: visa-copilot-ai-api
     env: docker
     dockerfilePath: api/Dockerfile
-    plan: free
     autoDeploy: true
     healthCheckPath: /health
     envVars: []
@@ -11,7 +10,6 @@ services:
   - type: web
     name: visa-copilot-ai-web
     env: static
-    plan: free
     autoDeploy: true
     buildCommand: cd apps/visa-copilot-ai && npm ci && npm run web:build
     staticPublishPath: apps/visa-copilot-ai/dist
