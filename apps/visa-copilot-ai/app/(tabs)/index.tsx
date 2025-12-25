@@ -16,7 +16,7 @@ export default function HomeScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <Text style={styles.kicker}>Visa Copilot AI</Text>
+        <Text style={styles.kicker}>GlobalVisa</Text>
         <Text style={styles.title}>Votre copilote IA pour réussir votre visa.</Text>
         <Text style={styles.subtitle}>
           Guidance 100% officielle. Explications “pourquoi”. Prévention des refus et protection anti-scam.

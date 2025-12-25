@@ -2,18 +2,19 @@ import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
-import { useProfile } from "@/src/state/profile";
+import { useOnboardingDraft } from "@/src/state/onboardingDraft";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ProgressBar } from "@/src/ui/ProgressBar";
 import { Screen } from "@/src/ui/Screen";
 
 export default function Onboarding() {
-  const { setProfile } = useProfile();
-  const [nationality, setNationality] = useState("");
-  const [age, setAge] = useState("");
-  const [profession, setProfession] = useState("");
+  const { draft, setDraft } = useOnboardingDraft();
+  const [nationality, setNationality] = useState(draft.nationality || "");
+  const [age, setAge] = useState(draft.age?.toString() || "");
+  const [profession, setProfession] = useState(draft.profession || "");
 
   const canContinue = useMemo(() => {
     const a = Number(age);
@@ -23,11 +24,12 @@ export default function Onboarding() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <Text style={styles.kicker}>Onboarding</Text>
+        <Text style={styles.kicker}>Onboarding intelligent</Text>
         <Text style={styles.title}>Construisons votre profil</Text>
         <Text style={styles.subtitle}>
           On vous pose le minimum pour personnaliser les recommandations et détecter les risques avant toute soumission.
         </Text>
+        <ProgressBar step={1} total={7} />
       </View>
 
       <GlassCard>
@@ -66,16 +68,12 @@ export default function Onboarding() {
           title={canContinue ? "Continuer" : "Compléter le profil"}
           onPress={async () => {
             if (!canContinue) return;
-            await setProfile({
+            setDraft({
               nationality: nationality.trim(),
               age: Number(age),
               profession: profession.trim(),
-              employment_status: "other",
-              travel_purpose: "other",
-              travel_history_trips_last_5y: 0,
-              prior_visa_refusals: 0,
             });
-            router.replace("/(tabs)");
+            router.push("/onboarding/destination");
           }}
           style={{ opacity: canContinue ? 1 : 0.6 }}
         />
@@ -84,7 +82,7 @@ export default function Onboarding() {
       <GlassCard>
         <Text style={styles.cardTitle}>Rappel</Text>
         <Text style={styles.body}>
-          Visa Copilot AI ne remplit pas et ne soumet pas à votre place. Il vous guide et vous protège, tout en restant sur
+          GlobalVisa ne remplit pas et ne soumet pas à votre place. Il vous guide et vous protège, tout en restant sur
           les plateformes officielles.
         </Text>
       </GlassCard>

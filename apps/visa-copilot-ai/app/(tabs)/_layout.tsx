@@ -35,24 +35,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="diagnostic"
+        name="parcours"
         options={{
-          title: "Diagnostic",
-          tabBarIcon: ({ color }) => <TabBarIcon name="stethoscope" color={color} />,
+          title: "Parcours",
+          tabBarIcon: ({ color }) => <TabBarIcon name="map-signs" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="security"
+        name="copilot"
         options={{
-          title: "Sécurité",
-          tabBarIcon: ({ color }) => <TabBarIcon name="shield" color={color} />,
+          title: "Copilot",
+          tabBarIcon: ({ color }) => <TabBarIcon name="comments" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="dossier"
+        name="documents"
         options={{
-          title: "Dossier",
-          tabBarIcon: ({ color }) => <TabBarIcon name="folder-open" color={color} />,
+          title: "Docs",
+          tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -62,6 +62,11 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="magic" color={color} />,
         }}
       />
+
+      {/* Écrans existants conservés, mais retirés de la barre d’onglets (accès via CTA / parcours). */}
+      <Tabs.Screen name="diagnostic" options={{ href: null }} />
+      <Tabs.Screen name="security" options={{ href: null }} />
+      <Tabs.Screen name="dossier" options={{ href: null }} />
     </Tabs>
   );
 }

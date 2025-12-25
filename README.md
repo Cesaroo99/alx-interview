@@ -1,6 +1,6 @@
-## Visa Copilot AI
+## GlobalVisa
 
-Visa Copilot AI est un **copilote IA** qui aide les voyageurs et migrants à réussir leurs démarches visa/immigration **de A à Z**, en restant **100% dans le cadre officiel**.
+GlobalVisa est un **copilote IA** qui aide les voyageurs et migrants à réussir leurs démarches visa/immigration **de A à Z**, en restant **100% dans le cadre officiel**.
 
 - **Ce que l'app fait**: guider, vérifier, expliquer, détecter les risques, protéger contre les scams.
 - **Ce que l'app ne fait pas**: ne remplace pas les ambassades, ne soumet pas de dossier à votre place, ne contourne aucun portail officiel.

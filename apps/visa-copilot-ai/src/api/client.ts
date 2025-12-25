@@ -34,12 +34,20 @@ export type VerifyUrlResponse = {
   next_safe_steps: string[];
 };
 
+export type CopilotChatResponse = {
+  answer: string;
+  quick_actions: Array<{ type: string; target?: string; label: string }>;
+};
+
 export const Api = {
   diagnose(profile: UserProfile) {
     return post<DiagnosticResponse>("/diagnose", { profile });
   },
   verifyUrl(url: string, country?: string) {
     return post<VerifyUrlResponse>("/verify-url", { url, country });
+  },
+  copilotChat(profile: UserProfile | null, message: string) {
+    return post<CopilotChatResponse>("/copilot/chat", { profile, message });
   },
 };
 

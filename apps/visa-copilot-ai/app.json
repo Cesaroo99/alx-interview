@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "visa-copilot-ai",
-    "slug": "visa-copilot-ai",
+    "name": "GlobalVisa",
+    "slug": "globalvisa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "visacopilotai",
+    "scheme": "globalvisa",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

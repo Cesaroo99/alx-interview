@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from visa_copilot_ai.appointments import appointment_cost_to_dict, estimate_costs
 from visa_copilot_ai.diagnostic import diagnostic_to_dict, run_visa_diagnostic
 from visa_copilot_ai.dossier import dossier_to_dict, verify_dossier
-from visa_copilot_ai.documents import Document, DocumentType
+from visa_copilot_ai.documents import Document, DocumentType, required_documents_template
 from visa_copilot_ai.form_guidance import field_guidance_to_dict, get_field_guidance
 from visa_copilot_ai.models import EmploymentStatus, FinancialProfile, TravelPurpose, UserProfile
 from visa_copilot_ai.refusal import explain_refusal, refusal_to_dict
@@ -171,4 +171,78 @@ def guide_field(payload: dict[str, Any]) -> dict[str, Any]:
         context=context,
     )
     return field_guidance_to_dict(g)
+
+
+@app.post("/copilot/chat")
+def copilot_chat(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Copilot (MVP, sans LLM):
+    - Réponses guidées et contextuelles basées sur nos modules heuristiques.
+    - Fournit aussi des actions rapides pour l’UI.
+    """
+
+    profile_raw = payload.get("profile")
+    if isinstance(profile_raw, dict):
+        profile = _parse_profile(profile_raw)
+    else:
+        profile = _parse_profile(payload.get("profile") or {})
+
+    user_message = str(payload.get("message", "") or "").strip()
+    msg_l = user_message.lower()
+
+    quick_actions: list[dict[str, Any]] = []
+
+    # 1) Anti-scam / URL
+    if any(k in msg_l for k in ["url", "lien", "site", "portail", "officiel", "phishing", "arnaque", "scam"]):
+        answer = (
+            "Pour éviter les scams, vérifiez toujours le domaine avant d’entrer des données. "
+            "Si vous collez l’URL, je peux estimer le risque (https, raccourcisseurs, punycode, etc.)."
+        )
+        quick_actions = [
+            {"type": "open", "target": "security", "label": "Vérifier une URL"},
+            {"type": "tip", "label": "Ne jamais payer hors portail officiel"},
+        ]
+        return {"answer": answer, "quick_actions": quick_actions}
+
+    # 2) Documents
+    if any(k in msg_l for k in ["document", "pièce", "passeport", "relev", "attestation", "assurance", "dossier"]):
+        dest = profile.destination_region_hint or "destination"
+        # On réutilise le type de visa recommandé le plus plausible: sinon "visitor"
+        visa_type = "visitor"
+        req = required_documents_template(visa_type=visa_type, destination_region=dest)
+        docs = ", ".join([d.value for d in req[:8]]) + ("…" if len(req) > 8 else "")
+        answer = (
+            f"Checklist de base (à confirmer sur la source officielle) pour {dest}: {docs}\n\n"
+            "Je peux aussi vous dire quelles pièces sont les plus risquées (expiration, relevés trop anciens, incohérences)."
+        )
+        quick_actions = [
+            {"type": "open", "target": "documents", "label": "Ouvrir Documents"},
+            {"type": "open", "target": "dossier", "label": "Vérifier le dossier"},
+        ]
+        return {"answer": answer, "quick_actions": quick_actions}
+
+    # 3) Risque / refus
+    if any(k in msg_l for k in ["refus", "risque", "chance", "probabilité", "score"]):
+        diag = run_visa_diagnostic(profile)
+        answer = (
+            f"Votre readiness est {diag.readiness_score}/100 et le risque (heuristique) est {int(diag.refusal_risk_score * 100)}%.\n\n"
+            "Top actions visa-first:\n- "
+            + "\n- ".join(diag.next_best_actions[:3])
+        )
+        quick_actions = [
+            {"type": "open", "target": "diagnostic", "label": "Voir le diagnostic"},
+            {"type": "open", "target": "parcours", "label": "Voir le parcours"},
+        ]
+        return {"answer": answer, "quick_actions": quick_actions}
+
+    # 4) Default: guidance
+    answer = (
+        "Dites-moi: (1) destination, (2) motif, (3) votre situation (emploi/études), et (4) budget approximatif. "
+        "Je vous guiderai étape par étape et je vous dirai surtout *pourquoi* chaque élément compte."
+    )
+    quick_actions = [
+        {"type": "open", "target": "parcours", "label": "Démarrer le parcours"},
+        {"type": "open", "target": "diagnostic", "label": "Faire un diagnostic"},
+    ]
+    return {"answer": answer, "quick_actions": quick_actions}
 
