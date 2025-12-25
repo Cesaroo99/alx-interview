@@ -1,10 +1,12 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 
 import { Mock } from "@/src/mock/data";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function ToolsScreen() {
@@ -14,6 +16,20 @@ export default function ToolsScreen() {
         <Text style={styles.title}>Outils</Text>
         <Text style={styles.subtitle}>Modules de support (toujours au service de la crédibilité visa).</Text>
       </View>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Rendez-vous & rappels</Text>
+        <Text style={styles.body}>Créer des rappels et suivre les délais.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/appointments")} />
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Abonnements & paiement</Text>
+        <Text style={styles.body}>Choisir un plan et payer via checkout (MVP).</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Voir les plans" variant="ghost" onPress={() => router.push("/(tabs)/billing")} />
+      </GlassCard>
 
       <GlassCard>
         <Text style={styles.cardTitle}>Travel Intelligence (simulation)</Text>

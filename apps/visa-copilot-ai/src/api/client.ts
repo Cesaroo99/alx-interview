@@ -49,5 +49,13 @@ export const Api = {
   copilotChat(profile: UserProfile | null, message: string) {
     return post<CopilotChatResponse>("/copilot/chat", { profile, message });
   },
+  verifyDossier(payload: {
+    profile: UserProfile;
+    visa_type: string;
+    destination_region: string;
+    documents: Array<{ doc_id: string; doc_type: string; filename?: string; extracted?: Record<string, unknown> }>;
+  }) {
+    return post<any>("/verify-dossier", payload);
+  },
 };
 

@@ -78,6 +78,15 @@ npm run web
 # npm run ios (sur macOS, sinon via Expo Go)
 ```
 
+### Modules frontend (MVP)
+
+- **Onboarding intelligent**: 1 question par écran + résumé + diagnostic initial.
+- **Documents**: import PDF/photo + stockage local + liste (OCR à brancher ensuite).
+- **Dossier**: appel API `/verify-dossier` (profil + documents) → score + risques + actions.
+- **Copilot**: chat MVP via API `/copilot/chat` (guidance + actions rapides).
+- **Rendez-vous**: rappels MVP (prochaine itération: persistance + notifications).
+- **Abonnements**: écran pricing + checkout Flutterwave (MVP via navigateur).
+
 ### API pour connecter le frontend
 
 L’API FastAPI est dans `api/` (elle expose les modules Python via JSON).

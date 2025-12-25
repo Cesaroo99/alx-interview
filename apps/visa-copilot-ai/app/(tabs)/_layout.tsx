@@ -67,6 +67,8 @@ export default function TabLayout() {
       <Tabs.Screen name="diagnostic" options={{ href: null }} />
       <Tabs.Screen name="security" options={{ href: null }} />
       <Tabs.Screen name="dossier" options={{ href: null }} />
+      <Tabs.Screen name="appointments" options={{ href: null }} />
+      <Tabs.Screen name="billing" options={{ href: null }} />
     </Tabs>
   );
 }

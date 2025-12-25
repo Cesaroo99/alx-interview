@@ -1,13 +1,16 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
+import { useDocuments } from "@/src/state/documents";
 
 export default function DocumentsScreen() {
+  const { docs, clearAll, removeDoc } = useDocuments();
   return (
     <Screen>
       <View style={styles.header}>
@@ -19,10 +22,34 @@ export default function DocumentsScreen() {
 
       <GlassCard>
         <Text style={styles.cardTitle}>Votre coffre</Text>
-        <Text style={styles.body}>Ajoutez vos documents (passeport, relevés, attestations). On vous dira quoi corriger.</Text>
+        <Text style={styles.body}>
+          Ajoutez vos documents (passeport, relevés, attestations). On vous dira quoi corriger.
+        </Text>
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton title="Ajouter un document (à brancher)" onPress={() => undefined} />
+        <PrimaryButton title="Ajouter un document" onPress={() => router.push("/documents/add")} />
+        {docs.length ? (
+          <>
+            <View style={{ height: Tokens.space.sm }} />
+            <PrimaryButton title="Tout supprimer" variant="ghost" onPress={() => clearAll()} />
+          </>
+        ) : null}
       </GlassCard>
+
+      {docs.length ? (
+        <GlassCard>
+          <Text style={styles.cardTitle}>Fichiers</Text>
+          <View style={{ height: Tokens.space.sm }} />
+          {docs.map((d) => (
+            <View key={d.id} style={styles.docRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.docName}>{d.filename}</Text>
+                <Text style={styles.docMeta}>{d.doc_type}</Text>
+              </View>
+              <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} />
+            </View>
+          ))}
+        </GlassCard>
+      ) : null}
 
       <GlassCard>
         <Text style={styles.cardTitle}>Badges</Text>
@@ -52,5 +79,8 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginTop: Tokens.space.sm },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   badgeText: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
+  docRow: { flexDirection: "row", gap: 10, alignItems: "center", marginTop: Tokens.space.md },
+  docName: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold },
+  docMeta: { color: Colors.faint, fontSize: Tokens.font.size.sm, marginTop: 4 },
 });
 
