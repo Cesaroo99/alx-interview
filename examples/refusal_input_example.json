@@ -1,0 +1,5 @@
+{
+  "refusal_reasons": ["insufficient_funds", "ties_not_sufficient"],
+  "refusal_letter_text": "Refus pour ressources insuffisantes et doute sur l'intention de retour."
+}
+

@@ -1,0 +1,17 @@
+{
+  "profile": {
+    "nationality": "Maroc",
+    "age": 28,
+    "profession": "Développeur logiciel",
+    "employment_status": "employed",
+    "travel_purpose": "tourism",
+    "travel_history_trips_last_5y": 2,
+    "prior_visa_refusals": 0
+  },
+  "form_type": "generic_visitor_form",
+  "field_name": "profession",
+  "context": {
+    "home_address": "12 Rue Exemple, Casablanca"
+  }
+}
+

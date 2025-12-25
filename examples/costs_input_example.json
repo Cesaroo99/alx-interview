@@ -1,0 +1,12 @@
+{
+  "destination_region": "Zone Schengen",
+  "visa_type": "Visa visiteur / tourisme",
+  "currency": "EUR",
+  "visa_fee": 90,
+  "service_fee": 30,
+  "biometrics_fee": 0,
+  "translation_cost": 60,
+  "insurance_cost": 40,
+  "courier_cost": 15
+}
+
