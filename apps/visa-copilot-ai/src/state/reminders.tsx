@@ -6,7 +6,8 @@ export type Reminder = {
   id: string;
   title: string;
   dateIso: string; // YYYY-MM-DD
-  notificationId?: string;
+  notificationIds?: string[];
+  offsetsDays?: number[]; // ex: [7, 1, 0]
   createdAt: number;
 };
 
@@ -15,7 +16,7 @@ const STORAGE_KEY = "globalvisa.reminders.v1";
 type Ctx = {
   reminders: Reminder[];
   loaded: boolean;
-  addReminder: (r: { title: string; dateIso: string }) => Promise<void>;
+  addReminder: (r: { title: string; dateIso: string; offsetsDays?: number[] }) => Promise<void>;
   removeReminder: (id: string) => Promise<void>;
 };
 
@@ -31,6 +32,12 @@ function parseDateIso(dateIso: string): Date | null {
   if (!m) return null;
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 9, 0, 0);
   return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function addDays(d: Date, days: number) {
+  const x = new Date(d.getTime());
+  x.setDate(x.getDate() + days);
+  return x;
 }
 
 export function RemindersProvider({ children }: { children: React.ReactNode }) {
@@ -64,25 +71,31 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addReminder = useCallback(
-    async ({ title, dateIso }: { title: string; dateIso: string }) => {
+    async ({ title, dateIso, offsetsDays }: { title: string; dateIso: string; offsetsDays?: number[] }) => {
       const dt = parseDateIso(dateIso);
       const id = uid();
-      let notificationId: string | undefined;
+      const offsets = (offsetsDays && offsetsDays.length ? offsetsDays : [7, 1, 0]).filter((x) => Number.isFinite(x));
+      const notificationIds: string[] = [];
 
       // Best-effort local notification (web may not support).
-      if (dt && dt.getTime() > Date.now()) {
+      if (dt) {
         try {
           await Notifications.requestPermissionsAsync();
-          notificationId = await Notifications.scheduleNotificationAsync({
-            content: { title: "GlobalVisa", body: title },
-            trigger: dt,
-          });
+          for (const off of offsets) {
+            const trig = addDays(dt, -off);
+            if (trig.getTime() <= Date.now()) continue;
+            const nid = await Notifications.scheduleNotificationAsync({
+              content: { title: "GlobalVisa", body: off === 0 ? title : `${title} (J-${off})` },
+              trigger: trig,
+            });
+            notificationIds.push(nid);
+          }
         } catch {
           // ignore
         }
       }
 
-      const next: Reminder = { id, title, dateIso, notificationId, createdAt: Date.now() };
+      const next: Reminder = { id, title, dateIso, offsetsDays: offsets, notificationIds, createdAt: Date.now() };
       await persist([next, ...reminders]);
     },
     [persist, reminders]
@@ -93,9 +106,9 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
       const target = reminders.find((r) => r.id === id);
       const next = reminders.filter((r) => r.id !== id);
       await persist(next);
-      if (target?.notificationId) {
+      for (const nid of target?.notificationIds || []) {
         try {
-          await Notifications.cancelScheduledNotificationAsync(target.notificationId);
+          await Notifications.cancelScheduledNotificationAsync(nid);
         } catch {
           // ignore
         }

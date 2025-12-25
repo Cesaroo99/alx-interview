@@ -6,13 +6,57 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
+import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useDocuments } from "@/src/state/documents";
+import { useProfile } from "@/src/state/profile";
+
+function parseIso(s?: unknown): Date | null {
+  if (!s) return null;
+  const str = String(s).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function daysUntil(d: Date) {
+  const ms = d.getTime() - Date.now();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+
+function docStatus(doc: any): { tone: "success" | "warning" | "danger" | "neutral"; label: string } {
+  // heuristiques locales (OCR à brancher). On se base sur extracted.* si présent.
+  if (doc.doc_type === "passport") {
+    const exp = parseIso(doc.extracted?.expires_date);
+    if (!exp) return { tone: "warning", label: "À compléter" };
+    const d = daysUntil(exp);
+    if (d < 0) return { tone: "danger", label: "Expiré" };
+    if (d < 180) return { tone: "warning", label: "< 6 mois" };
+    return { tone: "success", label: "OK" };
+  }
+  if (doc.doc_type === "bank_statement") {
+    const issued = parseIso(doc.extracted?.issued_date);
+    if (!issued) return { tone: "warning", label: "À compléter" };
+    const age = Math.floor((Date.now() - issued.getTime()) / (1000 * 60 * 60 * 24));
+    if (age > 120) return { tone: "warning", label: "Ancien" };
+    return { tone: "success", label: "Récent" };
+  }
+  if (doc.doc_type === "travel_insurance") {
+    const exp = parseIso(doc.extracted?.expires_date);
+    if (!exp) return { tone: "warning", label: "À compléter" };
+    const d = daysUntil(exp);
+    if (d < 0) return { tone: "warning", label: "Expirée" };
+    return { tone: "success", label: "OK" };
+  }
+  return { tone: "neutral", label: "Ajouté" };
+}
 
 export default function DocumentsScreen() {
   const { docs, clearAll, removeDoc } = useDocuments();
+  const { profile } = useProfile();
   return (
     <Screen>
       <View style={styles.header}>
@@ -36,6 +80,13 @@ export default function DocumentsScreen() {
             <PrimaryButton title="Tout supprimer" variant="ghost" onPress={() => clearAll()} />
           </>
         ) : null}
+          <View style={{ height: Tokens.space.md }} />
+          <PrimaryButton
+            title="Vérifier le dossier (avec ces documents)"
+            variant="ghost"
+            onPress={() => router.push("/(tabs)/dossier")}
+            style={{ opacity: profile ? 1 : 0.6 }}
+          />
         </GlassCard>
       </AnimatedIn>
 
@@ -57,7 +108,11 @@ export default function DocumentsScreen() {
                     {d.doc_type} · {d.size ? `${Math.round(d.size / 1024)} KB` : "—"}
                   </Text>
                 </View>
-                <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} />
+                <View style={{ alignItems: "flex-end", gap: 8 }}>
+                  <Badge {...docStatus(d)} />
+                  <PrimaryButton title="Détails" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })} />
+                  <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} />
+                </View>
               </View>
             ))}
           </GlassCard>

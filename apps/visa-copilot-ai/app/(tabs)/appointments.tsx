@@ -12,6 +12,7 @@ import { useReminders } from "@/src/state/reminders";
 export default function AppointmentsScreen() {
   const [title, setTitle] = useState("Rendez-vous visa");
   const [dateIso, setDateIso] = useState("2026-01-15");
+  const [mode, setMode] = useState<"standard" | "urgent">("standard");
   const { reminders, addReminder, removeReminder } = useReminders();
 
   const canAdd = useMemo(() => title.trim().length >= 2 && dateIso.trim().length >= 8, [title, dateIso]);
@@ -20,7 +21,7 @@ export default function AppointmentsScreen() {
     <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Rendez-vous & délais</Text>
-        <Text style={styles.subtitle}>Rappels persistés + notification locale (best-effort selon plateforme).</Text>
+        <Text style={styles.subtitle}>Rappels persistés + notifications locales (J-7/J-1/J-0 par défaut).</Text>
       </View>
 
       <AnimatedIn delayMs={0}>
@@ -42,12 +43,32 @@ export default function AppointmentsScreen() {
             style={styles.input}
             placeholderTextColor="rgba(245,247,255,0.35)"
           />
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>Mode</Text>
+          <View style={styles.row2}>
+            <PrimaryButton
+              title="Standard (J-7/J-1/J-0)"
+              variant={mode === "standard" ? "brand" : "ghost"}
+              onPress={() => setMode("standard")}
+              style={{ flex: 1 }}
+            />
+            <PrimaryButton
+              title="Urgent (J-1/J-0)"
+              variant={mode === "urgent" ? "brand" : "ghost"}
+              onPress={() => setMode("urgent")}
+              style={{ flex: 1 }}
+            />
+          </View>
           <View style={{ height: Tokens.space.lg }} />
           <PrimaryButton
             title="Ajouter"
             onPress={async () => {
               if (!canAdd) return;
-              await addReminder({ title: title.trim(), dateIso: dateIso.trim() });
+              await addReminder({
+                title: title.trim(),
+                dateIso: dateIso.trim(),
+                offsetsDays: mode === "urgent" ? [1, 0] : [7, 1, 0],
+              });
             }}
             style={{ opacity: canAdd ? 1 : 0.6 }}
           />
@@ -63,7 +84,9 @@ export default function AppointmentsScreen() {
               <View key={r.id} style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle}>{r.title}</Text>
-                  <Text style={styles.rowSub}>{r.dateIso}</Text>
+                  <Text style={styles.rowSub}>
+                    {r.dateIso} · rappels: {(r.offsetsDays || [7, 1, 0]).sort((a, b) => b - a).map((d) => `J-${d}`).join(", ")}
+                  </Text>
                 </View>
                 <PrimaryButton title="Suppr." variant="ghost" onPress={() => removeReminder(r.id)} />
               </View>
@@ -93,6 +116,7 @@ const styles = StyleSheet.create({
     fontSize: Tokens.font.size.md,
   },
   row: { flexDirection: "row", gap: 10, alignItems: "center", marginTop: Tokens.space.md },
+  row2: { flexDirection: "row", gap: 10, marginTop: 8 },
   rowTitle: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold },
   rowSub: { color: Colors.faint, fontSize: Tokens.font.size.sm, marginTop: 4 },
 });
