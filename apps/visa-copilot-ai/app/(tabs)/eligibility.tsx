@@ -123,6 +123,9 @@ export default function EligibilityScreen() {
           <GlassCard>
             <Text style={styles.cardTitle}>Résultats</Text>
             <Text style={styles.body}>{data.disclaimer}</Text>
+            {data.engine?.type ? (
+              <Text style={styles.hint}>Moteur: {data.engine.type} · source règles: {data.engine.rules_source}</Text>
+            ) : null}
             <View style={{ height: Tokens.space.md }} />
             {data.results.map((r: any) => (
               <View key={r.visaType} style={styles.resultCard}>
@@ -131,6 +134,20 @@ export default function EligibilityScreen() {
                   <Badge tone={toneFromColor(r.color)} label={`${r.score}%`} />
                 </View>
                 <Text style={styles.body}>{r.message}</Text>
+                {r.ai?.summary ? (
+                  <>
+                    <Text style={styles.smallTitle}>Pourquoi (IA)</Text>
+                    <Text style={styles.body}>{r.ai.summary}</Text>
+                    <View style={styles.pills}>
+                      {(r.ai.strengths || []).slice(0, 3).map((s: any) => (
+                        <Badge key={`s_${s.criterion}`} tone="success" label={`${s.label}`} />
+                      ))}
+                      {(r.ai.weaknesses || []).slice(0, 3).map((w: any) => (
+                        <Badge key={`w_${w.criterion}`} tone="warning" label={`${w.label}`} />
+                      ))}
+                    </View>
+                  </>
+                ) : null}
                 {r.missingRequirements?.length ? (
                   <>
                     <Text style={styles.smallTitle}>Manque / points bloquants</Text>
@@ -181,6 +198,7 @@ const styles = StyleSheet.create({
     fontSize: Tokens.font.size.md,
   },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  hint: { marginTop: Tokens.space.sm, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
   resultCard: { marginTop: Tokens.space.lg, paddingTop: Tokens.space.md, borderTopWidth: 1, borderTopColor: Colors.border },
   resultTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   resultTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold, flex: 1 },
@@ -188,5 +206,6 @@ const styles = StyleSheet.create({
   bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   bulletDot: { width: 8, height: 8, borderRadius: 99, marginTop: 6, backgroundColor: Colors.brandA },
   bulletText: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: Tokens.space.sm },
 });
 

@@ -295,12 +295,18 @@ def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:
         prior_visa_refusals=(int(up["prior_visa_refusals"]) if "prior_visa_refusals" in up and up["prior_visa_refusals"] is not None else None),
     )
 
-    # Charge règles (override > embedded) via API admin
+    # IA "rules reasoner" : le scoring est piloté par des règles configurables,
+    # et enrichi d’un raisonnement explicable (forces/faiblesses) basé sur ces règles.
     rules_pack = load_rules()
     results = evaluate_visa_eligibility(user, country=country or "default", rules=rules_pack.rules)
     return {
         "country": country or "default",
-        "disclaimer": "Scores heuristiques: ils n’impliquent pas une décision. Vérifiez toujours les règles officielles.",
+        "engine": {
+            "type": "ai_rules_reasoner",
+            "rules_source": rules_pack.source,
+            "rules_path": rules_pack.path,
+        },
+        "disclaimer": "Scores heuristiques (IA explicable): ils n’impliquent pas une décision. Vérifiez toujours les règles officielles.",
         "results": [eligibility_to_dict(r) for r in results],
     }
 

@@ -58,6 +58,7 @@ class VisaEligibilityResult:
     missingRequirements: list[str]
     improvementsToNextLevel: list[str]
     why: list[str]
+    ai: dict[str, Any] = field(default_factory=dict)
 
 
 def _clamp(x: float, lo: float, hi: float) -> float:
@@ -238,6 +239,85 @@ def _message_from_color(color: str) -> str:
         return "Profil acceptable mais améliorable."
     return "Profil insuffisant actuellement (ou informations manquantes)."
 
+CRITERIA_LABELS = {
+    "age": "Âge",
+    "nationality": "Nationalité",
+    "destination_fit": "Cohérence destination",
+    "education": "Niveau d’études",
+    "field_of_study": "Domaine de formation",
+    "experience": "Expérience",
+    "marital_status": "Situation matrimoniale",
+    "language": "Niveau de langue",
+    "financial_capacity": "Capacité financière",
+    "travel_history": "Historique de voyages/visas",
+    "sponsor": "Sponsor",
+}
+
+
+def _ai_reasoning(
+    *,
+    weights: dict[str, Any],
+    subs: dict[str, float],
+    total_w: float,
+    missing: list[str],
+    improvements: list[str],
+) -> dict[str, Any]:
+    """
+    IA explicable (sans LLM):
+    - identifie forces/faiblesses à partir des contributions pondérées
+    - propose un plan d'amélioration concret (déjà calculé) + résumé
+    """
+
+    if total_w <= 0:
+        return {
+            "mode": "ai_rules_reasoner",
+            "summary": "Règles/poids manquants: analyse limitée.",
+            "strengths": [],
+            "weaknesses": [],
+        }
+
+    strengths: list[dict[str, Any]] = []
+    weaknesses: list[dict[str, Any]] = []
+
+    for k, w in weights.items():
+        try:
+            wf = float(w)
+        except Exception:
+            continue
+        if wf <= 0:
+            continue
+        s = float(subs.get(k, 0.4))
+        contrib = (wf * s) / total_w  # 0..1
+        gap = (wf * (1.0 - s)) / total_w
+        item = {
+            "criterion": k,
+            "label": CRITERIA_LABELS.get(k, k),
+            "score01": round(_clamp(s, 0.0, 1.0), 3),
+            "impact01": round(_clamp(contrib, 0.0, 1.0), 3),
+        }
+        # pick based on contribution and gap
+        strengths.append(item)
+        weaknesses.append({**item, "gap01": round(_clamp(gap, 0.0, 1.0), 3)})
+
+    strengths.sort(key=lambda x: x.get("impact01", 0), reverse=True)
+    weaknesses.sort(key=lambda x: x.get("gap01", 0), reverse=True)
+
+    summary_bits: list[str] = []
+    if missing:
+        summary_bits.append("Infos/exigences manquantes détectées.")
+    if weaknesses:
+        summary_bits.append(f"Levier principal: {weaknesses[0]['label']}.")
+    if strengths:
+        summary_bits.append(f"Point fort: {strengths[0]['label']}.")
+
+    return {
+        "mode": "ai_rules_reasoner",
+        "summary": " ".join(summary_bits) if summary_bits else "Analyse effectuée.",
+        "strengths": strengths[:3],
+        "weaknesses": weaknesses[:3],
+        "improvement_plan": list(dict.fromkeys([_norm(x) for x in improvements if _norm(x)]))[:5],
+    }
+
 
 def evaluate_visa_eligibility(
     user: EligibilityUserProfile,
@@ -367,6 +447,8 @@ def evaluate_visa_eligibility(
         if missing:
             why.append("Certaines exigences semblent manquantes: le score reflète aussi les infos absentes.")
 
+        ai = _ai_reasoning(weights=weights, subs=subs, total_w=total_w, missing=missing, improvements=improvements)
+
         out.append(
             VisaEligibilityResult(
                 visaType=label,
@@ -376,6 +458,7 @@ def evaluate_visa_eligibility(
                 missingRequirements=missing,
                 improvementsToNextLevel=list(dict.fromkeys([_norm(x) for x in improvements if _norm(x)])),
                 why=why,
+                ai=ai,
             )
         )
 
@@ -393,5 +476,6 @@ def eligibility_to_dict(r: VisaEligibilityResult) -> dict[str, Any]:
         "missingRequirements": list(r.missingRequirements),
         "improvementsToNextLevel": list(r.improvementsToNextLevel),
         "why": list(r.why),
+        "ai": dict(r.ai or {}),
     }
 
