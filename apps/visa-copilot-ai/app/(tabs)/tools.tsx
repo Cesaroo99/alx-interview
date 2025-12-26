@@ -25,6 +25,20 @@ export default function ToolsScreen() {
       </GlassCard>
 
       <GlassCard>
+        <Text style={styles.cardTitle}>Ambassades & consulats</Text>
+        <Text style={styles.body}>Trouver une ambassade/consulat/TLS/VFS (liste + filtres) et ouvrir l’itinéraire.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/offices")} />
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Actualités visa & lois</Text>
+        <Text style={styles.body}>Flux par pays, catégories et tags (avec sources et avertissements).</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/news")} />
+      </GlassCard>
+
+      <GlassCard>
         <Text style={styles.cardTitle}>Rendez-vous & rappels</Text>
         <Text style={styles.body}>Créer des rappels et suivre les délais.</Text>
         <View style={{ height: Tokens.space.md }} />

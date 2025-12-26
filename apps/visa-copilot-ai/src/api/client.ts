@@ -15,6 +15,18 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function get<T>(path: string, headers?: Record<string, string>): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "GET",
+    headers: { ...(headers || {}) },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${path} ${res.status}: ${text || res.statusText}`);
+  }
+  return (await res.json()) as T;
+}
+
 async function request<T>(path: string, options: { method: string; body?: unknown; headers?: Record<string, string> }) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: options.method,
@@ -50,6 +62,37 @@ export type VerifyUrlResponse = {
 export type CopilotChatResponse = {
   answer: string;
   quick_actions: Array<{ type: string; target?: string; label: string }>;
+};
+
+export type OfficeItem = {
+  id: string;
+  type: "embassy" | "consulate" | "tls" | "vfs" | string;
+  name: string;
+  country: string;
+  city: string;
+  address: string;
+  geo: null | { lat: number; lng: number };
+  hours: Array<{ day: string; open: string | null; close: string | null; note: string }>;
+  critical_hours_days: string[];
+  contacts: { email: string; phone: string };
+  official_url: string;
+  services: string[];
+  disclaimer: string;
+  official_url_verdict?: any;
+};
+
+export type NewsItem = {
+  id: string;
+  category: "visa_news" | "law_change" | string;
+  country: string;
+  tags: string[];
+  title: string;
+  summary: string;
+  source_name: string;
+  source_url: string;
+  published_at: string;
+  reliability_score: number;
+  disclaimer: string;
 };
 
 export const Api = {
@@ -110,6 +153,27 @@ export const Api = {
       method: "DELETE",
       headers: { "x-admin-key": adminKey },
     });
+  },
+  offices(params?: { country?: string; city?: string; type?: string; service?: string; q?: string; verify_urls?: boolean }) {
+    const qs = new URLSearchParams();
+    if (params?.country) qs.set("country", params.country);
+    if (params?.city) qs.set("city", params.city);
+    if (params?.type) qs.set("type", params.type);
+    if (params?.service) qs.set("service", params.service);
+    if (params?.q) qs.set("q", params.q);
+    if (params?.verify_urls) qs.set("verify_urls", "true");
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return get<{ source: any; disclaimer: string; items: OfficeItem[] }>(`/offices${suffix}`);
+  },
+  news(params?: { country?: string; category?: string; tag?: string; q?: string; limit?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.country) qs.set("country", params.country);
+    if (params?.category) qs.set("category", params.category);
+    if (params?.tag) qs.set("tag", params.tag);
+    if (params?.q) qs.set("q", params.q);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return get<{ source: any; items: NewsItem[] }>(`/news${suffix}`);
   },
 };
 

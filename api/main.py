@@ -24,6 +24,19 @@ from visa_copilot_ai.security import security_verdict_to_dict, verify_official_u
 from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_travel_plan
 
 from .rules_admin import delete_override_rules, load_rules, save_override_rules, validate_rules
+from .content_admin import (
+    delete_news_override,
+    delete_offices_override,
+    load_news_data,
+    load_offices_data,
+    save_news_override,
+    save_offices_override,
+    validate_news_data,
+    validate_offices_data,
+)
+
+from visa_copilot_ai.offices import list_offices
+from visa_copilot_ai.news import list_news
 
 
 app = FastAPI(title="Visa Copilot AI API", version="0.1.0")
@@ -311,6 +324,60 @@ def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+@app.get("/offices")
+def offices(
+    country: Optional[str] = None,
+    city: Optional[str] = None,
+    type: Optional[str] = None,  # noqa: A002 - API param name
+    service: Optional[str] = None,
+    q: Optional[str] = None,
+    verify_urls: bool = False,
+) -> dict[str, Any]:
+    """
+    Ambassades/consulats/centres (TLS/VFS):
+    - Filtrage par pays/ville/type/service + recherche texte
+    - Optionnel: ajout d'un verdict anti-scam sur l'URL officielle
+    """
+
+    pack = load_offices_data()
+    items = list_offices(country=country, city=city, office_type=type, service=service, q=q, data=pack.data)
+
+    if verify_urls:
+        for it in items:
+            url = str(it.get("official_url") or "")
+            if url:
+                it["official_url_verdict"] = security_verdict_to_dict(verify_official_url(url, expected_country=it.get("country")))
+            else:
+                it["official_url_verdict"] = None
+
+    return {
+        "source": {"type": "content_pack", "source": pack.source, "path": pack.path},
+        "disclaimer": "Données informatives. Confirmer toujours via la source officielle avant déplacement/paiement.",
+        "items": items,
+    }
+
+
+@app.get("/news")
+def news(
+    country: Optional[str] = None,
+    category: Optional[str] = None,
+    tag: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 30,
+) -> dict[str, Any]:
+    """
+    Actualités Visa & Lois:
+    - feed par pays + catégories (visa_news/law_change) + tags
+    """
+
+    pack = load_news_data()
+    items = list_news(country=country, category=category, tag=tag, q=q, limit=limit, data=pack.data)
+    return {
+        "source": {"type": "content_pack", "source": pack.source, "path": pack.path},
+        "items": items,
+    }
+
+
 def _require_admin_key(x_admin_key: str | None) -> None:
     expected = os.getenv("GLOBALVISA_ADMIN_KEY", "").strip()
     if not expected:
@@ -352,5 +419,77 @@ def admin_put_rules(payload: dict[str, Any], x_admin_key: str | None = Header(de
 def admin_delete_rules(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
     _require_admin_key(x_admin_key)
     deleted = delete_override_rules()
+    return {"ok": True, "deleted": deleted}
+
+
+@app.get("/admin/offices")
+def admin_get_offices(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    r = load_offices_data()
+    return {"source": r.source, "path": r.path, "data": r.data}
+
+
+@app.post("/admin/offices/validate")
+def admin_validate_offices(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data doit être un objet JSON.")
+    return validate_offices_data(data)
+
+
+@app.put("/admin/offices")
+def admin_put_offices(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data doit être un objet JSON.")
+    v = validate_offices_data(data)
+    if not v.get("ok"):
+        raise HTTPException(status_code=400, detail={"message": "Données invalides", "validation": v})
+    path = save_offices_override(data)
+    return {"ok": True, "saved_to": path, "validation": v}
+
+
+@app.delete("/admin/offices")
+def admin_delete_offices(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    deleted = delete_offices_override()
+    return {"ok": True, "deleted": deleted}
+
+
+@app.get("/admin/news")
+def admin_get_news(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    r = load_news_data()
+    return {"source": r.source, "path": r.path, "data": r.data}
+
+
+@app.post("/admin/news/validate")
+def admin_validate_news(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data doit être un objet JSON.")
+    return validate_news_data(data)
+
+
+@app.put("/admin/news")
+def admin_put_news(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data doit être un objet JSON.")
+    v = validate_news_data(data)
+    if not v.get("ok"):
+        raise HTTPException(status_code=400, detail={"message": "Données invalides", "validation": v})
+    path = save_news_override(data)
+    return {"ok": True, "saved_to": path, "validation": v}
+
+
+@app.delete("/admin/news")
+def admin_delete_news(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    deleted = delete_news_override()
     return {"ok": True, "deleted": deleted}
 
