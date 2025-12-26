@@ -37,6 +37,16 @@ from .content_admin import (
 
 from visa_copilot_ai.offices import list_offices
 from visa_copilot_ai.news import list_news
+from visa_copilot_ai.news_ingest import ingest_news, load_sources_list
+
+from .news_ingest_admin import (
+    delete_sources_override,
+    load_ingested_cache,
+    load_sources,
+    save_ingested_cache,
+    save_sources_override,
+    validate_sources,
+)
 
 
 app = FastAPI(title="Visa Copilot AI API", version="0.1.0")
@@ -371,9 +381,23 @@ def news(
     """
 
     pack = load_news_data()
-    items = list_news(country=country, category=category, tag=tag, q=q, limit=limit, data=pack.data)
+    cache = load_ingested_cache()
+    merged_items = []
+    if isinstance(pack.data.get("items"), list):
+        merged_items.extend(pack.data["items"])
+    if isinstance(cache.data.get("items"), list):
+        merged_items.extend(cache.data["items"])
+    items = list_news(
+        country=country,
+        category=category,
+        tag=tag,
+        q=q,
+        limit=limit,
+        data={"items": merged_items},
+    )
     return {
         "source": {"type": "content_pack", "source": pack.source, "path": pack.path},
+        "ingested_cache": {"path": cache.path, "updated_at": cache.data.get("updated_at")},
         "items": items,
     }
 
@@ -492,4 +516,82 @@ def admin_delete_news(x_admin_key: str | None = Header(default=None)) -> dict[st
     _require_admin_key(x_admin_key)
     deleted = delete_news_override()
     return {"ok": True, "deleted": deleted}
+
+
+@app.get("/admin/news/sources")
+def admin_get_news_sources(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    r = load_sources()
+    return {"source": r.source, "path": r.path, "data": r.data}
+
+
+@app.post("/admin/news/sources/validate")
+def admin_validate_news_sources(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data doit être un objet JSON.")
+    return validate_sources(data)
+
+
+@app.put("/admin/news/sources")
+def admin_put_news_sources(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("data doit être un objet JSON.")
+    v = validate_sources(data)
+    if not v.get("ok"):
+        raise HTTPException(status_code=400, detail={"message": "Sources invalides", "validation": v})
+    path = save_sources_override(data)
+    return {"ok": True, "saved_to": path, "validation": v}
+
+
+@app.delete("/admin/news/sources")
+def admin_delete_news_sources(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    deleted = delete_sources_override()
+    return {"ok": True, "deleted": deleted}
+
+
+@app.get("/admin/news/ingest/status")
+def admin_news_ingest_status(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    cache = load_ingested_cache()
+    return {
+        "cache_path": cache.path,
+        "updated_at": cache.data.get("updated_at"),
+        "last_ingest": cache.data.get("last_ingest"),
+        "items_count": len(cache.data.get("items") or []) if isinstance(cache.data.get("items"), list) else 0,
+    }
+
+
+@app.post("/admin/news/ingest/run")
+def admin_news_ingest_run(payload: dict[str, Any] | None = None, x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    body = payload or {}
+    max_per_source = int(body.get("max_per_source", 20) or 20)
+    max_total = int(body.get("max_total", 400) or 400)
+
+    src_pack = load_sources()
+    srcs = load_sources_list(src_pack.data)
+
+    cache = load_ingested_cache()
+    existing = cache.data.get("items") if isinstance(cache.data, dict) else []
+
+    items, meta = ingest_news(sources=srcs, existing_items=existing, max_per_source=max_per_source, max_total=max_total)
+    saved_payload = {
+        "updated_at": meta.updated_at,
+        "items": items,
+        "last_ingest": {
+            "ok": meta.ok,
+            "fetched_sources": meta.fetched_sources,
+            "new_items": meta.new_items,
+            "total_items": meta.total_items,
+            "errors": meta.errors,
+            "updated_at": meta.updated_at,
+        },
+    }
+    saved_to = save_ingested_cache(saved_payload)
+    return {"ok": meta.ok, "saved_to": saved_to, "last_ingest": saved_payload["last_ingest"], "sources": {"source": src_pack.source, "path": src_pack.path}}
 

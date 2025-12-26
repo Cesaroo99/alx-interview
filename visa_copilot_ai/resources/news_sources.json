@@ -1,0 +1,26 @@
+{
+  "updated_at": "2025-12-26",
+  "sources": [
+    {
+      "id": "canada-ircc-news",
+      "country": "Canada",
+      "category": "visa_news",
+      "source_name": "IRCC (exemple)",
+      "source_url": "https://www.canada.ca/",
+      "feed_url": "https://www.canada.ca/en/immigration-refugees-citizenship/news.xml",
+      "source_type": "government",
+      "default_tags": ["immigration"]
+    },
+    {
+      "id": "france-legifrance",
+      "country": "France",
+      "category": "law_change",
+      "source_name": "Legifrance (exemple)",
+      "source_url": "https://www.legifrance.gouv.fr/",
+      "feed_url": "https://www.legifrance.gouv.fr/rss",
+      "source_type": "government",
+      "default_tags": ["law"]
+    }
+  ]
+}
+
