@@ -57,5 +57,20 @@ export const Api = {
   }) {
     return post<any>("/verify-dossier", payload);
   },
+  visaProposals(country: string, userProfile: UserProfile) {
+    return post<{
+      country: string;
+      disclaimer: string;
+      results: Array<{
+        visaType: string;
+        score: number;
+        color: "green" | "orange" | "red";
+        message: string;
+        missingRequirements: string[];
+        improvementsToNextLevel: string[];
+        why: string[];
+      }>;
+    }>("/eligibility/proposals", { country, userProfile });
+  },
 };
 

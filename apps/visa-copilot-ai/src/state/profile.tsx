@@ -16,6 +16,15 @@ export type UserProfile = {
     savings_usd?: number;
     sponsor_available?: boolean;
   };
+
+  // --- GlobalVisa: eligibility module (optionnel, peut être complété plus tard) ---
+  education_level?: "none" | "high_school" | "associate" | "bachelor" | "master" | "phd" | string;
+  field_of_study?: string;
+  years_experience?: number;
+  marital_status?: "single" | "married" | "divorced" | "widowed" | string;
+  language?: { exam?: "IELTS" | "TEF" | "TOEFL" | "self" | string; band?: number };
+  financial_capacity_usd?: number; // estimation globale (différente de savings_usd)
+  sponsor_available?: boolean; // sponsor pour visa (différent de financial_profile.sponsor_available)
 };
 
 const STORAGE_KEY = "visa_copilot_ai.profile.v1";

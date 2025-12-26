@@ -9,6 +9,12 @@ from visa_copilot_ai.appointments import appointment_cost_to_dict, estimate_cost
 from visa_copilot_ai.diagnostic import diagnostic_to_dict, run_visa_diagnostic
 from visa_copilot_ai.dossier import dossier_to_dict, verify_dossier
 from visa_copilot_ai.documents import Document, DocumentType, required_documents_template
+from visa_copilot_ai.eligibility import (
+    EligibilityUserProfile,
+    LanguageEvidence,
+    eligibility_to_dict,
+    evaluate_visa_eligibility,
+)
 from visa_copilot_ai.form_guidance import field_guidance_to_dict, get_field_guidance
 from visa_copilot_ai.models import EmploymentStatus, FinancialProfile, TravelPurpose, UserProfile
 from visa_copilot_ai.refusal import explain_refusal, refusal_to_dict
@@ -245,4 +251,50 @@ def copilot_chat(payload: dict[str, Any]) -> dict[str, Any]:
         {"type": "open", "target": "diagnostic", "label": "Faire un diagnostic"},
     ]
     return {"answer": answer, "quick_actions": quick_actions}
+
+
+@app.post("/eligibility/proposals")
+def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Module "Voir les propositions de visa auxquelles je suis éligible".
+
+    Entrée attendue:
+    {
+      "country": "canada",
+      "userProfile": {...}
+    }
+    """
+
+    country = str(payload.get("country", "") or "").strip() or str(payload.get("destination_country", "") or "").strip()
+    up = payload.get("userProfile") or payload.get("profile") or {}
+    if not isinstance(up, dict):
+        raise ValueError("userProfile doit être un objet.")
+
+    language_raw = up.get("language") if isinstance(up.get("language"), dict) else {}
+    lang = LanguageEvidence(
+        band=language_raw.get("band") if language_raw else up.get("language_band"),
+        exam=str(language_raw.get("exam") if language_raw else (up.get("language_exam") or "self")),
+    )
+
+    user = EligibilityUserProfile(
+        age=int(up.get("age", 0) or 0),
+        nationality=str(up.get("nationality", "") or ""),
+        destination_country=country or str(up.get("destination_country", "") or ""),
+        education_level=str(up.get("education_level", "") or ""),
+        field_of_study=str(up.get("field_of_study", "") or ""),
+        years_experience=float(up.get("years_experience", 0) or 0),
+        marital_status=str(up.get("marital_status", "") or ""),
+        language=lang,
+        financial_capacity_usd=(float(up["financial_capacity_usd"]) if "financial_capacity_usd" in up and up["financial_capacity_usd"] is not None else None),
+        sponsor_available=(bool(up["sponsor_available"]) if "sponsor_available" in up and up["sponsor_available"] is not None else None),
+        travel_history_trips_last_5y=(int(up["travel_history_trips_last_5y"]) if "travel_history_trips_last_5y" in up and up["travel_history_trips_last_5y"] is not None else None),
+        prior_visa_refusals=(int(up["prior_visa_refusals"]) if "prior_visa_refusals" in up and up["prior_visa_refusals"] is not None else None),
+    )
+
+    results = evaluate_visa_eligibility(user, country=country or "default")
+    return {
+        "country": country or "default",
+        "disclaimer": "Scores heuristiques: ils n’impliquent pas une décision. Vérifiez toujours les règles officielles.",
+        "results": [eligibility_to_dict(r) for r in results],
+    }
 

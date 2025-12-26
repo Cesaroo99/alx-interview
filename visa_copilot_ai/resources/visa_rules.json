@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "disclaimer": "Ces règles sont heuristiques et informatives. Elles ne garantissent pas l’obtention d’un visa. La source de vérité reste l’autorité officielle du pays.",
+  "countries": {
+    "default": {
+      "visa_types": {
+        "tourist": {
+          "label": "Visa touristique",
+          "thresholds": { "green": 70, "orange": 40 },
+          "weights": {
+            "financial_capacity": 0.25,
+            "travel_history": 0.15,
+            "marital_status": 0.05,
+            "age": 0.10,
+            "language": 0.05,
+            "sponsor": 0.05,
+            "education": 0.05,
+            "experience": 0.05,
+            "destination_fit": 0.25
+          },
+          "requirements": {
+            "min_financial_capacity_usd": 800,
+            "recommended_financial_capacity_usd": 2500
+          },
+          "improvement_hints": {
+            "financial_capacity": "Augmenter la capacité financière démontrable (épargne/revenus) ou réduire la durée/ambition du voyage.",
+            "travel_history": "Renforcer l’historique de voyages (voyages courts et cohérents) et éviter les incohérences.",
+            "sponsor": "Ajouter un sponsor officiel (documenté) si vos finances sont faibles."
+          }
+        },
+        "student": {
+          "label": "Visa étudiant",
+          "thresholds": { "green": 70, "orange": 40 },
+          "weights": {
+            "education": 0.20,
+            "language": 0.20,
+            "financial_capacity": 0.25,
+            "field_of_study": 0.10,
+            "age": 0.10,
+            "travel_history": 0.05,
+            "sponsor": 0.10
+          },
+          "requirements": {
+            "min_financial_capacity_usd": 3000,
+            "recommended_financial_capacity_usd": 9000,
+            "min_language_band": 5
+          },
+          "improvement_hints": {
+            "language": "Améliorer la preuve de langue (IELTS/TEF/TOEFL) ou l’auto‑évaluation avec un plan crédible.",
+            "financial_capacity": "Montrer des fonds suffisants et stables (épargne/revenus/sponsor) selon les règles officielles.",
+            "education": "Clarifier le niveau d’études et fournir des preuves (diplômes/attestations)."
+          }
+        },
+        "skilled_worker": {
+          "label": "Visa travailleur qualifié",
+          "thresholds": { "green": 70, "orange": 40 },
+          "weights": {
+            "experience": 0.30,
+            "education": 0.20,
+            "language": 0.20,
+            "age": 0.10,
+            "field_of_study": 0.10,
+            "sponsor": 0.05,
+            "financial_capacity": 0.05
+          },
+          "requirements": {
+            "min_experience_years": 2,
+            "recommended_experience_years": 5,
+            "min_language_band": 6
+          },
+          "improvement_hints": {
+            "experience": "Augmenter l’expérience vérifiable (années) et préparer des preuves solides (contrats, attestations).",
+            "language": "Améliorer le niveau de langue requis et fournir une preuve standardisée.",
+            "education": "Renforcer la cohérence diplôme ↔ métier ↔ projet (éviter les parcours non justifiés)."
+          }
+        },
+        "temporary_work": {
+          "label": "Visa travail temporaire",
+          "thresholds": { "green": 70, "orange": 40 },
+          "weights": {
+            "sponsor": 0.30,
+            "experience": 0.20,
+            "education": 0.10,
+            "language": 0.15,
+            "age": 0.10,
+            "financial_capacity": 0.10,
+            "travel_history": 0.05
+          },
+          "requirements": {
+            "requires_sponsor": true,
+            "min_experience_years": 1
+          },
+          "improvement_hints": {
+            "sponsor": "Obtenir une offre/contrat (sponsor) conforme aux règles officielles du pays.",
+            "experience": "Documenter l’expérience sur le poste ciblé.",
+            "language": "Améliorer le niveau de langue si le poste l’exige."
+          }
+        },
+        "business_investor": {
+          "label": "Visa business / investisseur",
+          "thresholds": { "green": 70, "orange": 40 },
+          "weights": {
+            "financial_capacity": 0.45,
+            "experience": 0.15,
+            "education": 0.05,
+            "language": 0.10,
+            "age": 0.05,
+            "travel_history": 0.10,
+            "destination_fit": 0.10
+          },
+          "requirements": {
+            "min_financial_capacity_usd": 20000,
+            "recommended_financial_capacity_usd": 80000
+          },
+          "improvement_hints": {
+            "financial_capacity": "Augmenter les fonds disponibles et documentés (source des fonds, stabilité).",
+            "experience": "Renforcer l’expérience business/investissement (preuves d’activité)."
+          }
+        },
+        "family_reunification": {
+          "label": "Regroupement familial",
+          "thresholds": { "green": 70, "orange": 40 },
+          "weights": {
+            "sponsor": 0.35,
+            "marital_status": 0.20,
+            "financial_capacity": 0.15,
+            "travel_history": 0.05,
+            "age": 0.05,
+            "destination_fit": 0.20
+          },
+          "requirements": {
+            "requires_sponsor": true
+          },
+          "improvement_hints": {
+            "sponsor": "Documenter le statut du membre de famille (hébergeant) et les preuves de lien.",
+            "marital_status": "Fournir preuves d’état civil et cohérence des informations."
+          }
+        }
+      }
+    },
+    "canada": {
+      "inherits": "default",
+      "visa_types": {
+        "skilled_worker": {
+          "requirements": {
+            "min_language_band": 7,
+            "recommended_experience_years": 6
+          }
+        },
+        "student": {
+          "requirements": {
+            "min_financial_capacity_usd": 6000,
+            "recommended_financial_capacity_usd": 12000
+          }
+        }
+      }
+    }
+  }
+}
+
