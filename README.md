@@ -99,6 +99,22 @@ python3 -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 Dans le frontend, configurez la variable:
 - `EXPO_PUBLIC_API_BASE_URL` (ex: `http://localhost:8000`)
 
+### Admin (règles éligibilité modifiables sans toucher au code)
+
+Le module “propositions de visa” lit ses règles depuis un fichier JSON et supporte un **override**:
+
+- **Règles par défaut**: `visa_copilot_ai/resources/visa_rules.json`
+- **Override (API)**: `api/data/visa_rules_override.json` (créé via endpoints admin)
+
+Endpoints admin (protégés par `GLOBALVISA_ADMIN_KEY`):
+- `GET /admin/eligibility/rules`
+- `POST /admin/eligibility/rules/validate`
+- `PUT /admin/eligibility/rules` (écrit l’override)
+- `DELETE /admin/eligibility/rules` (supprime l’override)
+
+UI admin (optionnelle) dans l’app:
+- définir `EXPO_PUBLIC_ADMIN_MODE=1` pour afficher le bouton Admin (vous devrez entrer la clé manuellement).
+
 ### Déploiement Render (frontend web + backend API) — prêt
 
 Le repo contient maintenant un blueprint Render `render.yaml` (déploiement “1‑clic”):

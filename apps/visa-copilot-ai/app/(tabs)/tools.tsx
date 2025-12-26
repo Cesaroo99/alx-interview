@@ -18,6 +18,13 @@ export default function ToolsScreen() {
       </View>
 
       <GlassCard>
+        <Text style={styles.cardTitle}>Propositions de visa</Text>
+        <Text style={styles.body}>Voir les visas potentiellement accessibles + score et pistes d’amélioration.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/eligibility")} />
+      </GlassCard>
+
+      <GlassCard>
         <Text style={styles.cardTitle}>Rendez-vous & rappels</Text>
         <Text style={styles.body}>Créer des rappels et suivre les délais.</Text>
         <View style={{ height: Tokens.space.md }} />
@@ -72,6 +79,15 @@ export default function ToolsScreen() {
           </View>
         ))}
       </GlassCard>
+
+      {process.env.EXPO_PUBLIC_ADMIN_MODE === "1" ? (
+        <GlassCard>
+          <Text style={styles.cardTitle}>Admin</Text>
+          <Text style={styles.body}>Éditer les règles d’éligibilité (mode admin).</Text>
+          <View style={{ height: Tokens.space.md }} />
+          <PrimaryButton title="Règles éligibilité" variant="ghost" onPress={() => router.push("/(tabs)/admin_rules")} />
+        </GlassCard>
+      ) : null}
     </Screen>
   );
 }

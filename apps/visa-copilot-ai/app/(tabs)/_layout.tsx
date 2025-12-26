@@ -70,6 +70,7 @@ export default function TabLayout() {
       <Tabs.Screen name="appointments" options={{ href: null }} />
       <Tabs.Screen name="billing" options={{ href: null }} />
       <Tabs.Screen name="eligibility" options={{ href: null }} />
+      <Tabs.Screen name="admin_rules" options={{ href: null }} />
     </Tabs>
   );
 }

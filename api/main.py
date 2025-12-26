@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from visa_copilot_ai.appointments import appointment_cost_to_dict, estimate_costs
@@ -20,6 +22,8 @@ from visa_copilot_ai.models import EmploymentStatus, FinancialProfile, TravelPur
 from visa_copilot_ai.refusal import explain_refusal, refusal_to_dict
 from visa_copilot_ai.security import security_verdict_to_dict, verify_official_url
 from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_travel_plan
+
+from .rules_admin import delete_override_rules, load_rules, save_override_rules, validate_rules
 
 
 app = FastAPI(title="Visa Copilot AI API", version="0.1.0")
@@ -291,10 +295,56 @@ def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:
         prior_visa_refusals=(int(up["prior_visa_refusals"]) if "prior_visa_refusals" in up and up["prior_visa_refusals"] is not None else None),
     )
 
-    results = evaluate_visa_eligibility(user, country=country or "default")
+    # Charge règles (override > embedded) via API admin
+    rules_pack = load_rules()
+    results = evaluate_visa_eligibility(user, country=country or "default", rules=rules_pack.rules)
     return {
         "country": country or "default",
         "disclaimer": "Scores heuristiques: ils n’impliquent pas une décision. Vérifiez toujours les règles officielles.",
         "results": [eligibility_to_dict(r) for r in results],
     }
+
+
+def _require_admin_key(x_admin_key: str | None) -> None:
+    expected = os.getenv("GLOBALVISA_ADMIN_KEY", "").strip()
+    if not expected:
+        raise HTTPException(status_code=403, detail="Admin non configuré (GLOBALVISA_ADMIN_KEY manquant).")
+    if not x_admin_key or x_admin_key.strip() != expected:
+        raise HTTPException(status_code=403, detail="Clé admin invalide.")
+
+
+@app.get("/admin/eligibility/rules")
+def admin_get_rules(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    r = load_rules()
+    return {"source": r.source, "path": r.path, "rules": r.rules}
+
+
+@app.post("/admin/eligibility/rules/validate")
+def admin_validate_rules(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    rules = payload.get("rules")
+    if not isinstance(rules, dict):
+        raise ValueError("rules doit être un objet JSON.")
+    return validate_rules(rules)
+
+
+@app.put("/admin/eligibility/rules")
+def admin_put_rules(payload: dict[str, Any], x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    rules = payload.get("rules")
+    if not isinstance(rules, dict):
+        raise ValueError("rules doit être un objet JSON.")
+    v = validate_rules(rules)
+    if not v.get("ok"):
+        raise HTTPException(status_code=400, detail={"message": "Règles invalides", "validation": v})
+    path = save_override_rules(rules)
+    return {"ok": True, "saved_to": path, "validation": v}
+
+
+@app.delete("/admin/eligibility/rules")
+def admin_delete_rules(x_admin_key: str | None = Header(default=None)) -> dict[str, Any]:
+    _require_admin_key(x_admin_key)
+    deleted = delete_override_rules()
+    return {"ok": True, "deleted": deleted}
 

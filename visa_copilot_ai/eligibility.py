@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+import os
 from typing import Any, Optional
 
 import importlib.resources as pkg_resources
@@ -68,8 +69,21 @@ def _norm(s: Any) -> str:
 
 
 def _load_rules() -> dict[str, Any]:
-    # Source modifiable sans toucher au code: fichier de config JSON versionné dans le repo.
-    # En prod: peut être remplacé par une DB / service de règles.
+    """
+    Source de règles:
+    - Par défaut: ressources versionnées dans le repo.
+    - Override possible via env var GLOBALVISA_RULES_PATH (modifiable sans changer le code).
+    """
+
+    override = os.getenv("GLOBALVISA_RULES_PATH", "").strip()
+    if override:
+        try:
+            with open(override, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            # fallback to embedded rules
+            pass
+
     with pkg_resources.files("visa_copilot_ai").joinpath("resources/visa_rules.json").open("r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -225,7 +239,12 @@ def _message_from_color(color: str) -> str:
     return "Profil insuffisant actuellement (ou informations manquantes)."
 
 
-def evaluate_visa_eligibility(user: EligibilityUserProfile, country: str) -> list[VisaEligibilityResult]:
+def evaluate_visa_eligibility(
+    user: EligibilityUserProfile,
+    country: str,
+    *,
+    rules: Optional[dict[str, Any]] = None,
+) -> list[VisaEligibilityResult]:
     """
     Service demandé:
     evaluateVisaEligibility(userProfile, country)
@@ -234,8 +253,8 @@ def evaluate_visa_eligibility(user: EligibilityUserProfile, country: str) -> lis
     - Sortie explicable (why + missing + improvements)
     """
 
-    rules = _load_rules()
-    country_rules = _select_country_rules(rules, country)
+    rules_obj = rules if isinstance(rules, dict) else _load_rules()
+    country_rules = _select_country_rules(rules_obj, country)
     visa_types = (country_rules.get("visa_types") or {})
     out: list[VisaEligibilityResult] = []
 
