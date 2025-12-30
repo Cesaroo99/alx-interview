@@ -8,7 +8,7 @@ import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 
 function pickLabel(obj: any, locale: "fr" | "en") {
@@ -123,7 +123,7 @@ export default function StepRunner() {
                   />
                   <View style={{ height: Tokens.space.sm }} />
                   <View style={styles.row2}>
-                    <PrimaryButton
+                    <ActionButton
                       title={aiLoading ? "…" : locale === "fr" ? "Suggestion IA" : "AI suggestion"}
                       variant="ghost"
                       onPress={async () => {
@@ -145,13 +145,15 @@ export default function StepRunner() {
                         }
                       }}
                       style={{ flex: 1 }}
+                      track={{ type: "ai", label: "form_field_suggest", screen: "forms.step", target: String(f.id) }}
                     />
-                    <PrimaryButton
+                    <ActionButton
                       title={locale === "fr" ? "Sauvegarder" : "Save"}
                       onPress={async () => {
                         await Api.saveDraft(pid, sid, draft);
                       }}
                       style={{ flex: 1 }}
+                      track={{ type: "forms", label: "save_draft", screen: "forms.step", target: sid }}
                     />
                   </View>
 
@@ -163,10 +165,11 @@ export default function StepRunner() {
                           <Text style={styles.aiText}>{s.text}</Text>
                           {s.rationale ? <Text style={styles.aiMeta}>{s.rationale}</Text> : null}
                           <View style={{ height: Tokens.space.sm }} />
-                          <PrimaryButton
+                          <ActionButton
                             title={locale === "fr" ? "Insérer dans le champ (action utilisateur)" : "Insert (user action)"}
                             variant="ghost"
                             onPress={() => setDraft((prev) => ({ ...prev, [f.id]: String(s.text || "") }))}
+                            track={{ type: "forms", label: "insert_ai_suggestion", screen: "forms.step", target: String(f.id) }}
                           />
                         </View>
                       ))}
@@ -187,7 +190,7 @@ export default function StepRunner() {
           <GlassCard>
             <Text style={styles.cardTitle}>{locale === "fr" ? "Validation & cohérence" : "Validation & consistency"}</Text>
             <View style={{ height: Tokens.space.md }} />
-            <PrimaryButton
+            <ActionButton
               title={aiLoading ? "…" : locale === "fr" ? "Vérifier avec l’IA" : "Validate with AI"}
               onPress={async () => {
                 setAiLoading(true);
@@ -201,6 +204,7 @@ export default function StepRunner() {
                   setAiLoading(false);
                 }
               }}
+              track={{ type: "ai", label: "form_step_validate", screen: "forms.step", target: sid }}
             />
             {ai?.fieldId === "__validate__" ? (
               <View style={styles.aiBox}>
@@ -233,12 +237,13 @@ export default function StepRunner() {
             </Text>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>
-              <PrimaryButton
+              <ActionButton
                 title={locale === "fr" ? "Ouvrir site officiel" : "Open official site"}
                 onPress={() => (step?.official_url ? Linking.openURL(String(step.official_url)) : undefined)}
                 style={{ flex: 1, opacity: step?.official_url ? 1 : 0.6 }}
+                track={{ type: "external", label: "open_official_site", screen: "forms.step", target: String(step?.official_url || "") }}
               />
-              <PrimaryButton
+              <ActionButton
                 title={locale === "fr" ? "Étape terminée" : "Mark done"}
                 variant="ghost"
                 onPress={async () => {
@@ -248,6 +253,7 @@ export default function StepRunner() {
                   router.replace(`/forms/${pid}`);
                 }}
                 style={{ flex: 1 }}
+                track={{ type: "forms", label: "complete_step", screen: "forms.step", target: sid }}
               />
             </View>
           </GlassCard>

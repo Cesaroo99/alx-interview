@@ -9,19 +9,21 @@ import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { ProgressBar } from "@/src/ui/ProgressBar";
 import { Screen } from "@/src/ui/Screen";
 import { SkeletonCard } from "@/src/ui/Skeleton";
 import { ScorePill } from "@/src/ui/ScorePill";
 import { useDocuments } from "@/src/state/documents";
 import { useInsights } from "@/src/state/insights";
+import { useJourney } from "@/src/state/journey";
 import { useProfile } from "@/src/state/profile";
 
 export default function HomeScreen() {
   const { profile, clearProfile } = useProfile();
   const { docs } = useDocuments();
   const { insights, setLastDiagnostic } = useInsights();
+  const { activeJourneyId, clear: clearJourney } = useJourney();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,11 +91,47 @@ export default function HomeScreen() {
           </Text>
           <View style={{ height: Tokens.space.md }} />
           <View style={styles.ctaRow}>
-            <PrimaryButton title="Parcours" variant="ghost" onPress={() => router.push("/(tabs)/parcours")} style={{ flex: 1 }} />
-            <PrimaryButton title="Docs" variant="ghost" onPress={() => router.push("/(tabs)/documents")} style={{ flex: 1 }} />
+            <ActionButton
+              title="Parcours"
+              variant="ghost"
+              onPress={() => router.push("/(tabs)/parcours")}
+              style={{ flex: 1 }}
+              track={{ type: "nav", label: "open_parcours", screen: "home" }}
+            />
+            <ActionButton
+              title="Docs"
+              variant="ghost"
+              onPress={() => router.push("/(tabs)/documents")}
+              style={{ flex: 1 }}
+              track={{ type: "nav", label: "open_documents", screen: "home" }}
+            />
           </View>
         </GlassCard>
       </AnimatedIn>
+
+      {activeJourneyId ? (
+        <GlassCard>
+          <Text style={styles.cardTitle}>Parcours actif</Text>
+          <Text style={styles.body}>ID: {activeJourneyId}</Text>
+          <View style={{ height: Tokens.space.md }} />
+          <View style={styles.ctaRow}>
+            <ActionButton
+              title="Ouvrir"
+              variant="ghost"
+              onPress={() => router.push(`/journeys/${activeJourneyId}`)}
+              style={{ flex: 1 }}
+              track={{ type: "nav", label: "open_active_journey", screen: "home" }}
+            />
+            <ActionButton
+              title="Désactiver"
+              variant="ghost"
+              onPress={() => clearJourney()}
+              style={{ flex: 1 }}
+              track={{ type: "journey", label: "clear_active_journey", screen: "home" }}
+            />
+          </View>
+        </GlassCard>
+      ) : null}
 
       <AnimatedIn delayMs={90}>
         <GlassCard>
@@ -130,7 +168,11 @@ export default function HomeScreen() {
               <View style={{ height: Tokens.space.sm }} />
               <ScorePill label="Risque refus" value={insights.lastDiagnostic.refusal_risk_score} kind="risk" />
               <View style={{ height: Tokens.space.lg }} />
-              <PrimaryButton title="Ouvrir le diagnostic" onPress={() => router.push("/(tabs)/diagnostic")} />
+              <ActionButton
+                title="Ouvrir le diagnostic"
+                onPress={() => router.push("/(tabs)/diagnostic")}
+                track={{ type: "nav", label: "open_diagnostic", screen: "home" }}
+              />
             </>
           ) : (
             <Text style={styles.body}>Lancez un diagnostic pour voir vos scores.</Text>
@@ -150,13 +192,22 @@ export default function HomeScreen() {
                 Cohérence: {Math.round(insights.lastDossier.coherence_score)}/100 · Niveau: {insights.lastDossier.readiness_level}
               </Text>
               <View style={{ height: Tokens.space.md }} />
-              <PrimaryButton title="Re-vérifier le dossier" variant="ghost" onPress={() => router.push("/(tabs)/dossier")} />
+              <ActionButton
+                title="Re-vérifier le dossier"
+                variant="ghost"
+                onPress={() => router.push("/(tabs)/dossier")}
+                track={{ type: "nav", label: "open_dossier", screen: "home" }}
+              />
             </>
           ) : (
             <>
               <Text style={styles.body}>Pas encore vérifié. Ajoutez des documents et lancez l’analyse dossier.</Text>
               <View style={{ height: Tokens.space.md }} />
-              <PrimaryButton title="Vérifier maintenant" onPress={() => router.push("/(tabs)/dossier")} />
+              <ActionButton
+                title="Vérifier maintenant"
+                onPress={() => router.push("/(tabs)/dossier")}
+                track={{ type: "nav", label: "open_dossier", screen: "home" }}
+              />
             </>
           )}
         </GlassCard>
@@ -169,7 +220,12 @@ export default function HomeScreen() {
           officiels.
         </Text>
         <View style={{ height: Tokens.space.md }} />
-        <PrimaryButton title="Vérifier une URL (anti-scam)" onPress={() => router.push("/(tabs)/security")} variant="ghost" />
+        <ActionButton
+          title="Vérifier une URL (anti-scam)"
+          onPress={() => router.push("/(tabs)/security")}
+          variant="ghost"
+          track={{ type: "nav", label: "open_security", screen: "home" }}
+        />
       </GlassCard>
 
       <GlassCard>
@@ -178,13 +234,14 @@ export default function HomeScreen() {
           {profile ? `${profile.nationality} · ${profile.age} ans · ${profile.profession}` : "Aucun profil"}
         </Text>
         <View style={{ height: Tokens.space.md }} />
-        <PrimaryButton
+        <ActionButton
           title="Réinitialiser le profil"
           variant="ghost"
           onPress={async () => {
             await clearProfile();
             router.replace("/onboarding");
           }}
+          track={{ type: "profile", label: "clear_profile", screen: "home" }}
         />
       </GlassCard>
     </Screen>

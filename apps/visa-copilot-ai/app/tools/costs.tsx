@@ -5,7 +5,7 @@ import { Api, type EstimateCostsResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 import { useProfile } from "@/src/state/profile";
 
@@ -80,9 +80,9 @@ export default function CostsScreen() {
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>Devise</Text>
         <View style={styles.row2}>
-          <PrimaryButton title="EUR" variant={currency === "EUR" ? "brand" : "ghost"} onPress={() => setCurrency("EUR")} style={{ flex: 1 }} />
-          <PrimaryButton title="USD" variant={currency === "USD" ? "brand" : "ghost"} onPress={() => setCurrency("USD")} style={{ flex: 1 }} />
-          <PrimaryButton title="Autre" variant={currency !== "EUR" && currency !== "USD" ? "brand" : "ghost"} onPress={() => setCurrency("X")} style={{ flex: 1 }} />
+          <ActionButton title="EUR" variant={currency === "EUR" ? "brand" : "ghost"} onPress={() => setCurrency("EUR")} style={{ flex: 1 }} track={{ type: "select", label: "currency_eur", screen: "tools.costs" }} />
+          <ActionButton title="USD" variant={currency === "USD" ? "brand" : "ghost"} onPress={() => setCurrency("USD")} style={{ flex: 1 }} track={{ type: "select", label: "currency_usd", screen: "tools.costs" }} />
+          <ActionButton title="Autre" variant={currency !== "EUR" && currency !== "USD" ? "brand" : "ghost"} onPress={() => setCurrency("X")} style={{ flex: 1 }} track={{ type: "select", label: "currency_other", screen: "tools.costs" }} />
         </View>
         {currency === "X" ? (
           <TextInput
@@ -127,7 +127,7 @@ export default function CostsScreen() {
         {totalsHint ? <Text style={styles.hint}>{totalsHint}</Text> : null}
 
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton
+        <ActionButton
           title={loading ? "Calcul…" : "Calculer"}
           onPress={async () => {
             setLoading(true);
@@ -152,6 +152,7 @@ export default function CostsScreen() {
               setLoading(false);
             }
           }}
+          track={{ type: "tool", label: "estimate_costs", screen: "tools.costs", meta: { destinationRegion, visaType, currency } }}
         />
       </GlassCard>
 

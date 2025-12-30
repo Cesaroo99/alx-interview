@@ -6,7 +6,7 @@ import { Api, type TravelPlanResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 import { useProfile } from "@/src/state/profile";
 
@@ -54,7 +54,7 @@ export default function TravelIntelligenceScreen() {
             Pour générer un itinéraire crédible, on a besoin au minimum de ton profil (motif, situation, etc.).
           </Text>
           <View style={{ height: Tokens.space.md }} />
-          <PrimaryButton title="Faire l’onboarding" onPress={() => router.push("/onboarding")} />
+          <ActionButton title="Faire l’onboarding" onPress={() => router.push("/onboarding")} track={{ type: "nav", label: "open_onboarding", screen: "tools.travel" }} />
         </GlassCard>
       ) : null}
 
@@ -115,22 +115,24 @@ export default function TravelIntelligenceScreen() {
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>Mode</Text>
         <View style={styles.row2}>
-          <PrimaryButton
+          <ActionButton
             title="Simulation (recommandé)"
             variant={mode === "simulation" ? "brand" : "ghost"}
             onPress={() => setMode("simulation")}
             style={{ flex: 1 }}
+            track={{ type: "select", label: "mode_simulation", screen: "tools.travel" }}
           />
-          <PrimaryButton
+          <ActionButton
             title="Post‑visa (réservations)"
             variant={mode === "post_visa_booking" ? "brand" : "ghost"}
             onPress={() => setMode("post_visa_booking")}
             style={{ flex: 1 }}
+            track={{ type: "select", label: "mode_post_visa", screen: "tools.travel" }}
           />
         </View>
 
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton
+        <ActionButton
           title={loading ? "Génération…" : "Générer un itinéraire"}
           onPress={async () => {
             if (!profile) return;
@@ -160,6 +162,7 @@ export default function TravelIntelligenceScreen() {
             }
           }}
           style={{ opacity: profile ? 1 : 0.6 }}
+          track={{ type: "tool", label: "generate_itinerary", screen: "tools.travel", meta: { destination, startDate, endDate, mode } }}
         />
       </GlassCard>
 

@@ -5,7 +5,7 @@ import { Api, type RefusalResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 
 const REASONS: Array<{ code: string; label: string }> = [
@@ -42,7 +42,7 @@ export default function RefusalCoachScreen() {
           {REASONS.map((r) => {
             const on = selected.includes(r.code);
             return (
-              <PrimaryButton
+              <ActionButton
                 key={r.code}
                 title={r.label}
                 variant={on ? "brand" : "ghost"}
@@ -50,6 +50,7 @@ export default function RefusalCoachScreen() {
                   setSelected((prev) => (prev.includes(r.code) ? prev.filter((x) => x !== r.code) : [...prev, r.code]));
                 }}
                 style={{ flexBasis: "48%" }}
+                track={{ type: "select", label: on ? "toggle_reason_off" : "toggle_reason_on", screen: "tools.refusal", target: r.code }}
               />
             );
           })}
@@ -67,7 +68,7 @@ export default function RefusalCoachScreen() {
         />
 
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton
+        <ActionButton
           title={loading ? "Analyse…" : "Analyser"}
           onPress={async () => {
             if (!canRun || loading) return;
@@ -87,6 +88,7 @@ export default function RefusalCoachScreen() {
             }
           }}
           style={{ opacity: canRun ? 1 : 0.6 }}
+          track={{ type: "tool", label: "analyze_refusal", screen: "tools.refusal", meta: { reasons: selected } }}
         />
       </GlassCard>
 

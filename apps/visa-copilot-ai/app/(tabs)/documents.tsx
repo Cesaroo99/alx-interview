@@ -10,7 +10,7 @@ import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 import { SkeletonCard } from "@/src/ui/Skeleton";
 import { ScorePill } from "@/src/ui/ScorePill";
@@ -95,19 +95,20 @@ export default function DocumentsScreen() {
           Ajoutez vos documents (passeport, relevés, attestations). On vous dira quoi corriger.
         </Text>
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton title="Ajouter un document" onPress={() => router.push("/documents/add")} />
+        <ActionButton title="Ajouter un document" onPress={() => router.push("/documents/add")} track={{ type: "nav", label: "add_document", screen: "documents" }} />
         {docs.length ? (
           <>
             <View style={{ height: Tokens.space.sm }} />
-            <PrimaryButton title="Tout supprimer" variant="ghost" onPress={() => clearAll()} />
+            <ActionButton title="Tout supprimer" variant="ghost" onPress={() => clearAll()} track={{ type: "docs", label: "clear_all", screen: "documents" }} />
           </>
         ) : null}
           <View style={{ height: Tokens.space.md }} />
-          <PrimaryButton
+          <ActionButton
             title="Ouvrir la vérification dossier"
             variant="ghost"
             onPress={() => router.push("/(tabs)/dossier")}
             style={{ opacity: profile ? 1 : 0.6 }}
+            track={{ type: "nav", label: "open_dossier", screen: "documents" }}
           />
         </GlassCard>
       </AnimatedIn>
@@ -140,7 +141,7 @@ export default function DocumentsScreen() {
             style={styles.input}
           />
           <View style={{ height: Tokens.space.lg }} />
-          <PrimaryButton
+          <ActionButton
             title={loading ? "Analyse…" : "Analyser maintenant"}
             onPress={async () => {
               if (!profile) {
@@ -173,6 +174,7 @@ export default function DocumentsScreen() {
               }
             }}
             style={{ opacity: profile && docs.length ? 1 : 0.6 }}
+            track={{ type: "dossier", label: "quick_analyze", screen: "documents", meta: { destination, visaType } }}
           />
           {loading ? (
             <View style={{ marginTop: Tokens.space.md }}>
@@ -192,7 +194,7 @@ export default function DocumentsScreen() {
                   <Text style={styles.bulletText}>{r}</Text>
                 </View>
               ))}
-              <PrimaryButton title="Voir détails" variant="ghost" onPress={() => router.push("/(tabs)/dossier")} />
+              <ActionButton title="Voir détails" variant="ghost" onPress={() => router.push("/(tabs)/dossier")} track={{ type: "nav", label: "open_dossier", screen: "documents" }} />
             </View>
           ) : null}
         </GlassCard>
@@ -218,8 +220,13 @@ export default function DocumentsScreen() {
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 8 }}>
                   <Badge {...docStatus(d)} />
-                  <PrimaryButton title="Détails" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })} />
-                  <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} />
+                  <ActionButton
+                    title="Détails"
+                    variant="ghost"
+                    onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })}
+                    track={{ type: "nav", label: "edit_document", screen: "documents", target: d.doc_type }}
+                  />
+                  <ActionButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} track={{ type: "docs", label: "remove_document", screen: "documents", target: d.doc_type }} />
                 </View>
               </View>
             ))}

@@ -8,7 +8,7 @@ import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 
 function pickLabel(obj: any, locale: "fr" | "en") {
@@ -76,10 +76,11 @@ export default function ProcedureDetail() {
               </Text>
               <Text style={styles.stepMeta}>{s.status}</Text>
             </View>
-            <PrimaryButton
+            <ActionButton
               title={locale === "fr" ? "Ouvrir" : "Open"}
               variant={s.status === "done" ? "ghost" : "brand"}
               onPress={() => router.push(`/forms/${pid}/step/${s.id}`)}
+              track={{ type: "nav", label: "open_procedure_step", screen: "forms.detail", target: s.step_key }}
             />
           </View>
         ))}
@@ -94,9 +95,10 @@ export default function ProcedureDetail() {
               : "The app never submits. Open the official site and copy-paste fields."}
           </Text>
           <View style={{ height: Tokens.space.md }} />
-          <PrimaryButton
+          <ActionButton
             title={locale === "fr" ? "Ouvrir le site officiel" : "Open official site"}
             onPress={() => Linking.openURL(String(current.official_url))}
+            track={{ type: "external", label: "open_official_site", screen: "forms.detail", target: String(current.official_url) }}
           />
         </GlassCard>
       ) : null}
@@ -109,7 +111,12 @@ export default function ProcedureDetail() {
             : "View AI decisions, validations, saves (traceability)."}
         </Text>
         <View style={{ height: Tokens.space.md }} />
-        <PrimaryButton title={locale === "fr" ? "Voir l’audit" : "View audit"} variant="ghost" onPress={() => router.push(`/forms/${pid}/audit`)} />
+        <ActionButton
+          title={locale === "fr" ? "Voir l’audit" : "View audit"}
+          variant="ghost"
+          onPress={() => router.push(`/forms/${pid}/audit`)}
+          track={{ type: "nav", label: "open_audit", screen: "forms.detail", target: pid }}
+        />
       </GlassCard>
     </Screen>
   );

@@ -12,22 +12,11 @@ import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useDocuments } from "@/src/state/documents";
 import { useProfile } from "@/src/state/profile";
+import { buildJourneyContext } from "@/src/telemetry/journeyContext";
 
 function pickLabel(obj: any, locale: "fr" | "en") {
   if (obj && typeof obj === "object") return obj[locale] || obj.fr || obj.en || Object.values(obj)[0];
   return String(obj || "");
-}
-
-function buildContext(profile: any, docs: any[]) {
-  return {
-    profile: profile || null,
-    documents: (docs || []).slice(0, 20).map((d) => ({
-      id: d.id,
-      doc_type: d.doc_type,
-      filename: d.filename,
-      extracted: d.extracted || {},
-    })),
-  };
 }
 
 export default function JourneyStepScreen() {
@@ -146,7 +135,7 @@ export default function JourneyStepScreen() {
                     const res = await Api.journeyAct({
                       journey_id: jid,
                       locale,
-                      context: buildContext(profile, docs),
+                      context: buildJourneyContext(profile, docs),
                       action: { type: a.type || "action", label: pickLabel(a.label, locale), target: a.target || null, step_key: step.step_key },
                     });
                     // refresh local snapshot
@@ -169,7 +158,7 @@ export default function JourneyStepScreen() {
                 title={locale === "fr" ? "Marquer terminé" : "Mark done"}
                 variant="ghost"
                 onPress={async () => {
-                  await Api.journeyCompleteStep({ journey_id: jid, step_id: sid, locale, context: buildContext(profile, docs) });
+                  await Api.journeyCompleteStep({ journey_id: jid, step_id: sid, locale, context: buildJourneyContext(profile, docs) });
                   router.replace(`/journeys/${jid}`);
                 }}
                 style={{ flex: 1 }}

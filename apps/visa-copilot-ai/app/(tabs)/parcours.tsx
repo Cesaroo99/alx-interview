@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
-import { Api, type Journey, type JourneyStep } from "@/src/api/client";
+import { Api, type Journey } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
@@ -10,30 +10,21 @@ import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useDocuments } from "@/src/state/documents";
+import { useJourney } from "@/src/state/journey";
 import { useProfile } from "@/src/state/profile";
+import { buildJourneyContext } from "@/src/telemetry/journeyContext";
 
 function pickLabel(obj: any, locale: "fr" | "en") {
   if (obj && typeof obj === "object") return obj[locale] || obj.fr || obj.en || Object.values(obj)[0];
   return String(obj || "");
 }
 
-function buildContext(profile: any, docs: any[]) {
-  return {
-    profile: profile || null,
-    documents: (docs || []).slice(0, 20).map((d) => ({
-      id: d.id,
-      doc_type: d.doc_type,
-      filename: d.filename,
-      extracted: d.extracted || {},
-    })),
-  };
-}
-
 export default function ParcoursScreen() {
   const { profile } = useProfile();
   const { docs } = useDocuments();
+  const journeyState = useJourney();
 
-  const [locale, setLocale] = useState<"fr" | "en">("fr");
+  const [locale, setLocale] = useState<"fr" | "en">(journeyState.locale);
   const [type, setType] = useState<"visa" | "admission" | "admin">("visa");
   const [intent, setIntent] = useState("tourism");
   const [country, setCountry] = useState("schengen");
@@ -78,8 +69,24 @@ export default function ParcoursScreen() {
         <Text style={styles.cardTitle}>{locale === "fr" ? "Langue" : "Language"}</Text>
         <View style={{ height: Tokens.space.sm }} />
         <View style={styles.row2}>
-          <PrimaryButton title="FR" variant={locale === "fr" ? "brand" : "ghost"} onPress={() => setLocale("fr")} style={{ flex: 1 }} />
-          <PrimaryButton title="EN" variant={locale === "en" ? "brand" : "ghost"} onPress={() => setLocale("en")} style={{ flex: 1 }} />
+          <PrimaryButton
+            title="FR"
+            variant={locale === "fr" ? "brand" : "ghost"}
+            onPress={async () => {
+              setLocale("fr");
+              await journeyState.setLocale("fr");
+            }}
+            style={{ flex: 1 }}
+          />
+          <PrimaryButton
+            title="EN"
+            variant={locale === "en" ? "brand" : "ghost"}
+            onPress={async () => {
+              setLocale("en");
+              await journeyState.setLocale("en");
+            }}
+            style={{ flex: 1 }}
+          />
         </View>
       </GlassCard>
 
@@ -120,8 +127,9 @@ export default function ParcoursScreen() {
               const res = await Api.createJourney({
                 locale,
                 goal: { type, intent, country, target: target.trim() || null },
-                context: buildContext(profile, docs),
+                context: buildJourneyContext(profile, docs),
               });
+              await journeyState.setActiveJourneyId(res.journey.id);
               router.push(`/journeys/${res.journey.id}`);
             } catch (e: any) {
               setError(String(e?.message || e));
@@ -147,7 +155,14 @@ export default function ParcoursScreen() {
                 <Text style={styles.procTitle}>{pickLabel(j.plan?.title, locale) || j.id}</Text>
                 <Text style={styles.procMeta}>{j.updated_at}</Text>
               </View>
-              <PrimaryButton title={locale === "fr" ? "Ouvrir" : "Open"} variant="ghost" onPress={() => router.push(`/journeys/${j.id}`)} />
+              <PrimaryButton
+                title={locale === "fr" ? "Ouvrir" : "Open"}
+                variant="ghost"
+                onPress={async () => {
+                  await journeyState.setActiveJourneyId(j.id);
+                  router.push(`/journeys/${j.id}`);
+                }}
+              />
             </View>
           ))
         ) : (

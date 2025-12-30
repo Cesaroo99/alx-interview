@@ -7,7 +7,7 @@ import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 import { ScorePill } from "@/src/ui/ScorePill";
 import { useDocuments } from "@/src/state/documents";
@@ -62,7 +62,7 @@ export default function DossierScreen() {
           style={styles.input}
         />
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton
+        <ActionButton
           title={loading ? "Analyse…" : "Analyser le dossier"}
           onPress={async () => {
             if (!profile) {
@@ -86,13 +86,14 @@ export default function DossierScreen() {
             }
           }}
           style={{ opacity: profile ? 1 : 0.6 }}
+          track={{ type: "dossier", label: "analyze", screen: "dossier", meta: { destination, visaType } }}
         />
 
         <View style={{ height: Tokens.space.md }} />
         <View style={styles.rowButtons}>
-          <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
-          <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
-          <PrimaryButton title="Refus / Plan B" variant="ghost" onPress={() => router.push("/tools/refusal")} style={{ flex: 1 }} />
+          <ActionButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} track={{ type: "nav", label: "open_travel_tool", screen: "dossier" }} />
+          <ActionButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} track={{ type: "nav", label: "open_costs_tool", screen: "dossier" }} />
+          <ActionButton title="Refus / Plan B" variant="ghost" onPress={() => router.push("/tools/refusal")} style={{ flex: 1 }} track={{ type: "nav", label: "open_refusal_tool", screen: "dossier" }} />
         </View>
       </GlassCard>
 

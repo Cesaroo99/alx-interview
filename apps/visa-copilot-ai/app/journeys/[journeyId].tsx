@@ -11,23 +11,13 @@ import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useDocuments } from "@/src/state/documents";
+import { useJourney } from "@/src/state/journey";
 import { useProfile } from "@/src/state/profile";
+import { buildJourneyContext } from "@/src/telemetry/journeyContext";
 
 function pickLabel(obj: any, locale: "fr" | "en") {
   if (obj && typeof obj === "object") return obj[locale] || obj.fr || obj.en || Object.values(obj)[0];
   return String(obj || "");
-}
-
-function buildContext(profile: any, docs: any[]) {
-  return {
-    profile: profile || null,
-    documents: (docs || []).slice(0, 20).map((d) => ({
-      id: d.id,
-      doc_type: d.doc_type,
-      filename: d.filename,
-      extracted: d.extracted || {},
-    })),
-  };
 }
 
 export default function JourneyDetail() {
@@ -35,6 +25,7 @@ export default function JourneyDetail() {
   const jid = String(journeyId || "");
   const { profile } = useProfile();
   const { docs } = useDocuments();
+  const journeyState = useJourney();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +107,7 @@ export default function JourneyDetail() {
                 title={locale === "fr" ? "Terminer" : "Done"}
                 variant="ghost"
                 onPress={async () => {
-                  const res = await Api.journeyCompleteStep({ journey_id: jid, step_id: s.id, locale, context: buildContext(profile, docs) });
+                  const res = await Api.journeyCompleteStep({ journey_id: jid, step_id: s.id, locale, context: buildJourneyContext(profile, docs) });
                   setAiInfo(res.ai);
                   setJourney(res.journey);
                   setSteps(res.steps || []);
@@ -142,7 +133,7 @@ export default function JourneyDetail() {
             const res = await Api.journeyAct({
               journey_id: jid,
               locale,
-              context: buildContext(profile, docs),
+              context: buildJourneyContext(profile, docs),
               action: { type: "user_click", label: "ask_next", screen: "journey.detail", step_key: next?.step_key || null },
             });
             setAiInfo(res.ai);
@@ -157,6 +148,23 @@ export default function JourneyDetail() {
             </Text>
           </View>
         ) : null}
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>{locale === "fr" ? "Parcours actif" : "Active journey"}</Text>
+        <Text style={styles.body}>
+          {locale === "fr"
+            ? "Activer ce parcours permet au suivi automatique de capturer les clics importants dans l’app."
+            : "Activating this journey enables automatic tracking of key clicks across the app."}
+        </Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton
+          title={locale === "fr" ? "Définir comme actif" : "Set as active"}
+          variant="ghost"
+          onPress={async () => {
+            await journeyState.setActiveJourneyId(jid);
+          }}
+        />
       </GlassCard>
     </Screen>
   );

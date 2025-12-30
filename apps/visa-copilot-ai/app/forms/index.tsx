@@ -7,7 +7,7 @@ import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
-import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
 
 type ProcType = "visa" | "admission" | "admin";
@@ -61,8 +61,8 @@ export default function FormsHome() {
         <Text style={styles.cardTitle}>{locale === "fr" ? "Langue" : "Language"}</Text>
         <View style={{ height: Tokens.space.sm }} />
         <View style={styles.row2}>
-          <PrimaryButton title="FR" variant={locale === "fr" ? "brand" : "ghost"} onPress={() => setLocale("fr")} style={{ flex: 1 }} />
-          <PrimaryButton title="EN" variant={locale === "en" ? "brand" : "ghost"} onPress={() => setLocale("en")} style={{ flex: 1 }} />
+          <ActionButton title="FR" variant={locale === "fr" ? "brand" : "ghost"} onPress={() => setLocale("fr")} style={{ flex: 1 }} track={{ type: "pref", label: "set_locale_fr", screen: "forms.home" }} />
+          <ActionButton title="EN" variant={locale === "en" ? "brand" : "ghost"} onPress={() => setLocale("en")} style={{ flex: 1 }} track={{ type: "pref", label: "set_locale_en", screen: "forms.home" }} />
         </View>
       </GlassCard>
 
@@ -77,9 +77,9 @@ export default function FormsHome() {
 
         <Text style={styles.label}>{locale === "fr" ? "Type" : "Type"}</Text>
         <View style={styles.row2}>
-          <PrimaryButton title="Visa" variant={type === "visa" ? "brand" : "ghost"} onPress={() => setType("visa")} style={{ flex: 1 }} />
-          <PrimaryButton title={locale === "fr" ? "Admission" : "Admission"} variant={type === "admission" ? "brand" : "ghost"} onPress={() => setType("admission")} style={{ flex: 1 }} />
-          <PrimaryButton title={locale === "fr" ? "Admin" : "Admin"} variant={type === "admin" ? "brand" : "ghost"} onPress={() => setType("admin")} style={{ flex: 1 }} />
+          <ActionButton title="Visa" variant={type === "visa" ? "brand" : "ghost"} onPress={() => setType("visa")} style={{ flex: 1 }} track={{ type: "select", label: "proc_type_visa", screen: "forms.home" }} />
+          <ActionButton title={locale === "fr" ? "Admission" : "Admission"} variant={type === "admission" ? "brand" : "ghost"} onPress={() => setType("admission")} style={{ flex: 1 }} track={{ type: "select", label: "proc_type_admission", screen: "forms.home" }} />
+          <ActionButton title={locale === "fr" ? "Admin" : "Admin"} variant={type === "admin" ? "brand" : "ghost"} onPress={() => setType("admin")} style={{ flex: 1 }} track={{ type: "select", label: "proc_type_admin", screen: "forms.home" }} />
         </View>
 
         <View style={{ height: Tokens.space.md }} />
@@ -99,7 +99,7 @@ export default function FormsHome() {
         <TextInput value={target} onChangeText={setTarget} style={styles.input} placeholderTextColor="rgba(246,248,255,0.35)" />
 
         <View style={{ height: Tokens.space.lg }} />
-        <PrimaryButton
+        <ActionButton
           title={loading ? "…" : locale === "fr" ? "Créer la démarche" : "Create procedure"}
           onPress={async () => {
             if (!canCreate || loading) return;
@@ -122,6 +122,7 @@ export default function FormsHome() {
             }
           }}
           style={{ opacity: canCreate ? 1 : 0.6 }}
+          track={{ type: "forms", label: "create_procedure", screen: "forms.home", meta: { type, intent, country } }}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </GlassCard>
@@ -143,7 +144,7 @@ export default function FormsHome() {
                   {p.status} · {p.updated_at}
                 </Text>
               </View>
-              <PrimaryButton title={locale === "fr" ? "Ouvrir" : "Open"} variant="ghost" onPress={() => router.push(`/forms/${p.id}`)} />
+              <ActionButton title={locale === "fr" ? "Ouvrir" : "Open"} variant="ghost" onPress={() => router.push(`/forms/${p.id}`)} track={{ type: "nav", label: "open_procedure", screen: "forms.home", target: p.id }} />
             </View>
           ))
         ) : (
