@@ -1,0 +1,101 @@
+import React, { useMemo, useState } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+
+import { useDocuments } from "@/src/state/documents";
+import { Colors } from "@/src/theme/colors";
+import { Tokens } from "@/src/theme/tokens";
+import { GlassCard } from "@/src/ui/GlassCard";
+import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { Screen } from "@/src/ui/Screen";
+
+export default function EditDocumentModal() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { docs, updateDoc, removeDoc } = useDocuments();
+  const doc = useMemo(() => docs.find((d) => d.id === id), [docs, id]);
+
+  const [expires, setExpires] = useState<string>(String(doc?.extracted?.expires_date || ""));
+  const [issued, setIssued] = useState<string>(String(doc?.extracted?.issued_date || ""));
+  const [balance, setBalance] = useState<string>(String(doc?.extracted?.ending_balance_usd || ""));
+
+  if (!doc) {
+    return (
+      <Screen>
+        <GlassCard>
+          <Text style={styles.title}>Document introuvable</Text>
+          <View style={{ height: Tokens.space.md }} />
+          <PrimaryButton title="Fermer" onPress={() => router.back()} />
+        </GlassCard>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <View style={styles.header}>
+        <Text style={styles.h1}>Détails</Text>
+        <Text style={styles.sub}>{doc.filename}</Text>
+      </View>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Métadonnées (MVP)</Text>
+        <Text style={styles.body}>Ces champs servent à la cohérence (expiration, fraîcheur, soldes). Format ISO recommandé.</Text>
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>expires_date (YYYY-MM-DD)</Text>
+        <TextInput value={expires} onChangeText={setExpires} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>issued_date (YYYY-MM-DD)</Text>
+        <TextInput value={issued} onChangeText={setIssued} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>ending_balance_usd</Text>
+        <TextInput value={balance} onChangeText={setBalance} style={styles.input} keyboardType="numeric" placeholderTextColor="rgba(245,247,255,0.35)" />
+
+        <View style={{ height: Tokens.space.lg }} />
+        <View style={styles.row}>
+          <PrimaryButton title="Supprimer" variant="danger" onPress={async () => { await removeDoc(doc.id); router.back(); }} style={{ flex: 1 }} />
+          <PrimaryButton
+            title="Enregistrer"
+            onPress={async () => {
+              const extracted = { ...(doc.extracted || {}) } as any;
+              if (expires.trim()) extracted.expires_date = expires.trim();
+              else delete extracted.expires_date;
+              if (issued.trim()) extracted.issued_date = issued.trim();
+              else delete extracted.issued_date;
+              if (balance.trim()) extracted.ending_balance_usd = Number(balance);
+              else delete extracted.ending_balance_usd;
+              await updateDoc(doc.id, { extracted });
+              router.back();
+            }}
+            style={{ flex: 1 }}
+          />
+        </View>
+      </GlassCard>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { gap: 6 },
+  h1: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
+  sub: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  title: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
+  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
+  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  label: { color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.medium },
+  input: {
+    marginTop: 8,
+    borderRadius: Tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card2,
+    paddingHorizontal: Tokens.space.md,
+    paddingVertical: Tokens.space.md,
+    color: Colors.text,
+    fontSize: Tokens.font.size.md,
+  },
+  row: { flexDirection: "row", gap: 10 },
+});
+

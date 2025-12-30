@@ -1,0 +1,38 @@
+{
+  "updated_at": "2025-12-26",
+  "sources": [
+    {
+      "name": "Exemple (à remplacer par flux officiels)",
+      "url": "https://example.org"
+    }
+  ],
+  "items": [
+    {
+      "id": "news_example_1",
+      "category": "visa_news",
+      "country": "Canada",
+      "tags": ["work", "quota"],
+      "title": "Ouverture d’un quota (exemple)",
+      "summary": "Exemple de news. À remplacer par des sources officielles et datées.",
+      "source_name": "Source officielle (exemple)",
+      "source_url": "https://www.canada.ca/",
+      "published_at": "2025-12-20T10:00:00Z",
+      "status": "published",
+      "reliability_score": 0.7
+    },
+    {
+      "id": "news_example_2",
+      "category": "law_change",
+      "country": "France",
+      "tags": ["student", "requirements"],
+      "title": "Changement d’exigences (exemple)",
+      "summary": "Exemple de changement de loi. Toujours vérifier sur la source officielle avant action.",
+      "source_name": "Legifrance (exemple)",
+      "source_url": "https://www.legifrance.gouv.fr/",
+      "published_at": "2025-12-18T08:30:00Z",
+      "status": "published",
+      "reliability_score": 0.75
+    }
+  ]
+}
+

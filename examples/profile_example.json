@@ -1,0 +1,17 @@
+{
+  "nationality": "Maroc",
+  "age": 28,
+  "profession": "Développeur logiciel",
+  "employment_status": "employed",
+  "travel_purpose": "tourism",
+  "travel_history_trips_last_5y": 2,
+  "prior_visa_refusals": 0,
+  "destination_region_hint": "Zone Schengen",
+  "financial_profile": {
+    "monthly_income_usd": 1800,
+    "savings_usd": 4200,
+    "sponsor_available": false
+  },
+  "notes": "Voyage de 10 jours, itinéraire simple, hébergement mixte hôtel/chez ami."
+}
+
