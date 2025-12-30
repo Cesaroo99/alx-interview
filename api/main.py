@@ -64,6 +64,19 @@ from .procedure_store import (
 from .ai_forms import next_steps as ai_next_steps
 from .ai_forms import suggest_for_field as ai_suggest_for_field
 from .ai_forms import validate_step as ai_validate_step
+from .journey_store import (
+    add_event as journey_add_event,
+    create_journey,
+    get_journey,
+    init_journey_db,
+    list_events as journey_list_events,
+    list_journeys,
+    list_steps as journey_list_steps,
+    mark_step_done,
+    update_plan,
+    upsert_steps,
+)
+from .ai_journey import build_plan_from_action
 
 
 app = FastAPI(title="Visa Copilot AI API", version="0.1.0")
@@ -77,6 +90,7 @@ app.add_middleware(
 )
 
 init_db()
+init_journey_db()
 
 
 def _parse_profile(data: dict[str, Any]) -> UserProfile:
@@ -479,6 +493,93 @@ def ai_forms_validate(payload: dict[str, Any]) -> dict[str, Any]:
 @app.get("/audit")
 def audit(procedure_id: Optional[str] = None, limit: int = 200) -> dict[str, Any]:
     return {"items": list_audit(procedure_id=procedure_id, limit=limit)}
+
+
+@app.post("/journeys")
+def journeys_create(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Crée un parcours dynamique IA. L’IA génère le plan initial.
+    """
+    locale = str(payload.get("locale", "fr") or "fr").lower()
+    if locale not in {"fr", "en"}:
+        locale = "fr"
+    goal = payload.get("goal") if isinstance(payload.get("goal"), dict) else {}
+    context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+    action = {"type": "start", "label": "start", "screen": "journeys.create"}
+
+    plan = build_plan_from_action(locale=locale, goal=goal, context=context, current_plan=None, action=action)
+    created = create_journey(goal=goal, locale=locale, plan=plan.get("plan") if isinstance(plan.get("plan"), dict) else {})
+    steps = plan.get("steps") if isinstance(plan.get("steps"), list) else []
+    upsert_steps(journey_id=created["id"], steps=steps)
+    journey_add_event(journey_id=created["id"], actor="ai", action_type="journey.start", payload={"goal": goal}, ai=plan)
+    return {"journey": get_journey(created["id"]), "steps": journey_list_steps(created["id"]), "ai": plan}
+
+
+@app.get("/journeys")
+def journeys_list(limit: int = 50) -> dict[str, Any]:
+    return {"items": list_journeys(limit=limit)}
+
+
+@app.get("/journeys/{journey_id}")
+def journeys_get(journey_id: str) -> dict[str, Any]:
+    j = get_journey(journey_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="journey introuvable")
+    return {"journey": j}
+
+
+@app.get("/journeys/{journey_id}/steps")
+def journeys_steps(journey_id: str) -> dict[str, Any]:
+    return {"items": journey_list_steps(journey_id)}
+
+
+@app.get("/journeys/{journey_id}/events")
+def journeys_events(journey_id: str, limit: int = 200) -> dict[str, Any]:
+    return {"items": journey_list_events(journey_id, limit=limit)}
+
+
+@app.post("/journeys/{journey_id}/act")
+def journeys_act(journey_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Chaque action UI -> question contextuelle IA -> plan mis à jour.
+    """
+    j = get_journey(journey_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="journey introuvable")
+    locale = str(payload.get("locale", j.get("locale") or "fr") or "fr").lower()
+    if locale not in {"fr", "en"}:
+        locale = "fr"
+    context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+    action = payload.get("action") if isinstance(payload.get("action"), dict) else {"type": "click", "label": "unknown"}
+
+    current_plan = j.get("plan") if isinstance(j.get("plan"), dict) else {}
+    goal = j.get("goal") if isinstance(j.get("goal"), dict) else {}
+    ai = build_plan_from_action(locale=locale, goal=goal, context=context, current_plan=current_plan, action=action)
+
+    plan_obj = ai.get("plan") if isinstance(ai.get("plan"), dict) else {}
+    steps = ai.get("steps") if isinstance(ai.get("steps"), list) else []
+    update_plan(journey_id=journey_id, plan=plan_obj)
+    upsert_steps(journey_id=journey_id, steps=steps)
+    journey_add_event(journey_id=journey_id, actor="ai", action_type="journey.act", payload={"action": action}, ai=ai)
+    return {"journey": get_journey(journey_id), "steps": journey_list_steps(journey_id), "ai": ai}
+
+
+@app.post("/journeys/{journey_id}/steps/{step_id}/complete")
+def journeys_step_complete(journey_id: str, step_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    j = get_journey(journey_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="journey introuvable")
+    mark_step_done(journey_id, step_id)
+    locale = str((payload or {}).get("locale", j.get("locale") or "fr") or "fr").lower()
+    if locale not in {"fr", "en"}:
+        locale = "fr"
+    context = (payload or {}).get("context") if isinstance((payload or {}).get("context"), dict) else {}
+    action = {"type": "step_completed", "step_id": step_id}
+    ai = build_plan_from_action(locale=locale, goal=j.get("goal") or {}, context=context, current_plan=j.get("plan") or {}, action=action)
+    update_plan(journey_id=journey_id, plan=ai.get("plan") if isinstance(ai.get("plan"), dict) else {})
+    upsert_steps(journey_id=journey_id, steps=ai.get("steps") if isinstance(ai.get("steps"), list) else [])
+    journey_add_event(journey_id=journey_id, actor="ai", action_type="journey.step_complete", payload={"step_id": step_id}, ai=ai)
+    return {"journey": get_journey(journey_id), "steps": journey_list_steps(journey_id), "ai": ai}
 
 @app.post("/eligibility/proposals")
 def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:

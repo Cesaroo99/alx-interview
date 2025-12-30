@@ -155,6 +155,27 @@ export type ProcedureStep = {
   official_url?: string | null;
 };
 
+export type Journey = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  locale: "fr" | "en" | string;
+  status: string;
+  goal: any;
+  plan: any;
+};
+
+export type JourneyStep = {
+  id: string;
+  journey_id: string;
+  step_key: string;
+  ordering: number;
+  status: "not_started" | "in_progress" | "done" | "blocked" | string;
+  title: { fr?: string; en?: string; [k: string]: any };
+  description: { fr?: string; en?: string; [k: string]: any };
+  payload: any;
+};
+
 export type OfficeItem = {
   id: string;
   type: "embassy" | "consulate" | "tls" | "vfs" | string;
@@ -282,6 +303,30 @@ export const Api = {
     if (params?.limit) qs.set("limit", String(params.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return get<{ items: any[] }>(`/audit${suffix}`);
+  },
+  createJourney(payload: { goal: any; locale: "fr" | "en"; context: any }) {
+    return post<{ journey: Journey; steps: JourneyStep[]; ai: any }>("/journeys", payload);
+  },
+  listJourneys() {
+    return get<{ items: Journey[] }>("/journeys");
+  },
+  getJourney(journeyId: string) {
+    return get<{ journey: Journey }>(`/journeys/${encodeURIComponent(journeyId)}`);
+  },
+  listJourneySteps(journeyId: string) {
+    return get<{ items: JourneyStep[] }>(`/journeys/${encodeURIComponent(journeyId)}/steps`);
+  },
+  listJourneyEvents(journeyId: string) {
+    return get<{ items: any[] }>(`/journeys/${encodeURIComponent(journeyId)}/events`);
+  },
+  journeyAct(payload: { journey_id: string; locale: "fr" | "en"; context: any; action: any }) {
+    return post<{ journey: Journey; steps: JourneyStep[]; ai: any }>(`/journeys/${encodeURIComponent(payload.journey_id)}/act`, payload);
+  },
+  journeyCompleteStep(payload: { journey_id: string; step_id: string; locale: "fr" | "en"; context: any }) {
+    return post<{ journey: Journey; steps: JourneyStep[]; ai: any }>(
+      `/journeys/${encodeURIComponent(payload.journey_id)}/steps/${encodeURIComponent(payload.step_id)}/complete`,
+      { locale: payload.locale, context: payload.context }
+    );
   },
   visaProposals(country: string, userProfile: UserProfile) {
     return post<{

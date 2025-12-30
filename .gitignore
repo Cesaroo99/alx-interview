@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Local DB (MVP)
+api/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Expo web export
+apps/visa-copilot-ai/dist/

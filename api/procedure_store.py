@@ -14,9 +14,9 @@ def _now_iso() -> str:
 
 
 def _db_path() -> str:
-    # En prod Render: système de fichiers éphémère (MVP).
-    # Pour persistance, monter un disque ou passer à Postgres.
-    return os.getenv("GLOBALVISA_DB_PATH", "api/data/globalvisa.db")
+    # Par défaut: /tmp (évite de créer des artefacts dans le repo).
+    # En prod Render: définir GLOBALVISA_DB_PATH vers un disque monté (persistant) ou passer à Postgres.
+    return os.getenv("GLOBALVISA_DB_PATH", "/tmp/globalvisa.db")
 
 
 def _connect() -> sqlite3.Connection:
