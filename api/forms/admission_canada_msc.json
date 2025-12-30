@@ -1,0 +1,65 @@
+{
+  "id": "admission_canada_msc",
+  "meta": {
+    "type": "admission",
+    "intent": "study",
+    "country": "canada",
+    "title": { "fr": "Admission Canada (MSc) — assistant dossier", "en": "Canada admission (MSc) — application assistant" },
+    "official_submit_url": "https://www.educanada.ca/",
+    "disclaimer": {
+      "fr": "Guide de rédaction et cohérence. La soumission se fait sur le portail officiel de l’université.",
+      "en": "Writing/coherence guidance. Submission happens on the university’s official portal."
+    }
+  },
+  "steps": [
+    {
+      "key": "program_choice",
+      "ordering": 1,
+      "title": { "fr": "Programme & objectifs", "en": "Program & goals" },
+      "official_url": "https://www.educanada.ca/",
+      "fields": [
+        { "id": "university", "type": "text", "label": { "fr": "Université", "en": "University" }, "required": true },
+        { "id": "program", "type": "text", "label": { "fr": "Programme", "en": "Program" }, "required": true },
+        {
+          "id": "motivation",
+          "type": "textarea",
+          "label": { "fr": "Motivation (résumé)", "en": "Motivation (summary)" },
+          "required": true,
+          "hint": {
+            "fr": "3–6 phrases : objectifs, pourquoi ce programme, pourquoi maintenant.",
+            "en": "3–6 sentences: goals, why this program, why now."
+          }
+        }
+      ]
+    },
+    {
+      "key": "sop",
+      "ordering": 2,
+      "title": { "fr": "Statement of Purpose (SOP)", "en": "Statement of Purpose (SOP)" },
+      "official_url": "https://www.educanada.ca/",
+      "fields": [
+        {
+          "id": "sop_draft",
+          "type": "textarea",
+          "label": { "fr": "Brouillon SOP", "en": "SOP draft" },
+          "required": true,
+          "hint": {
+            "fr": "L’IA peut proposer une version structurée. Vous copiez-collez vous‑même.",
+            "en": "AI can propose a structured version. You copy-paste yourself."
+          }
+        }
+      ]
+    },
+    {
+      "key": "finances",
+      "ordering": 3,
+      "title": { "fr": "Financement & preuves", "en": "Funding & proofs" },
+      "official_url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html",
+      "fields": [
+        { "id": "tuition_per_year", "type": "number", "label": { "fr": "Frais annuels (approx.)", "en": "Tuition per year (approx.)" }, "required": false },
+        { "id": "funding_sources", "type": "textarea", "label": { "fr": "Sources de financement", "en": "Funding sources" }, "required": true }
+      ]
+    }
+  ]
+}
+

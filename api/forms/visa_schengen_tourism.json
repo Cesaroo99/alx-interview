@@ -1,0 +1,72 @@
+{
+  "id": "visa_schengen_tourism",
+  "meta": {
+    "type": "visa",
+    "intent": "tourism",
+    "country": "schengen",
+    "title": { "fr": "Visa Schengen (tourisme) — assistant formulaire", "en": "Schengen visa (tourism) — form assistant" },
+    "official_submit_url": "https://www.schengenvisainfo.com/",
+    "disclaimer": {
+      "fr": "Ce formulaire est un guide. La soumission se fait uniquement via le portail officiel/centre agréé.",
+      "en": "This is guidance only. Submission must be done via the official portal/authorized center."
+    }
+  },
+  "steps": [
+    {
+      "key": "identity",
+      "ordering": 1,
+      "title": { "fr": "Identité & passeport", "en": "Identity & passport" },
+      "official_url": "https://www.schengenvisainfo.com/schengen-visa-application-form/",
+      "fields": [
+        { "id": "full_name", "type": "text", "label": { "fr": "Nom complet", "en": "Full name" }, "required": true },
+        { "id": "nationality", "type": "text", "label": { "fr": "Nationalité", "en": "Nationality" }, "required": true },
+        { "id": "passport_number", "type": "text", "label": { "fr": "Numéro de passeport", "en": "Passport number" }, "required": true },
+        {
+          "id": "passport_expiry",
+          "type": "date",
+          "label": { "fr": "Date d’expiration du passeport", "en": "Passport expiry date" },
+          "required": true,
+          "hint": {
+            "fr": "Doit souvent être > 3 à 6 mois après la date de retour (selon règles officielles).",
+            "en": "Often must be > 3–6 months after return date (check official rules)."
+          }
+        }
+      ]
+    },
+    {
+      "key": "trip",
+      "ordering": 2,
+      "title": { "fr": "Voyage (tourisme)", "en": "Trip (tourism)" },
+      "official_url": "https://www.schengenvisainfo.com/tourist-schengen-visa/",
+      "fields": [
+        { "id": "destination_country", "type": "text", "label": { "fr": "Pays principal", "en": "Main destination country" }, "required": true },
+        { "id": "arrival_date", "type": "date", "label": { "fr": "Date d’arrivée", "en": "Arrival date" }, "required": true },
+        { "id": "departure_date", "type": "date", "label": { "fr": "Date de départ", "en": "Departure date" }, "required": true },
+        {
+          "id": "purpose_statement",
+          "type": "textarea",
+          "label": { "fr": "Motif (texte court)", "en": "Purpose (short text)" },
+          "required": true,
+          "hint": { "fr": "Simple, factuel, cohérent avec votre profil.", "en": "Simple, factual, consistent with your profile." }
+        }
+      ]
+    },
+    {
+      "key": "finance_ties",
+      "ordering": 3,
+      "title": { "fr": "Finances & attaches", "en": "Finances & ties" },
+      "official_url": "https://www.schengenvisainfo.com/schengen-visa-application-requirements/",
+      "fields": [
+        { "id": "monthly_income_usd", "type": "number", "label": { "fr": "Revenu mensuel (USD)", "en": "Monthly income (USD)" }, "required": false },
+        { "id": "savings_usd", "type": "number", "label": { "fr": "Épargne (USD)", "en": "Savings (USD)" }, "required": false },
+        {
+          "id": "ties_summary",
+          "type": "textarea",
+          "label": { "fr": "Attaches / retour (résumé)", "en": "Ties / return (summary)" },
+          "required": true
+        }
+      ]
+    }
+  ]
+}
+

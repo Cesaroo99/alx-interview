@@ -1,0 +1,35 @@
+{
+  "id": "admin_birth_certificate",
+  "meta": {
+    "type": "admin",
+    "intent": "certificate",
+    "country": "generic",
+    "title": { "fr": "Acte de naissance — guide administratif", "en": "Birth certificate — admin guide" },
+    "official_submit_url": "https://www.service-public.fr/",
+    "disclaimer": {
+      "fr": "Guide administratif. Soumission uniquement via le site/guichet officiel.",
+      "en": "Administrative guidance only. Submit only via official site/office."
+    }
+  },
+  "steps": [
+    {
+      "key": "request",
+      "ordering": 1,
+      "title": { "fr": "Demande", "en": "Request" },
+      "official_url": "https://www.service-public.fr/particuliers/vosdroits/F1427",
+      "fields": [
+        { "id": "requester_full_name", "type": "text", "label": { "fr": "Nom du demandeur", "en": "Requester full name" }, "required": true },
+        { "id": "person_full_name", "type": "text", "label": { "fr": "Nom de la personne concernée", "en": "Person full name" }, "required": true },
+        { "id": "birth_date", "type": "date", "label": { "fr": "Date de naissance", "en": "Birth date" }, "required": true },
+        { "id": "birth_city", "type": "text", "label": { "fr": "Ville de naissance", "en": "Birth city" }, "required": true },
+        {
+          "id": "request_reason",
+          "type": "textarea",
+          "label": { "fr": "Motif (optionnel)", "en": "Reason (optional)" },
+          "required": false
+        }
+      ]
+    }
+  ]
+}
+

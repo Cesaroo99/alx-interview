@@ -19,6 +19,15 @@ export default function ToolsScreen() {
       />
 
       <GlassCard>
+        <Text style={styles.cardTitle}>Formulaires & démarches</Text>
+        <Text style={styles.body}>
+          Parcours guidé pour formulaires d’ambassades, écoles et services administratifs (sans auto‑soumission).
+        </Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/forms")} />
+      </GlassCard>
+
+      <GlassCard>
         <Text style={styles.cardTitle}>Préparer le dossier (priorité)</Text>
         <Text style={styles.body}>Les 3 actions qui améliorent le plus vite la cohérence: itinéraire, budget, corrections.</Text>
         <View style={{ height: Tokens.space.md }} />

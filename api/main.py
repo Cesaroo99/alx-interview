@@ -49,6 +49,21 @@ from .news_ingest_admin import (
 )
 
 from .openai_responses import call_openai_responses
+from .forms_catalog import get_form, list_forms, select_form_id
+from .procedure_store import (
+    add_audit,
+    create_procedure,
+    init_db,
+    list_audit,
+    list_procedures,
+    list_steps,
+    load_draft,
+    mark_completed_and_advance,
+    save_draft,
+)
+from .ai_forms import next_steps as ai_next_steps
+from .ai_forms import suggest_for_field as ai_suggest_for_field
+from .ai_forms import validate_step as ai_validate_step
 
 
 app = FastAPI(title="Visa Copilot AI API", version="0.1.0")
@@ -60,6 +75,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+init_db()
 
 
 def _parse_profile(data: dict[str, Any]) -> UserProfile:
@@ -354,6 +371,114 @@ def ai_respond(payload: dict[str, Any]) -> dict[str, Any]:
     raw, text = call_openai_responses(input_text=input_text, model=str(model) if model else None, store=store)
     return {"model": (model or os.getenv("OPENAI_MODEL") or "gpt-5-nano"), "text": text, "response": raw}
 
+
+@app.get("/forms")
+def forms(type: Optional[str] = None, country: Optional[str] = None, intent: Optional[str] = None) -> dict[str, Any]:
+    """
+    Catalogue de formulaires (guides) disponibles.
+    """
+    items = list_forms(form_type=type, country=country, intent=intent)
+    return {"items": items}
+
+
+@app.get("/forms/{form_id}")
+def form_get(form_id: str) -> dict[str, Any]:
+    f = get_form(form_id)
+    if not f:
+        raise HTTPException(status_code=404, detail="form introuvable")
+    return f
+
+
+@app.post("/procedures")
+def procedures_create(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Crée une procédure (visa/admission/admin) et ses étapes à partir d'un formulaire catalogue.
+    """
+    proc_type = str(payload.get("type", "") or "").strip() or "visa"
+    intent = str(payload.get("intent", "") or "").strip() or "tourism"
+    country = str(payload.get("country", "") or "").strip() or "generic"
+    region = payload.get("region")
+    target = payload.get("target")
+    locale = str(payload.get("locale", "fr") or "fr").strip().lower()
+    if locale not in {"fr", "en"}:
+        locale = "fr"
+
+    form_id = select_form_id(form_type=proc_type, country=country, intent=intent)
+    if not form_id:
+        raise HTTPException(status_code=404, detail="Aucun formulaire trouvé pour ce type/pays/intention.")
+    f = get_form(form_id)
+    steps = list(f.get("steps") or []) if isinstance(f.get("steps"), list) else []
+    created = create_procedure(
+        proc_type=proc_type,
+        intent=intent,
+        country=country,
+        region=str(region) if region else None,
+        target=str(target) if target else None,
+        locale=locale,
+        form_id=form_id,
+        steps=steps,
+    )
+    add_audit(procedure_id=created["id"], actor="user", action="procedure.start", payload={"type": proc_type, "intent": intent, "country": country})
+    return {"procedure": created, "form": {"id": form_id, "meta": (f.get("meta") or {})}}
+
+
+@app.get("/procedures")
+def procedures_list(limit: int = 50) -> dict[str, Any]:
+    return {"items": list_procedures(limit=limit)}
+
+
+@app.get("/procedures/{procedure_id}/steps")
+def procedures_steps(procedure_id: str) -> dict[str, Any]:
+    return {"items": list_steps(procedure_id)}
+
+
+@app.get("/procedures/{procedure_id}/draft/{step_id}")
+def procedures_draft_get(procedure_id: str, step_id: str) -> dict[str, Any]:
+    d = load_draft(procedure_id, step_id) or {"procedure_id": procedure_id, "step_id": step_id, "updated_at": None, "data": {}}
+    return d
+
+
+@app.put("/procedures/{procedure_id}/draft/{step_id}")
+def procedures_draft_put(procedure_id: str, step_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="data doit être un objet JSON.")
+    save_draft(procedure_id, step_id, data)
+    return {"ok": True}
+
+
+@app.post("/procedures/{procedure_id}/steps/{step_id}/complete")
+def procedures_step_complete(procedure_id: str, step_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    mark_completed_and_advance(procedure_id, step_id)
+    locale = "fr"
+    if isinstance(payload, dict) and isinstance(payload.get("locale"), str):
+        locale = payload["locale"].lower()
+    # IA = décisionnaire des recommandations/next actions (retournées au client)
+    ai = ai_next_steps(procedure_id=procedure_id, completed_step_id=step_id, locale=locale)
+    return {"ok": True, "ai": ai, "steps": list_steps(procedure_id)}
+
+
+@app.post("/ai/forms/suggest")
+def ai_forms_suggest(payload: dict[str, Any]) -> dict[str, Any]:
+    procedure_id = str(payload.get("procedure_id", "") or "")
+    step_id = str(payload.get("step_id", "") or "")
+    field_id = str(payload.get("field_id", "") or "")
+    locale = str(payload.get("locale", "fr") or "fr").lower()
+    user_input = payload.get("user_input")
+    return ai_suggest_for_field(procedure_id=procedure_id, step_id=step_id, field_id=field_id, locale=locale, user_input=str(user_input) if user_input is not None else None)
+
+
+@app.post("/ai/forms/validate")
+def ai_forms_validate(payload: dict[str, Any]) -> dict[str, Any]:
+    procedure_id = str(payload.get("procedure_id", "") or "")
+    step_id = str(payload.get("step_id", "") or "")
+    locale = str(payload.get("locale", "fr") or "fr").lower()
+    return ai_validate_step(procedure_id=procedure_id, step_id=step_id, locale=locale)
+
+
+@app.get("/audit")
+def audit(procedure_id: Optional[str] = None, limit: int = 200) -> dict[str, Any]:
+    return {"items": list_audit(procedure_id=procedure_id, limit=limit)}
 
 @app.post("/eligibility/proposals")
 def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:

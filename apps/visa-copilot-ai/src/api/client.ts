@@ -128,6 +128,33 @@ export type RefusalResponse = {
   disclaimers: string[];
 };
 
+export type FormCatalogItem = { id: string; meta: any };
+export type FormDefinition = { id: string; meta: any; steps: any[] };
+
+export type Procedure = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  type: string;
+  intent: string;
+  country: string;
+  region?: string | null;
+  target?: string | null;
+  locale: "fr" | "en" | string;
+  form_id: string;
+  status: string;
+};
+
+export type ProcedureStep = {
+  id: string;
+  procedure_id: string;
+  step_key: string;
+  title: { fr?: string; en?: string; [k: string]: string | undefined };
+  ordering: number;
+  status: "not_started" | "in_progress" | "done" | string;
+  official_url?: string | null;
+};
+
 export type OfficeItem = {
   id: string;
   type: "embassy" | "consulate" | "tls" | "vfs" | string;
@@ -206,6 +233,55 @@ export const Api = {
   },
   explainRefusal(payload: { refusal_reasons: string[]; refusal_letter_text?: string | null }) {
     return post<RefusalResponse>("/explain-refusal", payload);
+  },
+  listForms(params?: { type?: string; country?: string; intent?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.type) qs.set("type", params.type);
+    if (params?.country) qs.set("country", params.country);
+    if (params?.intent) qs.set("intent", params.intent);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return get<{ items: FormCatalogItem[] }>(`/forms${suffix}`);
+  },
+  getForm(formId: string) {
+    return get<FormDefinition>(`/forms/${encodeURIComponent(formId)}`);
+  },
+  createProcedure(payload: { type: string; intent: string; country: string; region?: string; target?: string; locale: "fr" | "en" }) {
+    return post<{ procedure: Procedure; form: { id: string; meta: any } }>("/procedures", payload);
+  },
+  listProcedures() {
+    return get<{ items: Procedure[] }>("/procedures");
+  },
+  listProcedureSteps(procedureId: string) {
+    return get<{ items: ProcedureStep[] }>(`/procedures/${encodeURIComponent(procedureId)}/steps`);
+  },
+  getDraft(procedureId: string, stepId: string) {
+    return get<{ procedure_id: string; step_id: string; updated_at: string | null; data: Record<string, any> }>(
+      `/procedures/${encodeURIComponent(procedureId)}/draft/${encodeURIComponent(stepId)}`
+    );
+  },
+  saveDraft(procedureId: string, stepId: string, data: Record<string, any>) {
+    return request<{ ok: boolean }>(`/procedures/${encodeURIComponent(procedureId)}/draft/${encodeURIComponent(stepId)}`, {
+      method: "PUT",
+      body: { data },
+    });
+  },
+  completeStep(procedureId: string, stepId: string, locale: "fr" | "en") {
+    return post<{ ok: boolean; ai: any; steps: ProcedureStep[] }>(`/procedures/${encodeURIComponent(procedureId)}/steps/${encodeURIComponent(stepId)}/complete`, {
+      locale,
+    });
+  },
+  aiSuggest(payload: { procedure_id: string; step_id: string; field_id: string; locale: "fr" | "en"; user_input?: string | null }) {
+    return post<{ engine: string; result: any }>("/ai/forms/suggest", payload);
+  },
+  aiValidate(payload: { procedure_id: string; step_id: string; locale: "fr" | "en" }) {
+    return post<{ engine: string; result: any }>("/ai/forms/validate", payload);
+  },
+  audit(params?: { procedure_id?: string; limit?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.procedure_id) qs.set("procedure_id", params.procedure_id);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return get<{ items: any[] }>(`/audit${suffix}`);
   },
   visaProposals(country: string, userProfile: UserProfile) {
     return post<{
