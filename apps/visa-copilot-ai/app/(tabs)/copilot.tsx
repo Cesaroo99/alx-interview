@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
 import { Api } from "@/src/api/client";
@@ -39,8 +39,15 @@ export default function CopilotScreen() {
     <Screen scroll={false}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Copilot IA</Text>
-          <Text style={styles.subtitle}>Chat contextuel (type WhatsApp/ChatGPT) + actions rapides.</Text>
+          <View style={styles.headerTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Copilot IA</Text>
+              <Text style={styles.subtitle}>Chat contextuel + actions rapides (visa‑first, official‑only).</Text>
+            </View>
+            <View style={styles.headerIconWrap}>
+              <Image source={require("../../assets/images/adaptive-icon.png")} style={styles.headerIcon} />
+            </View>
+          </View>
         </View>
 
         <GlassCard style={{ flex: 1, padding: Tokens.space.md }}>
@@ -127,6 +134,18 @@ export default function CopilotScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: Tokens.space.xl, gap: Tokens.space.md },
   header: { gap: 6 },
+  headerTop: { flexDirection: "row", gap: 12, alignItems: "center" },
+  headerIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(6,8,20,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerIcon: { width: 30, height: 30, resizeMode: "contain" },
   title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
   subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   bubble: {

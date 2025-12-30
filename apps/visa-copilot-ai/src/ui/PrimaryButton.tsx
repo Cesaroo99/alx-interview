@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
@@ -30,11 +31,19 @@ export function PrimaryButton({
       }}
       style={({ pressed }) => [
         styles.btn,
-        { backgroundColor: bg, opacity: pressed ? 0.85 : 1 },
+        { backgroundColor: variant === "brand" ? "transparent" : bg, opacity: pressed ? 0.85 : 1 },
         variant === "ghost" ? styles.ghost : null,
         style,
       ]}
     >
+      {variant === "brand" ? (
+        <LinearGradient
+          colors={[Colors.brandA, Colors.brandB]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       <Text style={styles.text}>{title}</Text>
     </Pressable>
   );
@@ -47,6 +56,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Tokens.space.lg,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   ghost: {
     borderWidth: 1,

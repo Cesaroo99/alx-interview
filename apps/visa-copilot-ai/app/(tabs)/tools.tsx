@@ -5,16 +5,18 @@ import { router } from "expo-router";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function ToolsScreen() {
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>Outils</Text>
-        <Text style={styles.subtitle}>Modules pratiques: plan, coûts, refus, sécurité… toujours au service d’un dossier crédible.</Text>
-      </View>
+      <HeroBanner
+        kicker="Boîte à outils"
+        title="Outils"
+        subtitle="Plan, coûts, refus, sécurité… tout ce qu’il faut pour rendre ton dossier cohérent."
+      />
 
       <GlassCard>
         <Text style={styles.cardTitle}>Préparer le dossier (priorité)</Text>
@@ -96,9 +98,6 @@ export default function ToolsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   rowButtons: { flexDirection: "row", gap: 10, flexWrap: "wrap" },

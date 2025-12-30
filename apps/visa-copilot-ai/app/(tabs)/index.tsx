@@ -8,6 +8,7 @@ import { Tokens } from "@/src/theme/tokens";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { ProgressBar } from "@/src/ui/ProgressBar";
 import { Screen } from "@/src/ui/Screen";
@@ -66,13 +67,11 @@ export default function HomeScreen() {
 
   return (
     <Screen>
-      <View style={styles.hero}>
-        <Text style={styles.kicker}>GlobalVisa</Text>
-        <Text style={styles.title}>Tableau de bord</Text>
-        <Text style={styles.subtitle}>
-          Statut global, alertes, progression et prochaines actions visa‑first.
-        </Text>
-      </View>
+      <HeroBanner
+        kicker="GlobalVisa"
+        title="Tableau de bord"
+        subtitle="Statut global, alertes, progression et prochaines actions visa‑first."
+      />
 
       <AnimatedIn delayMs={0}>
         <GlassCard>
@@ -193,27 +192,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: 10,
-  },
-  kicker: {
-    color: Colors.brandB,
-    fontWeight: Tokens.font.weight.semibold,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    fontSize: Tokens.font.size.xs,
-  },
-  title: {
-    color: Colors.text,
-    fontSize: Tokens.font.size.hero,
-    fontWeight: Tokens.font.weight.black,
-    lineHeight: 38,
-  },
-  subtitle: {
-    color: Colors.muted,
-    fontSize: Tokens.font.size.md,
-    lineHeight: 22,
-  },
   cardTitle: {
     color: Colors.text,
     fontSize: Tokens.font.size.lg,

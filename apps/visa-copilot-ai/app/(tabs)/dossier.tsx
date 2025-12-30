@@ -6,6 +6,7 @@ import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { ScorePill } from "@/src/ui/ScorePill";
@@ -34,10 +35,11 @@ export default function DossierScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>Dossier</Text>
-        <Text style={styles.subtitle}>Vérification avant dépôt: cohérence, pièces manquantes, score de readiness.</Text>
-      </View>
+      <HeroBanner
+        kicker="Vérification"
+        title="Dossier"
+        subtitle="Analyse avant dépôt: cohérence, risques clés, actions prioritaires."
+      />
 
       <GlassCard>
         <Text style={styles.cardTitle}>Paramètres</Text>
@@ -154,9 +156,6 @@ export default function DossierScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   label: { color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.medium },
   input: {

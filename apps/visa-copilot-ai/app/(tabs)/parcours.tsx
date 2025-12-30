@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useProfile } from "@/src/state/profile";
@@ -61,10 +62,11 @@ export default function ParcoursScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>Parcours visa</Text>
-        <Text style={styles.subtitle}>Une timeline simple, avec blocage intelligent quand une étape n’est pas prête.</Text>
-      </View>
+      <HeroBanner
+        kicker="Étapes"
+        title="Parcours visa"
+        subtitle="Une timeline claire: quoi faire maintenant, et ce qui est bloqué tant que ce n’est pas prêt."
+      />
 
       <GlassCard>
         <Text style={styles.cardTitle}>Timeline</Text>
@@ -97,9 +99,6 @@ export default function ParcoursScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   stepRow: { flexDirection: "row", gap: Tokens.space.md, marginTop: Tokens.space.lg },
   left: { width: 22, alignItems: "center" },

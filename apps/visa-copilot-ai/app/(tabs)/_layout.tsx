@@ -20,7 +20,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.brandB,
         tabBarInactiveTintColor: "rgba(245,247,255,0.60)",
         tabBarStyle: {
-          backgroundColor: "rgba(7,10,18,0.92)",
+          backgroundColor: "rgba(6,8,20,0.94)",
           borderTopColor: "rgba(255,255,255,0.10)",
         },
         headerShown: false,
@@ -42,10 +42,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="copilot"
+        name="dossier"
         options={{
-          title: "Copilot",
-          tabBarIcon: ({ color }) => <TabBarIcon name="comments" color={color} />,
+          title: "Dossier",
+          tabBarIcon: ({ color }) => <TabBarIcon name="check-circle" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -53,6 +53,13 @@ export default function TabLayout() {
         options={{
           title: "Docs",
           tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="copilot"
+        options={{
+          title: "Copilot",
+          tabBarIcon: ({ color }) => <TabBarIcon name="comments" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -66,7 +73,6 @@ export default function TabLayout() {
       {/* Écrans existants conservés, mais retirés de la barre d’onglets (accès via CTA / parcours). */}
       <Tabs.Screen name="diagnostic" options={{ href: null }} />
       <Tabs.Screen name="security" options={{ href: null }} />
-      <Tabs.Screen name="dossier" options={{ href: null }} />
       <Tabs.Screen name="appointments" options={{ href: null }} />
       <Tabs.Screen name="billing" options={{ href: null }} />
       <Tabs.Screen name="eligibility" options={{ href: null }} />

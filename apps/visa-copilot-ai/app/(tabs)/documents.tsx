@@ -9,6 +9,7 @@ import { Tokens } from "@/src/theme/tokens";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { SkeletonCard } from "@/src/ui/Skeleton";
@@ -81,12 +82,11 @@ export default function DocumentsScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>Documents</Text>
-        <Text style={styles.subtitle}>
-          Upload + vérification automatique (OCR/IA). MVP: structure + checklist; OCR sera branché ensuite.
-        </Text>
-      </View>
+      <HeroBanner
+        kicker="Coffre"
+        title="Documents"
+        subtitle="Centralise tes pièces et lance une analyse dossier en 1 clic (OCR/IA à brancher ensuite)."
+      />
 
       <AnimatedIn delayMs={0}>
         <GlassCard>
@@ -249,9 +249,6 @@ export default function DocumentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   badgeRow: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginTop: Tokens.space.sm },
