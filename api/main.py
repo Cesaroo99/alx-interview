@@ -48,6 +48,8 @@ from .news_ingest_admin import (
     validate_sources,
 )
 
+from .openai_responses import call_openai_responses
+
 
 app = FastAPI(title="Visa Copilot AI API", version="0.1.0")
 
@@ -225,6 +227,53 @@ def copilot_chat(payload: dict[str, Any]) -> dict[str, Any]:
 
     quick_actions: list[dict[str, Any]] = []
 
+    # Mode LLM (OpenAI) si configuré.
+    # Note: aucune clé n'est stockée dans le code; tout passe par OPENAI_API_KEY.
+    if (os.getenv("OPENAI_API_KEY") or "").strip() and user_message:
+        if any(k in msg_l for k in ["url", "lien", "site", "portail", "officiel", "phishing", "arnaque", "scam"]):
+            quick_actions = [
+                {"type": "open", "target": "security", "label": "Vérifier une URL"},
+                {"type": "tip", "label": "Ne jamais payer hors portail officiel"},
+            ]
+        elif any(k in msg_l for k in ["document", "pièce", "passeport", "relev", "attestation", "assurance", "dossier"]):
+            quick_actions = [
+                {"type": "open", "target": "documents", "label": "Ouvrir Documents"},
+                {"type": "open", "target": "dossier", "label": "Vérifier le dossier"},
+            ]
+        elif any(k in msg_l for k in ["refus", "risque", "chance", "probabilité", "score"]):
+            quick_actions = [
+                {"type": "open", "target": "diagnostic", "label": "Voir le diagnostic"},
+                {"type": "open", "target": "parcours", "label": "Voir le parcours"},
+            ]
+        else:
+            quick_actions = [
+                {"type": "open", "target": "parcours", "label": "Démarrer le parcours"},
+                {"type": "open", "target": "diagnostic", "label": "Faire un diagnostic"},
+            ]
+
+        profile_hint = (
+            f"nationalité={profile.nationality}, âge={profile.age}, profession={profile.profession}, "
+            f"emploi={profile.employment_status.value}, motif={profile.travel_purpose.value}, "
+            f"destination_hint={profile.destination_region_hint or ''}, refus_précédents={profile.prior_visa_refusals}"
+        )
+        prompt = (
+            "Tu es GlobalVisa Copilot, un assistant de visa.\n"
+            "- Réponds en français.\n"
+            "- Sois clair, structuré, concis, et actionnable.\n"
+            "- Ne prétends jamais être une autorité; recommande de vérifier la source officielle.\n"
+            "- N'invente pas de lois ni de liens.\n\n"
+            f"Contexte profil: {profile_hint}\n\n"
+            f"Question utilisateur: {user_message}\n"
+        )
+
+        try:
+            _raw, text = call_openai_responses(input_text=prompt, store=False)
+            answer = text.strip() or "Je n’ai pas pu générer une réponse utile. Pouvez-vous préciser la destination et le motif ?"
+            return {"answer": answer, "quick_actions": quick_actions}
+        except Exception:
+            # Fallback silencieux vers le mode heuristique ci-dessous.
+            quick_actions = []
+
     # 1) Anti-scam / URL
     if any(k in msg_l for k in ["url", "lien", "site", "portail", "officiel", "phishing", "arnaque", "scam"]):
         answer = (
@@ -278,6 +327,32 @@ def copilot_chat(payload: dict[str, Any]) -> dict[str, Any]:
         {"type": "open", "target": "diagnostic", "label": "Faire un diagnostic"},
     ]
     return {"answer": answer, "quick_actions": quick_actions}
+
+
+@app.post("/ai/respond")
+def ai_respond(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Proxy minimal vers OpenAI Responses.
+
+    Body:
+    {
+      "model": "gpt-5-nano",
+      "input": "write a haiku about ai",
+      "store": false
+    }
+    """
+    if not (os.getenv("OPENAI_API_KEY") or "").strip():
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY non configurée sur le serveur.")
+
+    model = payload.get("model")
+    input_text = str(payload.get("input", "") or "").strip()
+    store = bool(payload.get("store", False))
+
+    if not input_text:
+        raise HTTPException(status_code=400, detail="Champ 'input' requis.")
+
+    raw, text = call_openai_responses(input_text=input_text, model=str(model) if model else None, store=store)
+    return {"model": (model or os.getenv("OPENAI_MODEL") or "gpt-5-nano"), "text": text, "response": raw}
 
 
 @app.post("/eligibility/proposals")

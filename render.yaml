@@ -4,17 +4,28 @@ services:
     env: docker
     dockerfilePath: api/Dockerfile
     autoDeploy: true
+    branch: master
     healthCheckPath: /health
-    envVars: []
+    envVars:
+      # À définir dans Render (ne pas committer de secrets)
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5-nano
+      - key: GLOBALVISA_ADMIN_KEY
+        sync: false
 
   - type: web
     name: visa-copilot-ai-web
     env: static
     autoDeploy: true
+    branch: master
     buildCommand: cd apps/visa-copilot-ai && npm ci && npm run web:build
     staticPublishPath: apps/visa-copilot-ai/dist
     envVars:
-      # IMPORTANT: remplacez par l'URL Render du backend après création du service API
+      - key: NODE_VERSION
+        value: "20"
+      # IMPORTANT: URL publique du backend Render (pas localhost)
       - key: EXPO_PUBLIC_API_BASE_URL
-        value: http://localhost:8000
+        value: https://visa-copilot-ai-api.onrender.com
 
