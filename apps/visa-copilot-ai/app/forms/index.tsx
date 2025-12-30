@@ -9,11 +9,13 @@ import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
 import { ActionButton } from "@/src/ui/ActionButton";
 import { Screen } from "@/src/ui/Screen";
+import { useI18n } from "@/src/state/i18n";
 
 type ProcType = "visa" | "admission" | "admin";
 
 export default function FormsHome() {
-  const [locale, setLocale] = useState<"fr" | "en">("fr");
+  const i18n = useI18n();
+  const locale = i18n.locale;
   const [type, setType] = useState<ProcType>("visa");
   const [intent, setIntent] = useState("tourism");
   const [country, setCountry] = useState("schengen");
@@ -61,8 +63,8 @@ export default function FormsHome() {
         <Text style={styles.cardTitle}>{locale === "fr" ? "Langue" : "Language"}</Text>
         <View style={{ height: Tokens.space.sm }} />
         <View style={styles.row2}>
-          <ActionButton title="FR" variant={locale === "fr" ? "brand" : "ghost"} onPress={() => setLocale("fr")} style={{ flex: 1 }} track={{ type: "pref", label: "set_locale_fr", screen: "forms.home" }} />
-          <ActionButton title="EN" variant={locale === "en" ? "brand" : "ghost"} onPress={() => setLocale("en")} style={{ flex: 1 }} track={{ type: "pref", label: "set_locale_en", screen: "forms.home" }} />
+          <ActionButton title="FR" variant={locale === "fr" ? "brand" : "ghost"} onPress={() => i18n.setLocale("fr")} style={{ flex: 1 }} track={{ type: "pref", label: "set_locale_fr", screen: "forms.home" }} />
+          <ActionButton title="EN" variant={locale === "en" ? "brand" : "ghost"} onPress={() => i18n.setLocale("en")} style={{ flex: 1 }} track={{ type: "pref", label: "set_locale_en", screen: "forms.home" }} />
         </View>
       </GlassCard>
 

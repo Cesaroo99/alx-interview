@@ -10,6 +10,7 @@ import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useDocuments } from "@/src/state/documents";
+import { useI18n } from "@/src/state/i18n";
 import { useJourney } from "@/src/state/journey";
 import { useProfile } from "@/src/state/profile";
 import { buildJourneyContext } from "@/src/telemetry/journeyContext";
@@ -23,8 +24,9 @@ export default function ParcoursScreen() {
   const { profile } = useProfile();
   const { docs } = useDocuments();
   const journeyState = useJourney();
+  const i18n = useI18n();
 
-  const [locale, setLocale] = useState<"fr" | "en">(journeyState.locale);
+  const locale = i18n.locale;
   const [type, setType] = useState<"visa" | "admission" | "admin">("visa");
   const [intent, setIntent] = useState("tourism");
   const [country, setCountry] = useState("schengen");
@@ -73,8 +75,7 @@ export default function ParcoursScreen() {
             title="FR"
             variant={locale === "fr" ? "brand" : "ghost"}
             onPress={async () => {
-              setLocale("fr");
-              await journeyState.setLocale("fr");
+              await i18n.setLocale("fr");
             }}
             style={{ flex: 1 }}
           />
@@ -82,8 +83,7 @@ export default function ParcoursScreen() {
             title="EN"
             variant={locale === "en" ? "brand" : "ghost"}
             onPress={async () => {
-              setLocale("en");
-              await journeyState.setLocale("en");
+              await i18n.setLocale("en");
             }}
             style={{ flex: 1 }}
           />
@@ -129,6 +129,7 @@ export default function ParcoursScreen() {
                 goal: { type, intent, country, target: target.trim() || null },
                 context: buildJourneyContext(profile, docs),
               });
+              await i18n.setLocale(res.journey.locale === "en" ? "en" : "fr");
               await journeyState.setActiveJourneyId(res.journey.id);
               router.push(`/journeys/${res.journey.id}`);
             } catch (e: any) {
@@ -160,6 +161,7 @@ export default function ParcoursScreen() {
                 variant="ghost"
                 onPress={async () => {
                   await journeyState.setActiveJourneyId(j.id);
+                  await i18n.setLocale(j.locale === "en" ? "en" : "fr");
                   router.push(`/journeys/${j.id}`);
                 }}
               />

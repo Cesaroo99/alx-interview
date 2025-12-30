@@ -9,8 +9,10 @@ import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
+import { ProgressBar } from "@/src/ui/ProgressBar";
 import { Screen } from "@/src/ui/Screen";
 import { useDocuments } from "@/src/state/documents";
+import { useI18n } from "@/src/state/i18n";
 import { useJourney } from "@/src/state/journey";
 import { useProfile } from "@/src/state/profile";
 import { buildJourneyContext } from "@/src/telemetry/journeyContext";
@@ -20,12 +22,20 @@ function pickLabel(obj: any, locale: "fr" | "en") {
   return String(obj || "");
 }
 
+function badgeToneForStatus(status: string): { dot: string; labelTone: "success" | "warning" | "danger" | "neutral" } {
+  if (status === "done") return { dot: Colors.success, labelTone: "success" };
+  if (status === "in_progress") return { dot: Colors.brandB, labelTone: "warning" };
+  if (status === "blocked") return { dot: Colors.danger, labelTone: "danger" };
+  return { dot: Colors.faint, labelTone: "neutral" };
+}
+
 export default function JourneyDetail() {
   const { journeyId } = useLocalSearchParams<{ journeyId: string }>();
   const jid = String(journeyId || "");
   const { profile } = useProfile();
   const { docs } = useDocuments();
   const journeyState = useJourney();
+  const i18n = useI18n();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +72,26 @@ export default function JourneyDetail() {
 
   const next = useMemo(() => steps.find((s) => s.status === "in_progress") || steps.find((s) => s.status === "not_started") || steps[0], [steps]);
 
+  const progress = useMemo(() => {
+    const total = steps.length || 0;
+    const done = steps.filter((s) => s.status === "done").length;
+    const inProgress = steps.filter((s) => s.status === "in_progress").length;
+    const blocked = steps.filter((s) => s.status === "blocked").length;
+    const notStarted = steps.filter((s) => s.status === "not_started").length;
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    for (const s of steps) {
+      const alerts = (s.payload?.alerts || []) as any[];
+      for (const a of alerts) {
+        const txt = pickLabel(a?.text, locale);
+        if (!txt) continue;
+        if (a?.level === "error") errors.push(txt);
+        else if (a?.level === "warning") warnings.push(txt);
+      }
+    }
+    return { total, done, inProgress, blocked, notStarted, errors: errors.slice(0, 6), warnings: warnings.slice(0, 6) };
+  }, [steps, locale]);
+
   return (
     <Screen>
       <HeroBanner
@@ -75,6 +105,39 @@ export default function JourneyDetail() {
           <Text style={styles.error}>{error}</Text>
         </GlassCard>
       ) : null}
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>{locale === "fr" ? "Progression" : "Progress"}</Text>
+        <View style={{ height: Tokens.space.sm }} />
+        <ProgressBar step={progress.done} total={Math.max(progress.total, 1)} />
+        <Text style={styles.body}>
+          {locale === "fr"
+            ? `${progress.done}/${progress.total} terminées · ${progress.inProgress} en cours · ${progress.blocked} bloquées`
+            : `${progress.done}/${progress.total} done · ${progress.inProgress} in progress · ${progress.blocked} blocked`}
+        </Text>
+
+        {progress.errors.length ? (
+          <View style={{ marginTop: Tokens.space.md }}>
+            <Text style={[styles.stepTitle, { color: Colors.danger }]}>{locale === "fr" ? "Blocages" : "Blockers"}</Text>
+            {progress.errors.map((x) => (
+              <Text key={x} style={styles.body}>
+                ⛔ {x}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
+        {progress.warnings.length ? (
+          <View style={{ marginTop: Tokens.space.md }}>
+            <Text style={[styles.stepTitle, { color: Colors.warning }]}>{locale === "fr" ? "Alertes" : "Warnings"}</Text>
+            {progress.warnings.map((x) => (
+              <Text key={x} style={styles.body}>
+                ⚠️ {x}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+      </GlassCard>
 
       <GlassCard>
         <View style={styles.rowTop}>
@@ -98,6 +161,17 @@ export default function JourneyDetail() {
               ))}
             </View>
             <View style={{ gap: 8, alignItems: "flex-end" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 99,
+                    backgroundColor: badgeToneForStatus(String(s.status || "")).dot,
+                  }}
+                />
+                <Text style={styles.stepMeta}>{String(s.status || "")}</Text>
+              </View>
               <PrimaryButton
                 title={locale === "fr" ? "Actions" : "Actions"}
                 variant="ghost"
@@ -163,6 +237,7 @@ export default function JourneyDetail() {
           variant="ghost"
           onPress={async () => {
             await journeyState.setActiveJourneyId(jid);
+            await i18n.setLocale(locale);
           }}
         />
       </GlassCard>

@@ -1,0 +1,70 @@
+{
+  "id": "visa_schengen_work",
+  "meta": {
+    "type": "visa",
+    "intent": "work",
+    "country": "schengen",
+    "title": {
+      "fr": "Visa Schengen (travail / business) — assistant formulaire",
+      "en": "Schengen visa (work / business) — form assistant"
+    },
+    "official_submit_url": "https://www.schengenvisainfo.com/",
+    "disclaimer": {
+      "fr": "Ce guide ne soumet rien. Vérifiez le consulat, TLS/VFS et les exigences de l’État membre concerné.",
+      "en": "This guide never submits. Verify consulate/TLS/VFS and requirements of the relevant member state."
+    }
+  },
+  "steps": [
+    {
+      "key": "identity",
+      "ordering": 1,
+      "title": { "fr": "Identité & passeport", "en": "Identity & passport" },
+      "official_url": "https://www.schengenvisainfo.com/schengen-visa-application-form/",
+      "fields": [
+        { "id": "full_name", "type": "text", "label": { "fr": "Nom complet", "en": "Full name" }, "required": true },
+        { "id": "passport_number", "type": "text", "label": { "fr": "Numéro de passeport", "en": "Passport number" }, "required": true },
+        { "id": "passport_expiry", "type": "text", "label": { "fr": "Date d'expiration (YYYY-MM-DD)", "en": "Expiry date (YYYY-MM-DD)" }, "required": true }
+      ]
+    },
+    {
+      "key": "mission",
+      "ordering": 2,
+      "title": { "fr": "Objet du déplacement", "en": "Trip purpose" },
+      "fields": [
+        { "id": "host_company", "type": "text", "label": { "fr": "Entreprise hôte", "en": "Host company" }, "required": true },
+        { "id": "host_address", "type": "textarea", "label": { "fr": "Adresse de l’hôte", "en": "Host address" }, "required": false },
+        { "id": "mission_summary", "type": "textarea", "label": { "fr": "Résumé de mission / rendez-vous", "en": "Mission / meetings summary" }, "required": true },
+        { "id": "invitation_letter_notes", "type": "textarea", "label": { "fr": "Lettre d’invitation (notes)", "en": "Invitation letter (notes)" }, "required": false }
+      ]
+    },
+    {
+      "key": "employment",
+      "ordering": 3,
+      "title": { "fr": "Emploi & attache pro", "en": "Employment & professional ties" },
+      "fields": [
+        { "id": "employer_name", "type": "text", "label": { "fr": "Employeur actuel", "en": "Current employer" }, "required": true },
+        { "id": "role", "type": "text", "label": { "fr": "Poste", "en": "Role" }, "required": true },
+        { "id": "leave_authorization", "type": "textarea", "label": { "fr": "Autorisation de congé (brouillon)", "en": "Leave authorization (draft)" }, "required": false }
+      ]
+    },
+    {
+      "key": "funds",
+      "ordering": 4,
+      "title": { "fr": "Financement", "en": "Funding" },
+      "fields": [
+        { "id": "estimated_budget", "type": "text", "label": { "fr": "Budget estimé (devise)", "en": "Estimated budget (currency)" }, "required": true },
+        { "id": "payer", "type": "text", "label": { "fr": "Qui paie ? (vous / entreprise / hôte)", "en": "Who pays? (you / employer / host)" }, "required": true }
+      ]
+    },
+    {
+      "key": "ties_return",
+      "ordering": 5,
+      "title": { "fr": "Attaches & retour", "en": "Ties & return" },
+      "fields": [
+        { "id": "ties_summary", "type": "textarea", "label": { "fr": "Résumé des attaches (emploi/famille)", "en": "Summary of ties (job/family)" }, "required": true },
+        { "id": "return_plan", "type": "textarea", "label": { "fr": "Plan de retour (brouillon)", "en": "Return plan (draft)" }, "required": true }
+      ]
+    }
+  ]
+}
+

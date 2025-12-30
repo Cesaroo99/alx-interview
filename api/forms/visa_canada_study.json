@@ -1,0 +1,75 @@
+{
+  "id": "visa_canada_study",
+  "meta": {
+    "type": "visa",
+    "intent": "study",
+    "country": "canada",
+    "title": {
+      "fr": "Canada — Permis d’études (study permit) — assistant formulaire",
+      "en": "Canada — Study permit — form assistant"
+    },
+    "official_submit_url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html",
+    "disclaimer": {
+      "fr": "Guide MVP: vérifiez la checklist IRCC et les documents requis selon votre pays.",
+      "en": "MVP guide: verify IRCC checklist and country-specific requirements."
+    }
+  },
+  "steps": [
+    {
+      "key": "identity",
+      "ordering": 1,
+      "title": { "fr": "Identité & passeport", "en": "Identity & passport" },
+      "official_url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/apply.html",
+      "fields": [
+        { "id": "full_name", "type": "text", "label": { "fr": "Nom complet", "en": "Full name" }, "required": true },
+        { "id": "passport_number", "type": "text", "label": { "fr": "Numéro de passeport", "en": "Passport number" }, "required": true },
+        { "id": "passport_expiry", "type": "text", "label": { "fr": "Expiration (YYYY-MM-DD)", "en": "Expiry (YYYY-MM-DD)" }, "required": true }
+      ]
+    },
+    {
+      "key": "loa_program",
+      "ordering": 2,
+      "title": { "fr": "Lettre d’acceptation & programme", "en": "Letter of acceptance & program" },
+      "fields": [
+        { "id": "institution_dli", "type": "text", "label": { "fr": "Établissement (DLI)", "en": "Institution (DLI)" }, "required": true },
+        { "id": "program_title", "type": "text", "label": { "fr": "Programme", "en": "Program" }, "required": true },
+        { "id": "start_date", "type": "text", "label": { "fr": "Date de début (YYYY-MM-DD)", "en": "Start date (YYYY-MM-DD)" }, "required": true },
+        { "id": "tuition_first_year", "type": "text", "label": { "fr": "Frais 1ère année (devise)", "en": "First-year tuition (currency)" }, "required": true }
+      ]
+    },
+    {
+      "key": "funds",
+      "ordering": 3,
+      "title": { "fr": "Preuve de fonds", "en": "Proof of funds" },
+      "fields": [
+        { "id": "available_funds", "type": "text", "label": { "fr": "Montant disponible (devise)", "en": "Available funds (currency)" }, "required": true },
+        { "id": "funds_sources", "type": "textarea", "label": { "fr": "Sources (épargne/sponsor/parents)", "en": "Sources (savings/sponsor/parents)" }, "required": true },
+        { "id": "bank_statement_notes", "type": "textarea", "label": { "fr": "Relevés bancaires (notes)", "en": "Bank statements (notes)" }, "required": false }
+      ]
+    },
+    {
+      "key": "study_plan",
+      "ordering": 4,
+      "title": { "fr": "Projet d’études (SOP)", "en": "Study plan (SOP)" },
+      "fields": [
+        {
+          "id": "sop_draft",
+          "type": "textarea",
+          "label": { "fr": "Brouillon SOP", "en": "SOP draft" },
+          "hint": { "fr": "Pourquoi ce programme, cohérence du parcours, plan et retour.", "en": "Why this program, coherence, plan, and return." },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "ties_return",
+      "ordering": 5,
+      "title": { "fr": "Attaches & retour", "en": "Ties & return" },
+      "fields": [
+        { "id": "ties_summary", "type": "textarea", "label": { "fr": "Attaches (famille/emploi/projet)", "en": "Ties (family/job/project)" }, "required": true },
+        { "id": "post_study_plan", "type": "textarea", "label": { "fr": "Plan post‑études (brouillon)", "en": "Post-study plan (draft)" }, "required": true }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,68 @@
+{
+  "id": "visa_schengen_study",
+  "meta": {
+    "type": "visa",
+    "intent": "study",
+    "country": "schengen",
+    "title": {
+      "fr": "Visa Schengen (études / stage) — assistant formulaire",
+      "en": "Schengen visa (study / internship) — form assistant"
+    },
+    "official_submit_url": "https://www.schengenvisainfo.com/",
+    "disclaimer": {
+      "fr": "Ce guide ne soumet rien à votre place. Vérifiez toujours les portails officiels (TLS/VFS/consulat).",
+      "en": "This guide never submits on your behalf. Always verify official portals (TLS/VFS/consulate)."
+    }
+  },
+  "steps": [
+    {
+      "key": "identity",
+      "ordering": 1,
+      "title": { "fr": "Identité & passeport", "en": "Identity & passport" },
+      "official_url": "https://www.schengenvisainfo.com/schengen-visa-application-form/",
+      "fields": [
+        { "id": "full_name", "type": "text", "label": { "fr": "Nom complet", "en": "Full name" }, "required": true },
+        { "id": "passport_number", "type": "text", "label": { "fr": "Numéro de passeport", "en": "Passport number" }, "required": true },
+        { "id": "passport_expiry", "type": "text", "label": { "fr": "Date d'expiration (YYYY-MM-DD)", "en": "Expiry date (YYYY-MM-DD)" }, "required": true }
+      ]
+    },
+    {
+      "key": "study_plan",
+      "ordering": 2,
+      "title": { "fr": "Projet d’études", "en": "Study plan" },
+      "official_url": "https://www.schengenvisainfo.com/schengen-visa-application-form/",
+      "fields": [
+        { "id": "institution_name", "type": "text", "label": { "fr": "Établissement / organisme", "en": "Institution / organization" }, "required": true },
+        { "id": "program_title", "type": "text", "label": { "fr": "Programme / formation", "en": "Program / course" }, "required": true },
+        { "id": "start_end_dates", "type": "text", "label": { "fr": "Dates (début/fin)", "en": "Dates (start/end)" }, "required": true },
+        {
+          "id": "motivation_letter",
+          "type": "textarea",
+          "label": { "fr": "Lettre de motivation (brouillon)", "en": "Motivation letter (draft)" },
+          "hint": { "fr": "Sans promesse irréaliste. Décrivez objectifs, planning, et retour.", "en": "No unrealistic promises. Describe goals, schedule, and return." },
+          "required": false
+        }
+      ]
+    },
+    {
+      "key": "funds",
+      "ordering": 3,
+      "title": { "fr": "Financement", "en": "Funding" },
+      "fields": [
+        { "id": "estimated_budget", "type": "text", "label": { "fr": "Budget estimé (devise)", "en": "Estimated budget (currency)" }, "required": true },
+        { "id": "funding_source", "type": "text", "label": { "fr": "Source de financement", "en": "Funding source" }, "required": true },
+        { "id": "sponsor_details", "type": "textarea", "label": { "fr": "Détails du sponsor (si applicable)", "en": "Sponsor details (if applicable)" }, "required": false }
+      ]
+    },
+    {
+      "key": "ties_return",
+      "ordering": 4,
+      "title": { "fr": "Attaches & retour", "en": "Ties & return" },
+      "fields": [
+        { "id": "ties_summary", "type": "textarea", "label": { "fr": "Résumé des attaches (emploi/études/famille)", "en": "Summary of ties (job/studies/family)" }, "required": true },
+        { "id": "return_plan", "type": "textarea", "label": { "fr": "Plan de retour (brouillon)", "en": "Return plan (draft)" }, "required": true }
+      ]
+    }
+  ]
+}
+

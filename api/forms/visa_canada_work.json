@@ -1,0 +1,74 @@
+{
+  "id": "visa_canada_work",
+  "meta": {
+    "type": "visa",
+    "intent": "work",
+    "country": "canada",
+    "title": {
+      "fr": "Canada — Permis de travail — assistant formulaire (MVP)",
+      "en": "Canada — Work permit — form assistant (MVP)"
+    },
+    "official_submit_url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/work-canada/permit.html",
+    "disclaimer": {
+      "fr": "Guide MVP: exigences très variables (LMIA, employeur, exemptions). Vérifiez IRCC selon votre cas.",
+      "en": "MVP guide: requirements vary widely (LMIA, employer, exemptions). Verify IRCC for your case."
+    }
+  },
+  "steps": [
+    {
+      "key": "identity",
+      "ordering": 1,
+      "title": { "fr": "Identité & passeport", "en": "Identity & passport" },
+      "official_url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/work-canada/permit/apply.html",
+      "fields": [
+        { "id": "full_name", "type": "text", "label": { "fr": "Nom complet", "en": "Full name" }, "required": true },
+        { "id": "passport_number", "type": "text", "label": { "fr": "Numéro de passeport", "en": "Passport number" }, "required": true },
+        { "id": "passport_expiry", "type": "text", "label": { "fr": "Expiration (YYYY-MM-DD)", "en": "Expiry (YYYY-MM-DD)" }, "required": true }
+      ]
+    },
+    {
+      "key": "job_offer",
+      "ordering": 2,
+      "title": { "fr": "Offre d’emploi / employeur", "en": "Job offer / employer" },
+      "fields": [
+        { "id": "employer_name", "type": "text", "label": { "fr": "Nom de l’employeur", "en": "Employer name" }, "required": true },
+        { "id": "job_title", "type": "text", "label": { "fr": "Intitulé du poste", "en": "Job title" }, "required": true },
+        { "id": "noc_teer", "type": "text", "label": { "fr": "NOC / TEER (si connu)", "en": "NOC / TEER (if known)" }, "required": false },
+        { "id": "offer_summary", "type": "textarea", "label": { "fr": "Résumé (durée, salaire, lieu)", "en": "Summary (duration, salary, location)" }, "required": true }
+      ]
+    },
+    {
+      "key": "eligibility_path",
+      "ordering": 3,
+      "title": { "fr": "Voie d’éligibilité (notes)", "en": "Eligibility pathway (notes)" },
+      "fields": [
+        {
+          "id": "pathway_notes",
+          "type": "textarea",
+          "label": { "fr": "LMIA / exemption / programme", "en": "LMIA / exemption / program" },
+          "hint": { "fr": "Décrivez ce que l’employeur fournit + votre situation.", "en": "Describe what the employer provides + your situation." },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "funds",
+      "ordering": 4,
+      "title": { "fr": "Finances & installation", "en": "Finances & settlement" },
+      "fields": [
+        { "id": "available_funds", "type": "text", "label": { "fr": "Fonds disponibles (devise)", "en": "Available funds (currency)" }, "required": false },
+        { "id": "initial_budget_plan", "type": "textarea", "label": { "fr": "Plan budget installation", "en": "Initial budget plan" }, "required": false }
+      ]
+    },
+    {
+      "key": "ties_history",
+      "ordering": 5,
+      "title": { "fr": "Historique & cohérence", "en": "History & coherence" },
+      "fields": [
+        { "id": "travel_history", "type": "textarea", "label": { "fr": "Historique de voyages (résumé)", "en": "Travel history (summary)" }, "required": false },
+        { "id": "prior_refusals", "type": "textarea", "label": { "fr": "Refus précédents (si applicable)", "en": "Prior refusals (if any)" }, "required": false }
+      ]
+    }
+  ]
+}
+

@@ -3,6 +3,7 @@ import { StyleProp, ViewStyle } from "react-native";
 
 import { Api } from "@/src/api/client";
 import { useDocuments } from "@/src/state/documents";
+import { useI18n } from "@/src/state/i18n";
 import { useJourney } from "@/src/state/journey";
 import { useProfile } from "@/src/state/profile";
 import { buildJourneyContext } from "@/src/telemetry/journeyContext";
@@ -31,7 +32,8 @@ export function ActionButton({
 }) {
   const { profile } = useProfile();
   const { docs } = useDocuments();
-  const { activeJourneyId, locale } = useJourney();
+  const { activeJourneyId } = useJourney();
+  const { locale } = useI18n();
 
   return (
     <PrimaryButton

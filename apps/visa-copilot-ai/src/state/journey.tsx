@@ -3,10 +3,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 
 type Ctx = {
   activeJourneyId: string | null;
-  locale: "fr" | "en";
   loaded: boolean;
   setActiveJourneyId: (id: string | null) => Promise<void>;
-  setLocale: (l: "fr" | "en") => Promise<void>;
   clear: () => Promise<void>;
 };
 
@@ -15,7 +13,6 @@ const JourneyContext = createContext<Ctx | null>(null);
 
 export function JourneyProvider({ children }: { children: React.ReactNode }) {
   const [activeJourneyId, setActiveJourneyIdState] = useState<string | null>(null);
-  const [locale, setLocaleState] = useState<"fr" | "en">("fr");
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -25,7 +22,6 @@ export function JourneyProvider({ children }: { children: React.ReactNode }) {
         if (raw) {
           const data = JSON.parse(raw);
           if (typeof data?.activeJourneyId === "string") setActiveJourneyIdState(data.activeJourneyId);
-          if (data?.locale === "en" || data?.locale === "fr") setLocaleState(data.locale);
         }
       } finally {
         setLoaded(true);
@@ -34,9 +30,8 @@ export function JourneyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const persist = useCallback(
-    async (next: { activeJourneyId: string | null; locale: "fr" | "en" }) => {
+    async (next: { activeJourneyId: string | null }) => {
       setActiveJourneyIdState(next.activeJourneyId);
-      setLocaleState(next.locale);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     },
     []
@@ -44,27 +39,19 @@ export function JourneyProvider({ children }: { children: React.ReactNode }) {
 
   const setActiveJourneyId = useCallback(
     async (id: string | null) => {
-      await persist({ activeJourneyId: id, locale });
+      await persist({ activeJourneyId: id });
     },
-    [persist, locale]
-  );
-
-  const setLocale = useCallback(
-    async (l: "fr" | "en") => {
-      await persist({ activeJourneyId, locale: l });
-    },
-    [persist, activeJourneyId]
+    [persist]
   );
 
   const clear = useCallback(async () => {
     setActiveJourneyIdState(null);
-    setLocaleState("fr");
     await AsyncStorage.removeItem(STORAGE_KEY);
   }, []);
 
   const value = useMemo(
-    () => ({ activeJourneyId, locale, loaded, setActiveJourneyId, setLocale, clear }),
-    [activeJourneyId, locale, loaded, setActiveJourneyId, setLocale, clear]
+    () => ({ activeJourneyId, loaded, setActiveJourneyId, clear }),
+    [activeJourneyId, loaded, setActiveJourneyId, clear]
   );
 
   return <JourneyContext.Provider value={value}>{children}</JourneyContext.Provider>;
