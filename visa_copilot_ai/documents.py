@@ -50,6 +50,7 @@ class DocumentIssue:
     message: str
     why: list[str] = field(default_factory=list)
     suggested_fix: list[str] = field(default_factory=list)
+    evidence: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -173,6 +174,17 @@ def check_documents(
     missing = [t for t in required if t not in by_type]
 
     if missing:
+        missing_evidence: list[dict[str, Any]] = [
+            {
+                "doc_id": None,
+                "doc_type": t.value,
+                "present": False,
+                "extracted_key": None,
+                "value": None,
+                "note": "Document manquant (template générique).",
+            }
+            for t in missing
+        ]
         issues.append(
             DocumentIssue(
                 severity="risk",
@@ -185,6 +197,7 @@ def check_documents(
                 suggested_fix=[
                     "Vérifier la checklist officielle (ambassade/gouvernement) et compléter le dossier avant dépôt.",
                 ],
+                evidence=missing_evidence,
             )
         )
 
@@ -202,6 +215,16 @@ def check_documents(
                     code="PASSPORT_EXPIRY_UNKNOWN",
                     message="Expiration du passeport non fournie: impossible de vérifier la validité.",
                     suggested_fix=["Ajouter la date d'expiration (ou re-scan OCR) et vérifier les règles officielles."],
+                    evidence=[
+                        {
+                            "doc_id": p.doc_id,
+                            "doc_type": p.doc_type.value,
+                            "present": bool(_norm(p.extracted.get("expires_date"))),
+                            "extracted_key": "expires_date",
+                            "value": p.extracted.get("expires_date"),
+                            "note": "Champ utilisé pour vérifier la validité du passeport.",
+                        }
+                    ],
                 )
             )
         else:
@@ -213,6 +236,16 @@ def check_documents(
                         message="Passeport expiré.",
                         why=["Un passeport expiré rend la demande irrecevable dans la plupart des cas."],
                         suggested_fix=["Renouveler le passeport avant toute démarche visa."],
+                        evidence=[
+                            {
+                                "doc_id": p.doc_id,
+                                "doc_type": p.doc_type.value,
+                                "present": True,
+                                "extracted_key": "expires_date",
+                                "value": exp.isoformat(),
+                                "note": "Date d'expiration détectée.",
+                            }
+                        ],
                     )
                 )
             elif (exp - _today()).days < 180:
@@ -223,6 +256,16 @@ def check_documents(
                         message="Passeport proche de l'expiration (< 6 mois).",
                         why=["De nombreux pays exigent 3 à 6 mois de validité après le retour."],
                         suggested_fix=["Vérifier l'exigence officielle; envisager un renouvellement préventif."],
+                        evidence=[
+                            {
+                                "doc_id": p.doc_id,
+                                "doc_type": p.doc_type.value,
+                                "present": True,
+                                "extracted_key": "expires_date",
+                                "value": exp.isoformat(),
+                                "note": "Date d'expiration détectée.",
+                            }
+                        ],
                     )
                 )
 
@@ -241,6 +284,16 @@ def check_documents(
                 message="Passeport non fourni.",
                 why=["Le passeport est la pièce centrale du dossier."],
                 suggested_fix=["Ajouter un scan clair de la page d'identité du passeport."],
+                evidence=[
+                    {
+                        "doc_id": None,
+                        "doc_type": DocumentType.PASSPORT.value,
+                        "present": False,
+                        "extracted_key": None,
+                        "value": None,
+                        "note": "Aucun document de type passeport fourni.",
+                    }
+                ],
             )
         )
 
@@ -261,6 +314,16 @@ def check_documents(
                         message="Relevé bancaire ancien (> 4 mois).",
                         why=["Les consulats demandent souvent des relevés récents (ex: 3 derniers mois)."],
                         suggested_fix=["Fournir des relevés plus récents selon la règle officielle."],
+                        evidence=[
+                            {
+                                "doc_id": freshest.doc_id,
+                                "doc_type": freshest.doc_type.value,
+                                "present": True,
+                                "extracted_key": "issued_date",
+                                "value": issued.isoformat(),
+                                "note": "Date d'émission utilisée pour vérifier la fraîcheur.",
+                            }
+                        ],
                     )
                 )
 
@@ -273,6 +336,16 @@ def check_documents(
                         code="BANK_NEGATIVE_BALANCE",
                         message="Solde négatif détecté sur un relevé (signal de risque).",
                         suggested_fix=["Clarifier la situation financière; éviter incohérences budget/durée."],
+                        evidence=[
+                            {
+                                "doc_id": freshest.doc_id,
+                                "doc_type": freshest.doc_type.value,
+                                "present": True,
+                                "extracted_key": "ending_balance_usd",
+                                "value": balance,
+                                "note": "Valeur utilisée pour détecter un signal de risque.",
+                            }
+                        ],
                     )
                 )
         except Exception:
@@ -291,6 +364,16 @@ def check_documents(
                     message="Assurance voyage expirée.",
                     why=["Une assurance doit couvrir les dates exactes du séjour (si requise)."],
                     suggested_fix=["Mettre à jour l'assurance aux dates du voyage (sans paiement irréversible avant visa)."],
+                    evidence=[
+                        {
+                            "doc_id": d0.doc_id,
+                            "doc_type": d0.doc_type.value,
+                            "present": True,
+                            "extracted_key": "expires_date",
+                            "value": exp.isoformat(),
+                            "note": "Date d'expiration utilisée pour vérifier la couverture.",
+                        }
+                    ],
                 )
             )
 

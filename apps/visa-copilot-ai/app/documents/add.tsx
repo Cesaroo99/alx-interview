@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 
@@ -28,7 +28,9 @@ function sanitize(name: string) {
 
 export default function AddDocumentModal() {
   const { addDoc } = useDocuments();
-  const [docType, setDocType] = useState<DocumentType>("passport");
+  const params = useLocalSearchParams<{ doc_type?: string }>();
+  const initialType = (String(params.doc_type || "").trim() as DocumentType) || "passport";
+  const [docType, setDocType] = useState<DocumentType>(TYPES.some((t) => t.key === initialType) ? initialType : "passport");
   const [picked, setPicked] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const canSave = useMemo(() => !!picked, [picked]);
 

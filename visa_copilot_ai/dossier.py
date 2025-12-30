@@ -132,6 +132,7 @@ def dossier_to_dict(r: DossierVerificationResult) -> dict[str, Any]:
             "message": i.message,
             "why": list(i.why),
             "suggested_fix": list(i.suggested_fix),
+            "evidence": list(i.evidence or []),
         }
 
     return {

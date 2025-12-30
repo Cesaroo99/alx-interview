@@ -118,6 +118,42 @@ export type EstimateCostsResponse = {
   disclaimers: string[];
 };
 
+export type DossierEvidence = {
+  doc_id: string | null;
+  doc_type: string;
+  present: boolean;
+  extracted_key: string | null;
+  value: any;
+  note?: string | null;
+};
+
+export type DossierDocumentIssue = {
+  severity: "info" | "warning" | "risk" | string;
+  code: string;
+  message: string;
+  why: string[];
+  suggested_fix: string[];
+  evidence: DossierEvidence[];
+};
+
+export type VerifyDossierResponse = {
+  visa_type: string;
+  destination_region: string;
+  coherence_score: number;
+  readiness_score: number;
+  readiness_level: string;
+  key_risks: string[];
+  next_best_actions: string[];
+  disclaimers: string[];
+  diagnostic: DiagnosticResponse & { assumptions?: string[]; disclaimers?: string[] };
+  document_check: {
+    missing_document_types: string[];
+    issues: DossierDocumentIssue[];
+    assumptions: string[];
+    disclaimers: string[];
+  };
+};
+
 export type RefusalResponse = {
   refusal_reasons: string[];
   plain_explanation: string[];
@@ -226,7 +262,7 @@ export const Api = {
     destination_region: string;
     documents: Array<{ doc_id: string; doc_type: string; filename?: string; extracted?: Record<string, unknown> }>;
   }) {
-    return post<any>("/verify-dossier", payload);
+    return post<VerifyDossierResponse>("/verify-dossier", payload);
   },
   planTrip(payload: {
     profile: UserProfile;

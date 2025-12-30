@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -10,13 +10,14 @@ import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function EditDocumentModal() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, focus } = useLocalSearchParams<{ id?: string; focus?: string }>();
   const { docs, updateDoc, removeDoc } = useDocuments();
   const doc = useMemo(() => docs.find((d) => d.id === id), [docs, id]);
 
   const [expires, setExpires] = useState<string>(String(doc?.extracted?.expires_date || ""));
   const [issued, setIssued] = useState<string>(String(doc?.extracted?.issued_date || ""));
   const [balance, setBalance] = useState<string>(String(doc?.extracted?.ending_balance_usd || ""));
+  const focusKey = String(focus || "").trim();
 
   if (!doc) {
     return (
@@ -35,6 +36,7 @@ export default function EditDocumentModal() {
       <View style={styles.header}>
         <Text style={styles.h1}>Détails</Text>
         <Text style={styles.sub}>{doc.filename}</Text>
+        {focusKey ? <Text style={styles.hint}>À compléter: {focusKey}</Text> : null}
       </View>
 
       <GlassCard>
@@ -43,15 +45,31 @@ export default function EditDocumentModal() {
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>expires_date (YYYY-MM-DD)</Text>
-        <TextInput value={expires} onChangeText={setExpires} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={expires}
+          onChangeText={setExpires}
+          style={[styles.input, focusKey === "expires_date" ? styles.focused : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>issued_date (YYYY-MM-DD)</Text>
-        <TextInput value={issued} onChangeText={setIssued} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={issued}
+          onChangeText={setIssued}
+          style={[styles.input, focusKey === "issued_date" ? styles.focused : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>ending_balance_usd</Text>
-        <TextInput value={balance} onChangeText={setBalance} style={styles.input} keyboardType="numeric" placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={balance}
+          onChangeText={setBalance}
+          style={[styles.input, focusKey === "ending_balance_usd" ? styles.focused : null]}
+          keyboardType="numeric"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.lg }} />
         <View style={styles.row}>
@@ -96,6 +114,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: Tokens.font.size.md,
   },
+  hint: { color: Colors.warning, fontSize: Tokens.font.size.sm, lineHeight: 20, marginTop: 4 },
+  focused: { borderColor: Colors.brandB },
   row: { flexDirection: "row", gap: 10 },
 });
 
