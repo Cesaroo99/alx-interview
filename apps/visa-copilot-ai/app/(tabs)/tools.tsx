@@ -2,7 +2,6 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { Mock } from "@/src/mock/data";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
@@ -14,8 +13,19 @@ export default function ToolsScreen() {
     <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Outils</Text>
-        <Text style={styles.subtitle}>Modules de support (toujours au service de la crédibilité visa).</Text>
+        <Text style={styles.subtitle}>Modules pratiques: plan, coûts, refus, sécurité… toujours au service d’un dossier crédible.</Text>
       </View>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Préparer le dossier (priorité)</Text>
+        <Text style={styles.body}>Les 3 actions qui améliorent le plus vite la cohérence: itinéraire, budget, corrections.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <View style={styles.rowButtons}>
+          <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
+          <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
+          <PrimaryButton title="Refus / Plan B" variant="ghost" onPress={() => router.push("/tools/refusal")} style={{ flex: 1 }} />
+        </View>
+      </GlassCard>
 
       <GlassCard>
         <Text style={styles.cardTitle}>Propositions de visa</Text>
@@ -46,52 +56,31 @@ export default function ToolsScreen() {
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Abonnements & paiement</Text>
-        <Text style={styles.body}>Choisir un plan et payer via checkout (MVP).</Text>
-        <View style={{ height: Tokens.space.md }} />
-        <PrimaryButton title="Voir les plans" variant="ghost" onPress={() => router.push("/(tabs)/billing")} />
-      </GlassCard>
-
-      <GlassCard>
         <Text style={styles.cardTitle}>Travel Intelligence (simulation)</Text>
-        <Text style={styles.body}>
-          {Mock.trip.destination} · {Mock.trip.duration_days} jours · Budget {Mock.trip.estimated_budget_usd}$ ({Mock.trip.budget_level})
-        </Text>
-        <View style={{ height: Tokens.space.sm }} />
-        {Mock.trip.itinerary_preview.map((x) => (
-          <View key={x} style={styles.row}>
-            <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
-            <Text style={styles.text}>{x}</Text>
-          </View>
-        ))}
+        <Text style={styles.body}>Générer un itinéraire “visa‑compliant” (sans réservation) + alertes de cohérence.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/travel")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Estimation coûts</Text>
-        <Text style={styles.body}>
-          Total estimé: {Mock.costs.total} {Mock.costs.currency} (d’après montants officiels fournis)
-        </Text>
-        <View style={{ height: Tokens.space.sm }} />
-        {Mock.costs.items.slice(0, 3).map((i) => (
-          <View key={i.label} style={styles.row}>
-            <View style={[styles.dot, { backgroundColor: i.mandatory ? Colors.warning : Colors.faint }]} />
-            <Text style={styles.text}>
-              {i.label} — {i.amount} {Mock.costs.currency}
-            </Text>
-          </View>
-        ))}
+        <Text style={styles.cardTitle}>Estimation des coûts</Text>
+        <Text style={styles.body}>Calcule un total à partir des montants officiels + détecte des frais suspects.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/costs")} />
       </GlassCard>
 
       <GlassCard>
         <Text style={styles.cardTitle}>Refus: explication + plan B</Text>
-        <Text style={styles.body}>Quand il y a refus, on transforme ça en plan d’action clair et vérifiable.</Text>
-        <View style={{ height: Tokens.space.sm }} />
-        {Mock.refusal.plain_explanation.map((x) => (
-          <View key={x} style={styles.row}>
-            <View style={[styles.dot, { backgroundColor: Colors.danger }]} />
-            <Text style={styles.text}>{x}</Text>
-          </View>
-        ))}
+        <Text style={styles.body}>Analyse les motifs et sort une liste d’actions vérifiables + alternatives.</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/refusal")} />
+      </GlassCard>
+
+      <GlassCard>
+        <Text style={styles.cardTitle}>Abonnements & paiement</Text>
+        <Text style={styles.body}>Choisir un plan et payer via checkout (MVP).</Text>
+        <View style={{ height: Tokens.space.md }} />
+        <PrimaryButton title="Voir les plans" variant="ghost" onPress={() => router.push("/(tabs)/billing")} />
       </GlassCard>
 
       {process.env.EXPO_PUBLIC_ADMIN_MODE === "1" ? (
@@ -112,6 +101,7 @@ const styles = StyleSheet.create({
   subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  rowButtons: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   row: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   dot: { width: 10, height: 10, borderRadius: 99, marginTop: 6 },
   text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },

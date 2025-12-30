@@ -52,9 +52,9 @@ export default function ParcoursScreen() {
     return [
       { key: "visa", title: "Choix du visa", status: s1, action: () => router.push("/(tabs)/eligibility") },
       { key: "docs", title: "Documents", status: s2, action: () => router.push("/(tabs)/documents") },
-      { key: "forms", title: "Formulaires", status: s3, action: () => router.push("/(tabs)/tools") },
-      { key: "pay", title: "Paiement", status: s4, action: () => router.push("/(tabs)/tools") },
-      { key: "appt", title: "Rendez-vous", status: s5, action: () => router.push("/(tabs)/tools") },
+      { key: "forms", title: "Itinéraire & cohérence", status: s3, action: () => router.push("/tools/travel") },
+      { key: "pay", title: "Coûts & paiements officiels", status: s4, action: () => router.push("/tools/costs") },
+      { key: "appt", title: "Rendez-vous", status: s5, action: () => router.push("/(tabs)/appointments") },
       { key: "submit", title: "Dépôt & suivi", status: s6, action: () => router.push("/(tabs)/dossier") },
     ];
   }, [profile]);

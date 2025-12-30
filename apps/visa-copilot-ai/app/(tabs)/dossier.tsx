@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
+import { router } from "expo-router";
 
 import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
@@ -84,6 +85,13 @@ export default function DossierScreen() {
           }}
           style={{ opacity: profile ? 1 : 0.6 }}
         />
+
+        <View style={{ height: Tokens.space.md }} />
+        <View style={styles.rowButtons}>
+          <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
+          <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
+          <PrimaryButton title="Refus / Plan B" variant="ghost" onPress={() => router.push("/tools/refusal")} style={{ flex: 1 }} />
+        </View>
       </GlassCard>
 
       {loading ? (
@@ -167,6 +175,7 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
   error: { color: Colors.warning, fontSize: Tokens.font.size.md, lineHeight: 22 },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
+  rowButtons: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   k: { color: Colors.faint, fontSize: Tokens.font.size.sm, width: 120 },
   v: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold, flex: 1 },
   bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },

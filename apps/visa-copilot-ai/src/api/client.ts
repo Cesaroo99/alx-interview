@@ -84,6 +84,50 @@ export type AiRespondResponse = {
   response: any;
 };
 
+export type TravelPlanResponse = {
+  mode: "simulation" | "post_visa_booking" | string;
+  destination: string;
+  start_date: string;
+  end_date: string;
+  duration_days: number;
+  estimated_budget_usd: number;
+  budget_level: "low" | "medium" | "high" | string;
+  coherence_warnings: string[];
+  why: string[];
+  itinerary: Array<{
+    day: number;
+    date: string;
+    city: string;
+    activities: string[];
+    accommodation_note: string;
+  }>;
+  booking_policy: string[];
+  disclaimers: string[];
+};
+
+export type EstimateCostsResponse = {
+  destination_region: string;
+  visa_type: string;
+  currency: string;
+  items: Array<{ label: string; amount: number; currency: string; mandatory: boolean; why: string[] }>;
+  total_mandatory: number;
+  total_optional: number;
+  total: number;
+  warnings: string[];
+  next_steps: string[];
+  disclaimers: string[];
+};
+
+export type RefusalResponse = {
+  refusal_reasons: string[];
+  plain_explanation: string[];
+  likely_root_causes: string[];
+  corrective_actions: string[];
+  plan_b_options: string[];
+  anti_scam_warnings: string[];
+  disclaimers: string[];
+};
+
 export type OfficeItem = {
   id: string;
   type: "embassy" | "consulate" | "tls" | "vfs" | string;
@@ -135,6 +179,33 @@ export const Api = {
     documents: Array<{ doc_id: string; doc_type: string; filename?: string; extracted?: Record<string, unknown> }>;
   }) {
     return post<any>("/verify-dossier", payload);
+  },
+  planTrip(payload: {
+    profile: UserProfile;
+    destination: string;
+    start_date: string;
+    end_date: string;
+    estimated_budget_usd: number;
+    mode?: "simulation" | "post_visa_booking";
+    anchor_city?: string;
+  }) {
+    return post<TravelPlanResponse>("/plan-trip", payload);
+  },
+  estimateCosts(payload: {
+    destination_region: string;
+    visa_type: string;
+    currency: string;
+    visa_fee?: number | null;
+    service_fee?: number | null;
+    biometrics_fee?: number | null;
+    translation_cost?: number | null;
+    insurance_cost?: number | null;
+    courier_cost?: number | null;
+  }) {
+    return post<EstimateCostsResponse>("/estimate-costs", payload);
+  },
+  explainRefusal(payload: { refusal_reasons: string[]; refusal_letter_text?: string | null }) {
+    return post<RefusalResponse>("/explain-refusal", payload);
   },
   visaProposals(country: string, userProfile: UserProfile) {
     return post<{
