@@ -64,6 +64,12 @@ export type CopilotChatResponse = {
   quick_actions: Array<{ type: string; target?: string; label: string }>;
 };
 
+export type AiRespondResponse = {
+  model: string;
+  text: string;
+  response: any;
+};
+
 export type OfficeItem = {
   id: string;
   type: "embassy" | "consulate" | "tls" | "vfs" | string;
@@ -104,6 +110,9 @@ export const Api = {
   },
   copilotChat(profile: UserProfile | null, message: string) {
     return post<CopilotChatResponse>("/copilot/chat", { profile, message });
+  },
+  aiRespond(input: string, opts?: { model?: string; store?: boolean }) {
+    return post<AiRespondResponse>("/ai/respond", { input, model: opts?.model, store: opts?.store });
   },
   verifyDossier(payload: {
     profile: UserProfile;

@@ -21,8 +21,24 @@ python3 -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 - `POST /explain-refusal`
 - `POST /estimate-costs`
 - `POST /guide-field`
+- `POST /ai/respond` (proxy minimal OpenAI Responses)
 - `GET /offices` (ambassades/consulats/TLS/VFS)
 - `GET /news` (actu visa & lois, inclut cache ingéré)
+
+### OpenAI (optionnel)
+
+Pour activer les réponses LLM dans `POST /copilot/chat` et utiliser `POST /ai/respond`, configure:
+
+- `OPENAI_API_KEY` (obligatoire)
+- `OPENAI_MODEL` (optionnel, défaut: `gpt-5-nano`)
+- `OPENAI_BASE_URL` (optionnel, défaut: `https://api.openai.com`)
+
+Exemple:
+
+```bash
+export OPENAI_API_KEY="..."
+export OPENAI_MODEL="gpt-5-nano"
+```
 
 ### Admin (protégé par `GLOBALVISA_ADMIN_KEY`)
 
