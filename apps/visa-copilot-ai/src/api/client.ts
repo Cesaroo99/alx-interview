@@ -1,6 +1,20 @@
 import type { UserProfile } from "@/src/state/profile";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const DEFAULT_LOCAL_API = "http://localhost:8000";
+const DEFAULT_RENDER_API = "https://visa-copilot-ai-api.onrender.com";
+
+function computeBaseUrl(): string {
+  const raw = (process.env.EXPO_PUBLIC_API_BASE_URL || "").trim();
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Évite une config Render "par défaut" (localhost) qui casse le web en prod.
+  if (!raw) return isProd ? DEFAULT_RENDER_API : DEFAULT_LOCAL_API;
+  if (isProd && (raw.includes("localhost") || raw.includes("127.0.0.1"))) return DEFAULT_RENDER_API;
+
+  return raw;
+}
+
+const BASE_URL = computeBaseUrl();
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
