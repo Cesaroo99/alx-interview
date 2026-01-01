@@ -75,6 +75,35 @@ class TestDocumentsAndDossier(unittest.TestCase):
         res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
         self.assertTrue(any(i.code == "FUNDS_ESTIMATE_LOW" for i in res.issues))
 
+    def test_invitation_name_mismatch(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01", "full_name": "John Doe"}),
+            Document(
+                doc_id="inv",
+                doc_type=DocumentType.INVITATION_LETTER,
+                extracted={"invitee_name": "Jane Doe", "host_name": "Host", "relationship": "friend", "host_address": "Paris"},
+            ),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "NAME_MISMATCH_PASSPORT_INVITATION" for i in res.issues))
+
+    def test_employment_letter_old(self) -> None:
+        old = (date.today() - timedelta(days=150)).isoformat()
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01", "full_name": "John Doe"}),
+            Document(doc_id="el", doc_type=DocumentType.EMPLOYMENT_LETTER, extracted={"employee_name": "John Doe", "letter_date": old}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "EMPLOYMENT_LETTER_OLD" for i in res.issues))
+
+    def test_schengen_insurance_coverage_amount_low(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01"}),
+            Document(doc_id="ins", doc_type=DocumentType.TRAVEL_INSURANCE, extracted={"coverage_amount_eur": 10000, "expires_date": "2030-01-01"}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "INSURANCE_COVERAGE_AMOUNT_LOW_SCHENGEN" for i in res.issues))
+
     def test_dossier_readiness_level_not_ready_when_missing_many_docs(self) -> None:
         profile = UserProfile(
             nationality="Maroc",

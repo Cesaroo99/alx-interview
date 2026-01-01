@@ -90,6 +90,34 @@ def _norm(s: Any) -> str:
     return " ".join(str(s or "").strip().split())
 
 
+def _norm_key(s: Any) -> str:
+    """
+    Normalisation agressive pour comparaison de noms/champs:
+    - minuscules
+    - suppression des espaces/punct simples
+    """
+    out = []
+    for ch in _norm(s).lower():
+        if ch.isalnum():
+            out.append(ch)
+    return "".join(out)
+
+
+def _name_like(a: Any, b: Any) -> bool:
+    """
+    Comparaison "souple" de noms:
+    - égalité normalisée, ou inclusion (ex: "john doe" vs "john m doe")
+    """
+    na = _norm_key(a)
+    nb = _norm_key(b)
+    if not na or not nb:
+        return False
+    if na == nb:
+        return True
+    # Inclusions pour tolérer 2e prénom/variantes.
+    return na in nb or nb in na
+
+
 def _parse_iso_date(value: Any) -> Optional[date]:
     if value is None:
         return None
@@ -210,6 +238,11 @@ def _extract_trip_window(
     return start, end, evidence
 
 
+def _is_schengen(destination_region: str) -> bool:
+    d = _norm(destination_region).lower()
+    return ("schengen" in d) or ("europe" in d)
+
+
 def required_documents_template(visa_type: str, destination_region: str) -> list[DocumentType]:
     """
     Template minimal et générique.
@@ -317,10 +350,11 @@ def check_documents(
 
     # Passport checks
     passports = by_type.get(DocumentType.PASSPORT, [])
+    passport_doc: Optional[Document] = None
     if passports:
         # Choose most relevant: the one with latest expires_date
-        p = sorted(passports, key=lambda x: (x.expires_date or date.min), reverse=True)[0]
-        exp = p.expires_date or _parse_iso_date(p.extracted.get("expires_date"))
+        passport_doc = sorted(passports, key=lambda x: (x.expires_date or date.min), reverse=True)[0]
+        exp = passport_doc.expires_date or _parse_iso_date(passport_doc.extracted.get("expires_date"))
         if exp is None:
             assumptions.append("Date d'expiration du passeport inconnue.")
             issues.append(
@@ -331,10 +365,10 @@ def check_documents(
                     suggested_fix=["Ajouter la date d'expiration (ou re-scan OCR) et vérifier les règles officielles."],
                     evidence=[
                         DocumentEvidence(
-                            doc_id=p.doc_id,
-                            doc_type=p.doc_type.value,
+                            doc_id=passport_doc.doc_id,
+                            doc_type=passport_doc.doc_type.value,
                             extracted_key="expires_date",
-                            value=p.extracted.get("expires_date"),
+                            value=passport_doc.extracted.get("expires_date"),
                             present=False,
                             note="Champ requis pour vérifier la validité du passeport.",
                         )
@@ -352,8 +386,8 @@ def check_documents(
                         suggested_fix=["Renouveler le passeport avant toute démarche visa."],
                         evidence=[
                             DocumentEvidence(
-                                doc_id=p.doc_id,
-                                doc_type=p.doc_type.value,
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
                                 extracted_key="expires_date",
                                 value=exp.isoformat(),
                                 present=True,
@@ -372,8 +406,8 @@ def check_documents(
                         suggested_fix=["Vérifier l'exigence officielle; envisager un renouvellement préventif."],
                         evidence=[
                             DocumentEvidence(
-                                doc_id=p.doc_id,
-                                doc_type=p.doc_type.value,
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
                                 extracted_key="expires_date",
                                 value=exp.isoformat(),
                                 present=True,
@@ -384,8 +418,8 @@ def check_documents(
                 )
 
         # Name consistency (if extracted)
-        name = _norm(p.extracted.get("full_name"))
-        passport_no = _norm(p.extracted.get("passport_number"))
+        name = _norm(passport_doc.extracted.get("full_name"))
+        passport_no = _norm(passport_doc.extracted.get("passport_number"))
         if not name:
             assumptions.append("Nom complet non extrait du passeport.")
             issues.append(
@@ -397,10 +431,10 @@ def check_documents(
                     suggested_fix=["Compléter `full_name` (ou re-scan OCR) à partir de la page d'identité."],
                     evidence=[
                         DocumentEvidence(
-                            doc_id=p.doc_id,
-                            doc_type=p.doc_type.value,
+                            doc_id=passport_doc.doc_id,
+                            doc_type=passport_doc.doc_type.value,
                             extracted_key="full_name",
-                            value=p.extracted.get("full_name"),
+                            value=passport_doc.extracted.get("full_name"),
                             present=False,
                             note="Champ utile pour vérifier les incohérences entre pièces.",
                         )
@@ -418,10 +452,10 @@ def check_documents(
                     suggested_fix=["Compléter `passport_number` (ou re-scan OCR) à partir de la page d'identité."],
                     evidence=[
                         DocumentEvidence(
-                            doc_id=p.doc_id,
-                            doc_type=p.doc_type.value,
+                            doc_id=passport_doc.doc_id,
+                            doc_type=passport_doc.doc_type.value,
                             extracted_key="passport_number",
-                            value=p.extracted.get("passport_number"),
+                            value=passport_doc.extracted.get("passport_number"),
                             present=False,
                             note="Champ souvent demandé dans d'autres pièces et formulaires.",
                         )
@@ -542,11 +576,10 @@ def check_documents(
             )
 
         # Coherence cross-doc: account holder name vs passport full_name (if both present)
-        p = sorted(passports, key=lambda x: (x.expires_date or date.min), reverse=True)[0] if passports else None
-        if p is not None:
-            passport_name = _norm(p.extracted.get("full_name"))
+        if passport_doc is not None:
+            passport_name = _norm(passport_doc.extracted.get("full_name"))
             acct_name = _norm(freshest.extracted.get("account_holder_name"))
-            if passport_name and acct_name and passport_name.lower() != acct_name.lower():
+            if passport_name and acct_name and not _name_like(passport_name, acct_name):
                 issues.append(
                     DocumentIssue(
                         severity="warning",
@@ -556,8 +589,8 @@ def check_documents(
                         suggested_fix=["Vérifier l'orthographe, les prénoms/nom, et ajouter une explication si nécessaire."],
                         evidence=[
                             DocumentEvidence(
-                                doc_id=p.doc_id,
-                                doc_type=p.doc_type.value,
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
                                 extracted_key="full_name",
                                 value=passport_name,
                                 present=True,
@@ -621,6 +654,339 @@ def check_documents(
                 )
             )
 
+        # Schengen-specific: minimum medical coverage amount (heuristic)
+        if _is_schengen(destination_region):
+            cov_eur = _parse_float(d0.extracted.get("coverage_amount_eur") or d0.extracted.get("medical_coverage_eur"))
+            if cov_eur is None:
+                issues.append(
+                    DocumentIssue(
+                        severity="info",
+                        code="INSURANCE_COVERAGE_AMOUNT_UNKNOWN_SCHENGEN",
+                        message="Assurance (Schengen): montant de couverture médicale non fourni — impossible de vérifier le seuil.",
+                        why=["Pour Schengen, une couverture minimale (souvent 30 000€) est généralement exigée — à confirmer sur la source officielle."],
+                        suggested_fix=["Compléter `coverage_amount_eur` (ou `medical_coverage_eur`) ou vérifier la police d'assurance."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=d0.doc_id,
+                                doc_type=d0.doc_type.value,
+                                extracted_key="coverage_amount_eur",
+                                value=d0.extracted.get("coverage_amount_eur") or d0.extracted.get("medical_coverage_eur"),
+                                present=False,
+                                note="Montant de couverture médicale (EUR).",
+                            )
+                        ],
+                    )
+                )
+            else:
+                if cov_eur < 30000.0:
+                    issues.append(
+                        DocumentIssue(
+                            severity="risk",
+                            code="INSURANCE_COVERAGE_AMOUNT_LOW_SCHENGEN",
+                            message="Assurance (Schengen): montant de couverture médicale possiblement insuffisant (< 30 000€).",
+                            why=["Le seuil exact dépend du pays et de la police; 30 000€ est un standard fréquent pour Schengen."],
+                            suggested_fix=["Choisir/mettre à jour une assurance conforme aux exigences officielles (et aux dates du voyage)."],
+                            evidence=[
+                                DocumentEvidence(
+                                    doc_id=d0.doc_id,
+                                    doc_type=d0.doc_type.value,
+                                    extracted_key="coverage_amount_eur",
+                                    value=cov_eur,
+                                    present=True,
+                                    note="Montant de couverture médicale (EUR) utilisé pour la vérification.",
+                                )
+                            ],
+                        )
+                    )
+
+    # Invitation letter: key fields + name coherence
+    invs = by_type.get(DocumentType.INVITATION_LETTER, [])
+    if invs:
+        inv = invs[0]
+        invitee = _norm(inv.extracted.get("invitee_name") or inv.extracted.get("guest_name"))
+        host = _norm(inv.extracted.get("host_name"))
+        rel = _norm(inv.extracted.get("relationship"))
+        addr = _norm(inv.extracted.get("host_address"))
+        missing_keys: list[str] = []
+        for k, v in [("invitee_name", invitee), ("host_name", host), ("relationship", rel), ("host_address", addr)]:
+            if not v:
+                missing_keys.append(k)
+        if missing_keys:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="INVITATION_MISSING_CORE_FIELDS",
+                    message="Lettre d’invitation incomplète (champs clés manquants).",
+                    why=["Une invitation incomplète ou vague peut déclencher une demande de preuves supplémentaires."],
+                    suggested_fix=["Compléter les champs manquants (nom invité, nom hôte, lien, adresse) ou fournir une lettre plus détaillée."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=inv.doc_id,
+                            doc_type=inv.doc_type.value,
+                            extracted_key=k,
+                            value=inv.extracted.get(k),
+                            present=False,
+                            note="Champ attendu dans une lettre d'invitation.",
+                        )
+                        for k in missing_keys
+                    ],
+                )
+            )
+        if passport_doc is not None and invitee and _norm(passport_doc.extracted.get("full_name")):
+            passport_name = _norm(passport_doc.extracted.get("full_name"))
+            if passport_name and not _name_like(passport_name, invitee):
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="NAME_MISMATCH_PASSPORT_INVITATION",
+                        message="Incohérence de nom entre passeport et lettre d’invitation.",
+                        why=["Les incohérences d'identité nécessitent souvent une clarification (orthographe, ordre des noms, translittération)."],
+                        suggested_fix=["Corriger la lettre ou ajouter une explication (translittération/alias) si nécessaire."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
+                                extracted_key="full_name",
+                                value=passport_name,
+                                present=True,
+                                note="Nom extrait du passeport.",
+                            ),
+                            DocumentEvidence(
+                                doc_id=inv.doc_id,
+                                doc_type=inv.doc_type.value,
+                                extracted_key="invitee_name",
+                                value=invitee,
+                                present=True,
+                                note="Nom invité extrait de la lettre.",
+                            ),
+                        ],
+                    )
+                )
+
+    # Accommodation plan: guest name + date window coherence
+    accs = by_type.get(DocumentType.ACCOMMODATION_PLAN, [])
+    if accs:
+        acc = accs[0]
+        guest = _norm(acc.extracted.get("guest_name") or acc.extracted.get("traveler_name") or acc.extracted.get("full_name"))
+        if passport_doc is not None and guest and _norm(passport_doc.extracted.get("full_name")):
+            passport_name = _norm(passport_doc.extracted.get("full_name"))
+            if passport_name and not _name_like(passport_name, guest):
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="NAME_MISMATCH_PASSPORT_ACCOMMODATION",
+                        message="Incohérence de nom entre passeport et plan d’hébergement.",
+                        suggested_fix=["Vérifier que le nom du voyageur correspond exactement (ou expliquer la translittération)."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
+                                extracted_key="full_name",
+                                value=passport_name,
+                                present=True,
+                                note="Nom passeport.",
+                            ),
+                            DocumentEvidence(
+                                doc_id=acc.doc_id,
+                                doc_type=acc.doc_type.value,
+                                extracted_key="guest_name",
+                                value=guest,
+                                present=True,
+                                note="Nom voyageur/hôte extrait de l'hébergement.",
+                            ),
+                        ],
+                    )
+                )
+
+    # Itinerary: traveler name coherence + destination hint check
+    itins = by_type.get(DocumentType.ITINERARY, [])
+    if itins:
+        itin = itins[0]
+        traveler = _norm(itin.extracted.get("traveler_name") or itin.extracted.get("full_name"))
+        if passport_doc is not None and traveler and _norm(passport_doc.extracted.get("full_name")):
+            passport_name = _norm(passport_doc.extracted.get("full_name"))
+            if passport_name and not _name_like(passport_name, traveler):
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="NAME_MISMATCH_PASSPORT_ITINERARY",
+                        message="Incohérence de nom entre passeport et itinéraire.",
+                        suggested_fix=["Corriger le nom sur l'itinéraire ou expliquer l'écart (prénom manquant, translittération)."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
+                                extracted_key="full_name",
+                                value=passport_name,
+                                present=True,
+                                note="Nom passeport.",
+                            ),
+                            DocumentEvidence(
+                                doc_id=itin.doc_id,
+                                doc_type=itin.doc_type.value,
+                                extracted_key="traveler_name",
+                                value=traveler,
+                                present=True,
+                                note="Nom sur itinéraire.",
+                            ),
+                        ],
+                    )
+                )
+        dest = _norm(itin.extracted.get("destination") or itin.extracted.get("country") or itin.extracted.get("region"))
+        if dest:
+            # Soft check: if dest exists but doesn't mention destination_region hint.
+            dr = _norm(destination_region)
+            if dr and _norm_key(dr) not in _norm_key(dest):
+                issues.append(
+                    DocumentIssue(
+                        severity="info",
+                        code="ITINERARY_DESTINATION_MISMATCH",
+                        message="Itinéraire: destination indiquée différente du paramètre de zone.",
+                        why=["Ce n'est pas forcément un problème, mais une incohérence peut semer le doute."],
+                        suggested_fix=["Vérifier que la destination/zone est correcte dans les paramètres et sur l'itinéraire."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=itin.doc_id,
+                                doc_type=itin.doc_type.value,
+                                extracted_key="destination",
+                                value=dest,
+                                present=True,
+                                note="Destination extraite de l'itinéraire.",
+                            )
+                        ],
+                    )
+                )
+
+    # Employment letter: employee_name coherence + freshness (letter_date)
+    empls = by_type.get(DocumentType.EMPLOYMENT_LETTER, [])
+    if empls:
+        el = empls[0]
+        emp_name = _norm(el.extracted.get("employee_name") or el.extracted.get("full_name"))
+        letter_date = _parse_iso_date(el.extracted.get("letter_date") or el.extracted.get("issued_date"))
+        if not emp_name:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="EMPLOYMENT_LETTER_NAME_MISSING",
+                    message="Attestation employeur: nom du salarié manquant/illisible.",
+                    suggested_fix=["Compléter `employee_name` ou fournir une attestation plus lisible."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=el.doc_id,
+                            doc_type=el.doc_type.value,
+                            extracted_key="employee_name",
+                            value=el.extracted.get("employee_name"),
+                            present=False,
+                            note="Nom du salarié attendu sur l'attestation.",
+                        )
+                    ],
+                )
+            )
+        if passport_doc is not None and emp_name and _norm(passport_doc.extracted.get("full_name")):
+            passport_name = _norm(passport_doc.extracted.get("full_name"))
+            if passport_name and not _name_like(passport_name, emp_name):
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="NAME_MISMATCH_PASSPORT_EMPLOYMENT",
+                        message="Incohérence de nom entre passeport et attestation employeur.",
+                        suggested_fix=["Vérifier l'orthographe et ajouter une explication si nécessaire."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
+                                extracted_key="full_name",
+                                value=passport_name,
+                                present=True,
+                                note="Nom passeport.",
+                            ),
+                            DocumentEvidence(
+                                doc_id=el.doc_id,
+                                doc_type=el.doc_type.value,
+                                extracted_key="employee_name",
+                                value=emp_name,
+                                present=True,
+                                note="Nom salarié sur attestation.",
+                            ),
+                        ],
+                    )
+                )
+        if letter_date is None:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="EMPLOYMENT_LETTER_DATE_MISSING",
+                    message="Attestation employeur: date manquante/illisible (fraîcheur non vérifiable).",
+                    suggested_fix=["Compléter `letter_date` (YYYY-MM-DD) ou fournir une attestation récente."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=el.doc_id,
+                            doc_type=el.doc_type.value,
+                            extracted_key="letter_date",
+                            value=el.extracted.get("letter_date") or el.extracted.get("issued_date"),
+                            present=False,
+                            note="La date sert à vérifier que la lettre est récente.",
+                        )
+                    ],
+                )
+            )
+        else:
+            if (_today() - letter_date).days > 120:
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="EMPLOYMENT_LETTER_OLD",
+                        message="Attestation employeur ancienne (> 4 mois).",
+                        why=["Souvent, les documents de situation professionnelle doivent être récents."],
+                        suggested_fix=["Demander une attestation plus récente et cohérente avec la période de voyage."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=el.doc_id,
+                                doc_type=el.doc_type.value,
+                                extracted_key="letter_date",
+                                value=letter_date.isoformat(),
+                                present=True,
+                                note="Date utilisée pour vérifier la fraîcheur.",
+                            )
+                        ],
+                    )
+                )
+
+    # Sponsor letter: beneficiary name coherence
+    sps = by_type.get(DocumentType.SPONSOR_LETTER, [])
+    if sps:
+        sp = sps[0]
+        beneficiary = _norm(sp.extracted.get("beneficiary_name") or sp.extracted.get("invitee_name") or sp.extracted.get("full_name"))
+        if passport_doc is not None and beneficiary and _norm(passport_doc.extracted.get("full_name")):
+            passport_name = _norm(passport_doc.extracted.get("full_name"))
+            if passport_name and not _name_like(passport_name, beneficiary):
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="NAME_MISMATCH_PASSPORT_SPONSOR",
+                        message="Incohérence de nom entre passeport et lettre de sponsor.",
+                        suggested_fix=["Corriger la lettre ou expliquer l'écart (translittération/alias)."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=passport_doc.doc_id,
+                                doc_type=passport_doc.doc_type.value,
+                                extracted_key="full_name",
+                                value=passport_name,
+                                present=True,
+                                note="Nom passeport.",
+                            ),
+                            DocumentEvidence(
+                                doc_id=sp.doc_id,
+                                doc_type=sp.doc_type.value,
+                                extracted_key="beneficiary_name",
+                                value=beneficiary,
+                                present=True,
+                                note="Nom du bénéficiaire sur la lettre.",
+                            ),
+                        ],
+                    )
+                )
+
     # Trip window checks (from itinerary/accommodation) + coherence with passport/insurance/budget
     trip_start, trip_end, trip_evidence = _extract_trip_window(documents)
     if trip_start is None or trip_end is None:
@@ -655,9 +1021,8 @@ def check_documents(
             )
         else:
             # Passport validity relative to trip end
-            if passports:
-                p = sorted(passports, key=lambda x: (x.expires_date or date.min), reverse=True)[0]
-                exp = p.expires_date or _parse_iso_date(p.extracted.get("expires_date"))
+            if passport_doc is not None:
+                exp = passport_doc.expires_date or _parse_iso_date(passport_doc.extracted.get("expires_date"))
                 if exp is not None:
                     if exp <= trip_end:
                         issues.append(
@@ -669,8 +1034,8 @@ def check_documents(
                                 suggested_fix=["Renouveler le passeport ou ajuster les dates de voyage avant dépôt."],
                                 evidence=[
                                     DocumentEvidence(
-                                        doc_id=p.doc_id,
-                                        doc_type=p.doc_type.value,
+                                        doc_id=passport_doc.doc_id,
+                                        doc_type=passport_doc.doc_type.value,
                                         extracted_key="expires_date",
                                         value=exp.isoformat(),
                                         present=True,
@@ -692,8 +1057,8 @@ def check_documents(
                                     suggested_fix=["Vérifier l'exigence officielle; envisager un renouvellement préventif."],
                                     evidence=[
                                         DocumentEvidence(
-                                            doc_id=p.doc_id,
-                                            doc_type=p.doc_type.value,
+                                            doc_id=passport_doc.doc_id,
+                                            doc_type=passport_doc.doc_type.value,
                                             extracted_key="expires_date",
                                             value=exp.isoformat(),
                                             present=True,
