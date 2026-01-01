@@ -243,6 +243,23 @@ def _is_schengen(destination_region: str) -> bool:
     return ("schengen" in d) or ("europe" in d)
 
 
+def _relationship_implies_family(rel: str) -> bool:
+    r = _norm(rel).lower()
+    if not r:
+        return False
+    return any(k in r for k in ["spouse", "wife", "husband", "époux", "epoux", "épouse", "epouse", "mari", "femme", "parent", "famill", "sister", "brother", "mother", "father"])
+
+
+def _extract_address_like(doc: Document) -> str:
+    return _norm(
+        doc.extracted.get("address")
+        or doc.extracted.get("host_address")
+        or doc.extracted.get("accommodation_address")
+        or doc.extracted.get("hotel_address")
+        or doc.extracted.get("stay_address")
+    )
+
+
 def required_documents_template(visa_type: str, destination_region: str) -> list[DocumentType]:
     """
     Template minimal et générique.
@@ -957,6 +974,47 @@ def check_documents(
     if sps:
         sp = sps[0]
         beneficiary = _norm(sp.extracted.get("beneficiary_name") or sp.extracted.get("invitee_name") or sp.extracted.get("full_name"))
+        sponsor_name = _norm(sp.extracted.get("sponsor_name") or sp.extracted.get("host_name"))
+        sponsor_amount = _parse_float(sp.extracted.get("sponsor_amount_usd") or sp.extracted.get("amount_usd"))
+        if not sponsor_name:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="SPONSOR_NAME_MISSING",
+                    message="Lettre de sponsor: nom du sponsor manquant/illisible.",
+                    suggested_fix=["Compléter `sponsor_name` ou fournir une lettre plus explicite."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=sp.doc_id,
+                            doc_type=sp.doc_type.value,
+                            extracted_key="sponsor_name",
+                            value=sp.extracted.get("sponsor_name") or sp.extracted.get("host_name"),
+                            present=False,
+                            note="Nom du sponsor attendu sur la lettre.",
+                        )
+                    ],
+                )
+            )
+        if sponsor_amount is None:
+            issues.append(
+                DocumentIssue(
+                    severity="info",
+                    code="SPONSOR_AMOUNT_UNKNOWN",
+                    message="Lettre de sponsor: montant de prise en charge non fourni — difficile d'évaluer la cohérence budget/durée.",
+                    why=["En pratique, un sponsor doit souvent prouver sa capacité financière et préciser la prise en charge."],
+                    suggested_fix=["Compléter `sponsor_amount_usd` (USD) et joindre des preuves financières du sponsor si requis."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=sp.doc_id,
+                            doc_type=sp.doc_type.value,
+                            extracted_key="sponsor_amount_usd",
+                            value=sp.extracted.get("sponsor_amount_usd") or sp.extracted.get("amount_usd"),
+                            present=False,
+                            note="Montant de prise en charge (USD).",
+                        )
+                    ],
+                )
+            )
         if passport_doc is not None and beneficiary and _norm(passport_doc.extracted.get("full_name")):
             passport_name = _norm(passport_doc.extracted.get("full_name"))
             if passport_name and not _name_like(passport_name, beneficiary):
@@ -1171,6 +1229,198 @@ def check_documents(
                                 ],
                             )
                         )
+
+            # Sponsor amount vs trip estimate (if sponsor letter provides amount)
+            if sps and sponsor_amount is not None:
+                duration = (trip_end - trip_start).days + 1
+                duration = max(1, int(duration))
+                rate = _region_daily_budget_usd(destination_region)
+                required_est = rate * float(duration) + 300.0
+                if sponsor_amount < required_est:
+                    sev = "warning" if sponsor_amount >= 0.85 * required_est else "risk"
+                    issues.append(
+                        DocumentIssue(
+                            severity=sev,
+                            code="SPONSOR_AMOUNT_LOW_FOR_TRIP",
+                            message="Sponsor: montant annoncé possiblement insuffisant pour la durée estimée du séjour (heuristique).",
+                            suggested_fix=["Augmenter la prise en charge, réduire la durée, ou fournir preuves complémentaires (hébergement pris en charge, etc.)."],
+                            evidence=[
+                                DocumentEvidence(
+                                    doc_id=sp.doc_id,
+                                    doc_type=sp.doc_type.value,
+                                    extracted_key="sponsor_amount_usd",
+                                    value=sponsor_amount,
+                                    present=True,
+                                    note=f"Montant utilisé (USD). Estimation requise ~ {round(required_est, 0)} USD pour {duration} jours.",
+                                ),
+                                *trip_evidence,
+                            ],
+                        )
+                    )
+
+    # Payslips: count, recency, and salary coherence with bank
+    slips = by_type.get(DocumentType.PAYSLIPS, [])
+    if slips:
+        # Extract slip dates
+        slip_dates: list[tuple[Document, Optional[date]]] = []
+        for s in slips:
+            d = _parse_iso_date(s.extracted.get("issued_date") or s.extracted.get("pay_date") or s.extracted.get("month_date"))
+            slip_dates.append((s, d))
+        # Count slips with valid dates
+        dated = [(s, d) for (s, d) in slip_dates if d is not None]
+        if len(dated) < 3:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="PAYSLIPS_INSUFFICIENT_COUNT",
+                    message="Fiches de paie: nombre insuffisant (souvent 3 derniers mois).",
+                    why=["Les consulats demandent fréquemment les 3 dernières fiches de paie (ou équivalent)."],
+                    suggested_fix=["Ajouter des fiches de paie récentes (3 mois) ou une preuve alternative (contrat, attestation)."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=s.doc_id,
+                            doc_type=s.doc_type.value,
+                            extracted_key="issued_date",
+                            value=s.extracted.get("issued_date") or s.extracted.get("pay_date") or s.extracted.get("month_date"),
+                            present=(d is not None),
+                            note="Date de paie/émission (pour vérifier le caractère récent).",
+                        )
+                        for (s, d) in slip_dates[:5]
+                    ],
+                )
+            )
+        else:
+            # Recency: most recent slip should be recent-ish
+            most_recent = sorted(dated, key=lambda x: x[1] or date.min, reverse=True)[0][1]
+            if most_recent and (_today() - most_recent).days > 120:
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="PAYSLIPS_OLD",
+                        message="Fiches de paie anciennes (> 4 mois).",
+                        suggested_fix=["Fournir les fiches de paie les plus récentes (3 derniers mois)."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=dated[0][0].doc_id,
+                                doc_type=dated[0][0].doc_type.value,
+                                extracted_key="issued_date",
+                                value=most_recent.isoformat(),
+                                present=True,
+                                note="Date la plus récente détectée.",
+                            )
+                        ],
+                    )
+                )
+
+        # Salary coherence: payslip net vs bank monthly inflow (if provided)
+        slip_amounts = []
+        for s in slips:
+            amt = _parse_float(s.extracted.get("net_salary_usd") or s.extracted.get("salary_usd") or s.extracted.get("net_salary"))
+            if amt is not None:
+                slip_amounts.append((s, amt))
+        if bank and slip_amounts:
+            freshest = sorted(bank, key=lambda x: (x.issued_date or date.min), reverse=True)[0]
+            inflow = _parse_float(freshest.extracted.get("average_monthly_inflow_usd") or freshest.extracted.get("monthly_income_usd"))
+            if inflow is not None:
+                avg_slip = sum(a for (_, a) in slip_amounts[:3]) / float(min(3, len(slip_amounts)))
+                # flag if mismatch > 35%
+                if inflow > 0 and abs(inflow - avg_slip) / inflow > 0.35:
+                    issues.append(
+                        DocumentIssue(
+                            severity="warning",
+                            code="INCOME_MISMATCH_PAYSLIPS_BANK",
+                            message="Incohérence possible: revenus (fiches de paie) vs entrées bancaires mensuelles.",
+                            why=["Les consulats cherchent la cohérence entre revenus déclarés, fiches de paie et relevés bancaires."],
+                            suggested_fix=["Vérifier les montants, la devise, et fournir une explication (primes, espèces, autre compte)."],
+                            evidence=[
+                                DocumentEvidence(
+                                    doc_id=freshest.doc_id,
+                                    doc_type=freshest.doc_type.value,
+                                    extracted_key="average_monthly_inflow_usd",
+                                    value=inflow,
+                                    present=True,
+                                    note="Entrées mensuelles moyennes (USD).",
+                                ),
+                                DocumentEvidence(
+                                    doc_id=slip_amounts[0][0].doc_id,
+                                    doc_type=slip_amounts[0][0].doc_type.value,
+                                    extracted_key="net_salary_usd",
+                                    value=round(avg_slip, 2),
+                                    present=True,
+                                    note="Moyenne des salaires nets (USD) sur fiches de paie.",
+                                ),
+                            ],
+                        )
+                    )
+
+    # Civil status: required if family relationship mentioned in invitation (heuristic)
+    civs = by_type.get(DocumentType.CIVIL_STATUS, [])
+    if invs:
+        inv = invs[0]
+        rel = _norm(inv.extracted.get("relationship"))
+        if _relationship_implies_family(rel) and not civs:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="CIVIL_STATUS_MISSING_FOR_FAMILY_CASE",
+                    message="État civil potentiellement requis (relation familiale indiquée dans l'invitation).",
+                    why=["Une relation familiale peut nécessiter des preuves (acte de mariage/naissance) selon le cas."],
+                    suggested_fix=["Ajouter un document d'état civil pertinent (acte de mariage, naissance, livret de famille)."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id="",
+                            doc_type=DocumentType.CIVIL_STATUS.value,
+                            extracted_key="document",
+                            value=None,
+                            present=False,
+                            note="Document d'état civil manquant (heuristique).",
+                        ),
+                        DocumentEvidence(
+                            doc_id=inv.doc_id,
+                            doc_type=inv.doc_type.value,
+                            extracted_key="relationship",
+                            value=rel,
+                            present=bool(rel),
+                            note="Relation extraite de la lettre d'invitation.",
+                        ),
+                    ],
+                )
+            )
+
+    # Address coherence: invitation host_address vs accommodation address (if both present)
+    if invs and accs:
+        inv = invs[0]
+        acc = accs[0]
+        inv_addr = _extract_address_like(inv)
+        acc_addr = _extract_address_like(acc)
+        if inv_addr and acc_addr and _norm_key(inv_addr) != _norm_key(acc_addr):
+            issues.append(
+                DocumentIssue(
+                    severity="info",
+                    code="ADDRESS_MISMATCH_INVITATION_ACCOMMODATION",
+                    message="Adresse: invitation vs hébergement différentes (à confirmer).",
+                    why=["Ce n'est pas forcément un problème (hôtel vs domicile), mais une incohérence doit être cohérente/expliquée."],
+                    suggested_fix=["Vérifier l'adresse exacte et clarifier (ex: hôtel réservé, autre logement)."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=inv.doc_id,
+                            doc_type=inv.doc_type.value,
+                            extracted_key="host_address",
+                            value=inv_addr,
+                            present=True,
+                            note="Adresse extraite de l'invitation.",
+                        ),
+                        DocumentEvidence(
+                            doc_id=acc.doc_id,
+                            doc_type=acc.doc_type.value,
+                            extracted_key="accommodation_address",
+                            value=acc_addr,
+                            present=True,
+                            note="Adresse extraite de l'hébergement.",
+                        ),
+                    ],
+                )
+            )
 
     disclaimers = [
         "Ces contrôles sont génériques: la liste officielle des documents dépend du pays, du visa, de la nationalité et du contexte.",

@@ -104,6 +104,37 @@ class TestDocumentsAndDossier(unittest.TestCase):
         res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
         self.assertTrue(any(i.code == "INSURANCE_COVERAGE_AMOUNT_LOW_SCHENGEN" for i in res.issues))
 
+    def test_payslips_insufficient_count(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01"}),
+            Document(doc_id="s1", doc_type=DocumentType.PAYSLIPS, extracted={"issued_date": date.today().isoformat(), "net_salary_usd": 1200}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "PAYSLIPS_INSUFFICIENT_COUNT" for i in res.issues))
+
+    def test_income_mismatch_payslips_vs_bank(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01", "full_name": "John Doe"}),
+            Document(doc_id="b", doc_type=DocumentType.BANK_STATEMENT, extracted={"issued_date": date.today().isoformat(), "average_monthly_inflow_usd": 3000}),
+            Document(doc_id="s1", doc_type=DocumentType.PAYSLIPS, extracted={"issued_date": date.today().isoformat(), "net_salary_usd": 1200}),
+            Document(doc_id="s2", doc_type=DocumentType.PAYSLIPS, extracted={"issued_date": date.today().isoformat(), "net_salary_usd": 1200}),
+            Document(doc_id="s3", doc_type=DocumentType.PAYSLIPS, extracted={"issued_date": date.today().isoformat(), "net_salary_usd": 1200}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "INCOME_MISMATCH_PAYSLIPS_BANK" for i in res.issues))
+
+    def test_civil_status_missing_when_family_relationship_in_invitation(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01", "full_name": "John Doe"}),
+            Document(
+                doc_id="inv",
+                doc_type=DocumentType.INVITATION_LETTER,
+                extracted={"invitee_name": "John Doe", "host_name": "Host", "relationship": "spouse", "host_address": "Paris"},
+            ),
+        ]
+        res = check_documents(docs, visa_type="family", destination_region="Schengen")
+        self.assertTrue(any(i.code == "CIVIL_STATUS_MISSING_FOR_FAMILY_CASE" for i in res.issues))
+
     def test_dossier_readiness_level_not_ready_when_missing_many_docs(self) -> None:
         profile = UserProfile(
             nationality="Maroc",
