@@ -13,12 +13,19 @@ import { Screen } from "@/src/ui/Screen";
 
 const TYPES: Array<{ key: DocumentType; label: string }> = [
   { key: "passport", label: "Passeport" },
+  { key: "photo", label: "Photo" },
   { key: "bank_statement", label: "Relevé bancaire" },
+  { key: "payslips", label: "Fiches de paie" },
   { key: "employment_letter", label: "Attestation employeur" },
+  { key: "business_registration", label: "Registre / entreprise" },
+  { key: "student_certificate", label: "Certificat étudiant" },
+  { key: "enrollment_letter", label: "Lettre d’inscription" },
   { key: "invitation_letter", label: "Lettre d’invitation" },
   { key: "travel_insurance", label: "Assurance voyage" },
   { key: "itinerary", label: "Itinéraire" },
   { key: "accommodation_plan", label: "Hébergement" },
+  { key: "civil_status", label: "État civil" },
+  { key: "sponsor_letter", label: "Lettre de sponsor" },
   { key: "other", label: "Autre" },
 ];
 

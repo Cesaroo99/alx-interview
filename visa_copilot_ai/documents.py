@@ -294,8 +294,46 @@ def check_documents(
         passport_no = _norm(p.extracted.get("passport_number"))
         if not name:
             assumptions.append("Nom complet non extrait du passeport.")
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="PASSPORT_NAME_MISSING",
+                    message="Nom complet non extrait du passeport.",
+                    why=["Le nom sert à vérifier les cohérences (réservations, invitations, relevés, formulaires)."],
+                    suggested_fix=["Compléter `full_name` (ou re-scan OCR) à partir de la page d'identité."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=p.doc_id,
+                            doc_type=p.doc_type.value,
+                            extracted_key="full_name",
+                            value=p.extracted.get("full_name"),
+                            present=False,
+                            note="Champ utile pour vérifier les incohérences entre pièces.",
+                        )
+                    ],
+                )
+            )
         if not passport_no:
             assumptions.append("Numéro de passeport non extrait.")
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="PASSPORT_NUMBER_MISSING",
+                    message="Numéro de passeport non extrait.",
+                    why=["Souvent requis sur formulaires, assurances, lettres d'invitation, etc."],
+                    suggested_fix=["Compléter `passport_number` (ou re-scan OCR) à partir de la page d'identité."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=p.doc_id,
+                            doc_type=p.doc_type.value,
+                            extracted_key="passport_number",
+                            value=p.extracted.get("passport_number"),
+                            present=False,
+                            note="Champ souvent demandé dans d'autres pièces et formulaires.",
+                        )
+                    ],
+                )
+            )
     else:
         issues.append(
             DocumentIssue(
@@ -325,6 +363,25 @@ def check_documents(
         issued = freshest.issued_date or _parse_iso_date(freshest.extracted.get("issued_date"))
         if issued is None:
             assumptions.append("Date d'émission du relevé bancaire inconnue.")
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="BANK_STATEMENT_ISSUED_UNKNOWN",
+                    message="Date d'émission du relevé bancaire manquante: impossible d'évaluer la fraîcheur.",
+                    why=["Les consulats demandent souvent des relevés récents (ex: 3 derniers mois)."],
+                    suggested_fix=["Compléter `issued_date` (ou re-scan OCR) et fournir des relevés récents."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=freshest.doc_id,
+                            doc_type=freshest.doc_type.value,
+                            extracted_key="issued_date",
+                            value=freshest.extracted.get("issued_date"),
+                            present=False,
+                            note="Champ requis pour vérifier l'ancienneté du relevé.",
+                        )
+                    ],
+                )
+            )
         else:
             if (_today() - issued).days > 120:
                 issues.append(
@@ -370,12 +427,85 @@ def check_documents(
                 )
         except Exception:
             assumptions.append("Solde non interprétable sur relevé bancaire (format OCR).")
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="BANK_BALANCE_UNPARSABLE",
+                    message="Solde de fin non interprétable sur le relevé (format/ocr).",
+                    why=["Un champ illisible peut empêcher une évaluation correcte des capacités financières."],
+                    suggested_fix=["Corriger `ending_balance_usd` (nombre) ou fournir un relevé plus lisible."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=freshest.doc_id,
+                            doc_type=freshest.doc_type.value,
+                            extracted_key="ending_balance_usd",
+                            value=balance,
+                            present=balance is not None,
+                            note="La valeur doit être un nombre (ex: 2500).",
+                        )
+                    ],
+                )
+            )
+
+        # Coherence cross-doc: account holder name vs passport full_name (if both present)
+        p = sorted(passports, key=lambda x: (x.expires_date or date.min), reverse=True)[0] if passports else None
+        if p is not None:
+            passport_name = _norm(p.extracted.get("full_name"))
+            acct_name = _norm(freshest.extracted.get("account_holder_name"))
+            if passport_name and acct_name and passport_name.lower() != acct_name.lower():
+                issues.append(
+                    DocumentIssue(
+                        severity="warning",
+                        code="NAME_MISMATCH_PASSPORT_BANK",
+                        message="Incohérence de nom entre passeport et relevé bancaire.",
+                        why=["Les incohérences (même mineures) peuvent déclencher une demande de clarification."],
+                        suggested_fix=["Vérifier l'orthographe, les prénoms/nom, et ajouter une explication si nécessaire."],
+                        evidence=[
+                            DocumentEvidence(
+                                doc_id=p.doc_id,
+                                doc_type=p.doc_type.value,
+                                extracted_key="full_name",
+                                value=passport_name,
+                                present=True,
+                                note="Nom extrait du passeport.",
+                            ),
+                            DocumentEvidence(
+                                doc_id=freshest.doc_id,
+                                doc_type=freshest.doc_type.value,
+                                extracted_key="account_holder_name",
+                                value=acct_name,
+                                present=True,
+                                note="Nom du titulaire extrait du relevé.",
+                            ),
+                        ],
+                    )
+                )
 
     # Insurance checks
     ins = by_type.get(DocumentType.TRAVEL_INSURANCE, [])
     if ins:
         d0 = ins[0]
         exp = d0.expires_date or _parse_iso_date(d0.extracted.get("expires_date"))
+        if exp is None:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="INSURANCE_EXPIRY_UNKNOWN",
+                    message="Date d'expiration de l'assurance voyage manquante: impossible de vérifier la couverture.",
+                    why=["Si l'assurance est requise, elle doit couvrir les dates exactes du séjour."],
+                    suggested_fix=["Compléter `expires_date` (ou re-scan OCR) et vérifier les exigences officielles."],
+                    evidence=[
+                        DocumentEvidence(
+                            doc_id=d0.doc_id,
+                            doc_type=d0.doc_type.value,
+                            extracted_key="expires_date",
+                            value=d0.extracted.get("expires_date"),
+                            present=False,
+                            note="Champ requis pour vérifier la validité/couverture.",
+                        )
+                    ],
+                )
+            )
         if exp is not None and exp <= _today():
             issues.append(
                 DocumentIssue(

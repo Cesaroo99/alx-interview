@@ -17,6 +17,9 @@ export default function EditDocumentModal() {
   const [expires, setExpires] = useState<string>(String(doc?.extracted?.expires_date || ""));
   const [issued, setIssued] = useState<string>(String(doc?.extracted?.issued_date || ""));
   const [balance, setBalance] = useState<string>(String(doc?.extracted?.ending_balance_usd || ""));
+  const [fullName, setFullName] = useState<string>(String(doc?.extracted?.full_name || ""));
+  const [passportNo, setPassportNo] = useState<string>(String(doc?.extracted?.passport_number || ""));
+  const [accountHolderName, setAccountHolderName] = useState<string>(String(doc?.extracted?.account_holder_name || ""));
   const focusKey = String(focus || "").trim();
 
   if (!doc) {
@@ -44,6 +47,26 @@ export default function EditDocumentModal() {
         {focusKey ? <Text style={styles.focusHint}>À compléter: {focusKey}</Text> : null}
 
         <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>full_name</Text>
+        <TextInput
+          value={fullName}
+          onChangeText={setFullName}
+          style={[styles.input, focusKey === "full_name" ? styles.inputFocus : null]}
+          placeholder="Ex: Mohamed El Amrani"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>passport_number</Text>
+        <TextInput
+          value={passportNo}
+          onChangeText={setPassportNo}
+          style={[styles.input, focusKey === "passport_number" ? styles.inputFocus : null]}
+          placeholder="Ex: AB1234567"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
+
+        <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>expires_date (YYYY-MM-DD)</Text>
         <TextInput
           value={expires}
@@ -58,6 +81,16 @@ export default function EditDocumentModal() {
           value={issued}
           onChangeText={setIssued}
           style={[styles.input, focusKey === "issued_date" ? styles.inputFocus : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>account_holder_name</Text>
+        <TextInput
+          value={accountHolderName}
+          onChangeText={setAccountHolderName}
+          style={[styles.input, focusKey === "account_holder_name" ? styles.inputFocus : null]}
+          placeholder="Ex: Mohamed El Amrani"
           placeholderTextColor="rgba(245,247,255,0.35)"
         />
 
@@ -78,10 +111,16 @@ export default function EditDocumentModal() {
             title="Enregistrer"
             onPress={async () => {
               const extracted = { ...(doc.extracted || {}) } as any;
+              if (fullName.trim()) extracted.full_name = fullName.trim();
+              else delete extracted.full_name;
+              if (passportNo.trim()) extracted.passport_number = passportNo.trim();
+              else delete extracted.passport_number;
               if (expires.trim()) extracted.expires_date = expires.trim();
               else delete extracted.expires_date;
               if (issued.trim()) extracted.issued_date = issued.trim();
               else delete extracted.issued_date;
+              if (accountHolderName.trim()) extracted.account_holder_name = accountHolderName.trim();
+              else delete extracted.account_holder_name;
               if (balance.trim()) extracted.ending_balance_usd = Number(balance);
               else delete extracted.ending_balance_usd;
               await updateDoc(doc.id, { extracted });

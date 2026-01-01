@@ -16,6 +16,43 @@ class TestDocumentsAndDossier(unittest.TestCase):
         res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
         self.assertTrue(any(i.code == "PASSPORT_EXPIRY_SOON" for i in res.issues))
 
+    def test_evidence_for_missing_passport_fields(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01"}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        missing_name = [i for i in res.issues if i.code == "PASSPORT_NAME_MISSING"]
+        missing_no = [i for i in res.issues if i.code == "PASSPORT_NUMBER_MISSING"]
+        self.assertTrue(missing_name and missing_name[0].evidence)
+        self.assertTrue(missing_no and missing_no[0].evidence)
+        self.assertEqual(missing_name[0].evidence[0].doc_id, "p")
+        self.assertEqual(missing_name[0].evidence[0].extracted_key, "full_name")
+        self.assertFalse(missing_name[0].evidence[0].present)
+
+    def test_bank_issued_date_unknown_produces_issue_with_evidence(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01", "full_name": "A B"}),
+            Document(doc_id="b", doc_type=DocumentType.BANK_STATEMENT, extracted={}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        issue = [i for i in res.issues if i.code == "BANK_STATEMENT_ISSUED_UNKNOWN"]
+        self.assertTrue(issue and issue[0].evidence)
+        self.assertEqual(issue[0].evidence[0].doc_id, "b")
+        self.assertEqual(issue[0].evidence[0].extracted_key, "issued_date")
+
+    def test_name_mismatch_between_passport_and_bank_statement(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01", "full_name": "John Doe"}),
+            Document(
+                doc_id="b",
+                doc_type=DocumentType.BANK_STATEMENT,
+                extracted={"issued_date": date.today().isoformat(), "account_holder_name": "Jane Doe"},
+            ),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        mismatch = [i for i in res.issues if i.code == "NAME_MISMATCH_PASSPORT_BANK"]
+        self.assertTrue(mismatch and len(mismatch[0].evidence) >= 2)
+
     def test_dossier_readiness_level_not_ready_when_missing_many_docs(self) -> None:
         profile = UserProfile(
             nationality="Maroc",
