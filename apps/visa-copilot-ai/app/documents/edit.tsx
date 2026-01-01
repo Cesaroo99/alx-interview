@@ -10,13 +10,14 @@ import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function EditDocumentModal() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, focus } = useLocalSearchParams<{ id?: string; focus?: string }>();
   const { docs, updateDoc, removeDoc } = useDocuments();
   const doc = useMemo(() => docs.find((d) => d.id === id), [docs, id]);
 
   const [expires, setExpires] = useState<string>(String(doc?.extracted?.expires_date || ""));
   const [issued, setIssued] = useState<string>(String(doc?.extracted?.issued_date || ""));
   const [balance, setBalance] = useState<string>(String(doc?.extracted?.ending_balance_usd || ""));
+  const focusKey = String(focus || "").trim();
 
   if (!doc) {
     return (
@@ -40,18 +41,35 @@ export default function EditDocumentModal() {
       <GlassCard>
         <Text style={styles.cardTitle}>Métadonnées (MVP)</Text>
         <Text style={styles.body}>Ces champs servent à la cohérence (expiration, fraîcheur, soldes). Format ISO recommandé.</Text>
+        {focusKey ? <Text style={styles.focusHint}>À compléter: {focusKey}</Text> : null}
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>expires_date (YYYY-MM-DD)</Text>
-        <TextInput value={expires} onChangeText={setExpires} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={expires}
+          onChangeText={setExpires}
+          style={[styles.input, focusKey === "expires_date" ? styles.inputFocus : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>issued_date (YYYY-MM-DD)</Text>
-        <TextInput value={issued} onChangeText={setIssued} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={issued}
+          onChangeText={setIssued}
+          style={[styles.input, focusKey === "issued_date" ? styles.inputFocus : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>ending_balance_usd</Text>
-        <TextInput value={balance} onChangeText={setBalance} style={styles.input} keyboardType="numeric" placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={balance}
+          onChangeText={setBalance}
+          style={[styles.input, focusKey === "ending_balance_usd" ? styles.inputFocus : null]}
+          keyboardType="numeric"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.lg }} />
         <View style={styles.row}>
@@ -84,6 +102,7 @@ const styles = StyleSheet.create({
   title: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  focusHint: { marginTop: Tokens.space.sm, color: Colors.brandB, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
   label: { color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.medium },
   input: {
     marginTop: 8,
@@ -95,6 +114,10 @@ const styles = StyleSheet.create({
     paddingVertical: Tokens.space.md,
     color: Colors.text,
     fontSize: Tokens.font.size.md,
+  },
+  inputFocus: {
+    borderColor: "rgba(46,233,255,0.70)",
+    backgroundColor: "rgba(46,233,255,0.08)",
   },
   row: { flexDirection: "row", gap: 10 },
 });

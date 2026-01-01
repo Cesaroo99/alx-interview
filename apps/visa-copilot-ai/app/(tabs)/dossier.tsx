@@ -21,6 +21,7 @@ export default function DossierScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const payloadDocs = useMemo(
     () =>
@@ -32,6 +33,28 @@ export default function DossierScreen() {
       })),
     [docs]
   );
+
+  async function run() {
+    if (!profile) {
+      setError("Profil manquant: complétez l’onboarding.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await Api.verifyDossier({
+        profile,
+        visa_type: visaType,
+        destination_region: destination,
+        documents: payloadDocs,
+      });
+      setResult(res);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <Screen>
@@ -64,27 +87,7 @@ export default function DossierScreen() {
         <View style={{ height: Tokens.space.lg }} />
         <PrimaryButton
           title={loading ? "Analyse…" : "Analyser le dossier"}
-          onPress={async () => {
-            if (!profile) {
-              setError("Profil manquant: complétez l’onboarding.");
-              return;
-            }
-            setLoading(true);
-            setError(null);
-            try {
-              const res = await Api.verifyDossier({
-                profile,
-                visa_type: visaType,
-                destination_region: destination,
-                documents: payloadDocs,
-              });
-              setResult(res);
-            } catch (e: any) {
-              setError(String(e?.message || e));
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onPress={run}
           style={{ opacity: profile ? 1 : 0.6 }}
         />
 
@@ -148,6 +151,118 @@ export default function DossierScreen() {
               </View>
             ))}
           </GlassCard>
+
+          <GlassCard>
+            <Text style={styles.cardTitle}>Contrôles (interactifs)</Text>
+            <Text style={styles.body}>
+              Chaque point inclut les champs extraits utilisés. Vous pouvez ouvrir un document ou compléter un champ puis relancer la vérification.
+            </Text>
+            <View style={{ height: Tokens.space.md }} />
+            {Array.isArray(result?.document_check?.issues) && result.document_check.issues.length ? (
+              result.document_check.issues.map((it: any) => {
+                const code = String(it?.code || it?.message || "issue");
+                const isOpen = !!expanded[code];
+                return (
+                  <View key={code} style={styles.issueBlock}>
+                    <View style={styles.issueHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.issueTitle}>
+                          {String(it?.severity || "info").toUpperCase()} · {String(it?.message || "—")}
+                        </Text>
+                        {Array.isArray(it?.suggested_fix) && it.suggested_fix[0] ? (
+                          <Text style={styles.issueSub}>{String(it.suggested_fix[0])}</Text>
+                        ) : null}
+                      </View>
+                      <PrimaryButton
+                        title={isOpen ? "Masquer" : "Détails"}
+                        variant="ghost"
+                        onPress={() => setExpanded((s) => ({ ...s, [code]: !s[code] }))}
+                      />
+                    </View>
+
+                    {isOpen ? (
+                      <View style={{ marginTop: Tokens.space.sm, gap: Tokens.space.sm }}>
+                        {(it?.evidence || []).length ? (
+                          (it.evidence || []).map((ev: any, idx: number) => {
+                            const docId = String(ev?.doc_id || "");
+                            const docType = String(ev?.doc_type || "");
+                            const key = String(ev?.extracted_key || "");
+                            const present = !!ev?.present;
+                            const note = String(ev?.note || "");
+                            const value = ev?.value;
+
+                            return (
+                              <View key={`${code}_${idx}`} style={styles.evRow}>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.evTitle}>
+                                    {docType || "document"} · {key || "champ"} · {present ? "présent" : "manquant"}
+                                  </Text>
+                                  <Text style={styles.evBody}>
+                                    Valeur: {value === null || value === undefined || value === "" ? "—" : String(value)}
+                                    {note ? ` · ${note}` : ""}
+                                  </Text>
+                                </View>
+                                <View style={styles.evActions}>
+                                  {docId ? (
+                                    <>
+                                      <PrimaryButton
+                                        title="Ouvrir"
+                                        variant="ghost"
+                                        onPress={() => router.push({ pathname: "/documents/edit", params: { id: docId } })}
+                                      />
+                                      {!present && key ? (
+                                        <PrimaryButton
+                                          title="Compléter"
+                                          variant="ghost"
+                                          onPress={() => router.push({ pathname: "/documents/edit", params: { id: docId, focus: key } })}
+                                        />
+                                      ) : null}
+                                    </>
+                                  ) : docType ? (
+                                    <PrimaryButton
+                                      title="Ajouter"
+                                      variant="ghost"
+                                      onPress={() => router.push({ pathname: "/documents/add", params: { doc_type: docType } })}
+                                    />
+                                  ) : null}
+                                </View>
+                              </View>
+                            );
+                          })
+                        ) : (
+                          <Text style={styles.body}>Aucune preuve fournie pour ce point.</Text>
+                        )}
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.body}>Aucun contrôle détaillé.</Text>
+            )}
+
+            <View style={{ height: Tokens.space.md }} />
+            <View style={styles.rowButtons}>
+              <PrimaryButton title="Ajouter un document" variant="ghost" onPress={() => router.push("/documents/add")} style={{ flex: 1 }} />
+              <PrimaryButton title="Vérifier à nouveau" onPress={run} style={{ flex: 1 }} />
+            </View>
+          </GlassCard>
+
+          <GlassCard>
+            <Text style={styles.cardTitle}>Documents manquants (template)</Text>
+            <Text style={styles.body}>Liste générique: à confirmer sur la checklist officielle (pays/visa/nationalité).</Text>
+            <View style={{ height: Tokens.space.sm }} />
+            {Array.isArray(result?.document_check?.missing_document_types) && result.document_check.missing_document_types.length ? (
+              (result.document_check.missing_document_types || []).map((t: string) => (
+                <View key={t} style={styles.missingRow}>
+                  <Text style={styles.missingText}>{t}</Text>
+                  <PrimaryButton title="Ajouter" variant="ghost" onPress={() => router.push({ pathname: "/documents/add", params: { doc_type: t } })} />
+                </View>
+              ))
+            ) : (
+              <Text style={styles.body}>Aucune pièce manquante détectée (selon le template).</Text>
+            )}
+          </GlassCard>
         </>
       ) : null}
 
@@ -180,5 +295,15 @@ const styles = StyleSheet.create({
   bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   dot: { width: 10, height: 10, borderRadius: 99, marginTop: 6 },
   text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  issueBlock: { marginTop: Tokens.space.sm, paddingTop: Tokens.space.sm, borderTopWidth: 1, borderTopColor: Colors.border },
+  issueHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  issueTitle: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold, lineHeight: 22 },
+  issueSub: { marginTop: 4, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
+  evRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  evTitle: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
+  evBody: { marginTop: 4, color: Colors.muted, fontSize: Tokens.font.size.sm, lineHeight: 20 },
+  evActions: { alignItems: "flex-end", gap: 6 },
+  missingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: Tokens.space.sm },
+  missingText: { color: Colors.muted, fontSize: Tokens.font.size.md, flex: 1 },
 });
 
