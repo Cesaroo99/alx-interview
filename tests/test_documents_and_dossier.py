@@ -53,6 +53,28 @@ class TestDocumentsAndDossier(unittest.TestCase):
         mismatch = [i for i in res.issues if i.code == "NAME_MISMATCH_PASSPORT_BANK"]
         self.assertTrue(mismatch and len(mismatch[0].evidence) >= 2)
 
+    def test_insurance_not_covering_trip(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01"}),
+            Document(doc_id="i", doc_type=DocumentType.ITINERARY, extracted={"travel_start_date": "2026-05-01", "travel_end_date": "2026-05-10"}),
+            Document(
+                doc_id="ins",
+                doc_type=DocumentType.TRAVEL_INSURANCE,
+                extracted={"coverage_start_date": "2026-05-03", "coverage_end_date": "2026-05-08"},
+            ),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "INSURANCE_NOT_COVERING_TRIP" for i in res.issues))
+
+    def test_funds_estimate_low_when_balance_too_small_for_duration(self) -> None:
+        docs = [
+            Document(doc_id="p", doc_type=DocumentType.PASSPORT, extracted={"expires_date": "2030-01-01"}),
+            Document(doc_id="i", doc_type=DocumentType.ITINERARY, extracted={"travel_start_date": "2026-05-01", "travel_end_date": "2026-05-10"}),
+            Document(doc_id="b", doc_type=DocumentType.BANK_STATEMENT, extracted={"issued_date": date.today().isoformat(), "ending_balance_usd": 200}),
+        ]
+        res = check_documents(docs, visa_type="tourism", destination_region="Schengen")
+        self.assertTrue(any(i.code == "FUNDS_ESTIMATE_LOW" for i in res.issues))
+
     def test_dossier_readiness_level_not_ready_when_missing_many_docs(self) -> None:
         profile = UserProfile(
             nationality="Maroc",

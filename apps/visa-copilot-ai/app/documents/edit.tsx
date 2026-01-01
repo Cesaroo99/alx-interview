@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -21,6 +21,20 @@ export default function EditDocumentModal() {
   const [passportNo, setPassportNo] = useState<string>(String(doc?.extracted?.passport_number || ""));
   const [accountHolderName, setAccountHolderName] = useState<string>(String(doc?.extracted?.account_holder_name || ""));
   const focusKey = String(focus || "").trim();
+  const [focusValue, setFocusValue] = useState<string>("");
+
+  const knownKeys = useMemo(
+    () => new Set(["full_name", "passport_number", "expires_date", "issued_date", "account_holder_name", "ending_balance_usd"]),
+    []
+  );
+
+  useEffect(() => {
+    if (!doc) return;
+    if (!focusKey) return;
+    if (knownKeys.has(focusKey)) return;
+    const v = (doc.extracted as any)?.[focusKey];
+    setFocusValue(v === null || v === undefined ? "" : String(v));
+  }, [doc, focusKey, knownKeys]);
 
   if (!doc) {
     return (
@@ -104,6 +118,20 @@ export default function EditDocumentModal() {
           placeholderTextColor="rgba(245,247,255,0.35)"
         />
 
+        {focusKey && !knownKeys.has(focusKey) ? (
+          <>
+            <View style={{ height: Tokens.space.md }} />
+            <Text style={styles.label}>{focusKey}</Text>
+            <TextInput
+              value={focusValue}
+              onChangeText={setFocusValue}
+              style={[styles.input, styles.inputFocus]}
+              placeholder="Valeur (texte)"
+              placeholderTextColor="rgba(245,247,255,0.35)"
+            />
+          </>
+        ) : null}
+
         <View style={{ height: Tokens.space.lg }} />
         <View style={styles.row}>
           <PrimaryButton title="Supprimer" variant="danger" onPress={async () => { await removeDoc(doc.id); router.back(); }} style={{ flex: 1 }} />
@@ -123,6 +151,10 @@ export default function EditDocumentModal() {
               else delete extracted.account_holder_name;
               if (balance.trim()) extracted.ending_balance_usd = Number(balance);
               else delete extracted.ending_balance_usd;
+              if (focusKey && !knownKeys.has(focusKey)) {
+                if (focusValue.trim()) extracted[focusKey] = focusValue.trim();
+                else delete extracted[focusKey];
+              }
               await updateDoc(doc.id, { extracted });
               router.back();
             }}

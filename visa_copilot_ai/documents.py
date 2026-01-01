@@ -104,6 +104,23 @@ def _parse_iso_date(value: Any) -> Optional[date]:
         return None
 
 
+def _parse_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        try:
+            return float(value)
+        except Exception:
+            return None
+    s = _norm(value).replace(",", "")
+    if not s:
+        return None
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
 def _dedup(seq: list[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
@@ -114,6 +131,83 @@ def _dedup(seq: list[str]) -> list[str]:
         seen.add(x2)
         out.append(x2)
     return out
+
+
+def _region_min_passport_validity_after_trip_days(destination_region: str) -> int:
+    d = _norm(destination_region).lower()
+    # Heuristique conservatrice: Schengen ~ 3 mois après le départ,
+    # beaucoup d’autres destinations ~ 6 mois.
+    if "schengen" in d or "europe" in d:
+        return 90
+    return 180
+
+
+def _region_daily_budget_usd(destination_region: str) -> float:
+    d = _norm(destination_region).lower()
+    # Heuristiques (ordre de grandeur) — à confirmer sur sources officielles.
+    if "schengen" in d or "europe" in d:
+        return 110.0
+    if "uk" in d or "royaume" in d:
+        return 140.0
+    if "us" in d or "usa" in d:
+        return 160.0
+    return 90.0
+
+
+def _extract_trip_window(
+    docs: list[Document],
+) -> tuple[Optional[date], Optional[date], list[DocumentEvidence]]:
+    """
+    Extrait une fenêtre de voyage (start/end) depuis itinerary/accommodation.
+    Retourne: start, end, evidence.
+    """
+    start: Optional[date] = None
+    end: Optional[date] = None
+    evidence: list[DocumentEvidence] = []
+
+    key_pairs = [
+        ("start_date", "end_date"),
+        ("trip_start_date", "trip_end_date"),
+        ("travel_start_date", "travel_end_date"),
+    ]
+
+    candidates = [d for d in docs if d.doc_type in {DocumentType.ITINERARY, DocumentType.ACCOMMODATION_PLAN}]
+
+    for doc in candidates:
+        for k_start, k_end in key_pairs:
+            raw_s = doc.extracted.get(k_start)
+            raw_e = doc.extracted.get(k_end)
+            parsed_s = _parse_iso_date(raw_s)
+            parsed_e = _parse_iso_date(raw_e)
+
+            if raw_s is not None or raw_e is not None:
+                evidence.append(
+                    DocumentEvidence(
+                        doc_id=doc.doc_id,
+                        doc_type=doc.doc_type.value,
+                        extracted_key=k_start,
+                        value=raw_s,
+                        present=parsed_s is not None,
+                        note="Date de début voyage (itinéraire/hébergement).",
+                    )
+                )
+                evidence.append(
+                    DocumentEvidence(
+                        doc_id=doc.doc_id,
+                        doc_type=doc.doc_type.value,
+                        extracted_key=k_end,
+                        value=raw_e,
+                        present=parsed_e is not None,
+                        note="Date de fin voyage (itinéraire/hébergement).",
+                    )
+                )
+
+            if parsed_s is not None:
+                start = parsed_s if start is None else min(start, parsed_s)
+            if parsed_e is not None:
+                end = parsed_e if end is None else max(end, parsed_e)
+
+    return start, end, evidence
 
 
 def required_documents_template(visa_type: str, destination_region: str) -> list[DocumentType]:
@@ -527,9 +621,196 @@ def check_documents(
                 )
             )
 
+    # Trip window checks (from itinerary/accommodation) + coherence with passport/insurance/budget
+    trip_start, trip_end, trip_evidence = _extract_trip_window(documents)
+    if trip_start is None or trip_end is None:
+        # Only raise this if the user already provided itinerary/accommodation docs but dates aren't usable.
+        has_trip_docs = bool(by_type.get(DocumentType.ITINERARY) or by_type.get(DocumentType.ACCOMMODATION_PLAN))
+        if has_trip_docs:
+            issues.append(
+                DocumentIssue(
+                    severity="warning",
+                    code="TRIP_DATES_UNKNOWN",
+                    message="Dates de voyage manquantes ou illisibles (itinéraire/hébergement): impossible de vérifier la cohérence.",
+                    why=[
+                        "Les dates influencent les exigences (assurance, validité passeport, cohérence budget).",
+                        "Des dates incohérentes déclenchent souvent une demande de clarification.",
+                    ],
+                    suggested_fix=[
+                        "Compléter `start_date`/`end_date` (ou `travel_start_date`/`travel_end_date`) sur l'itinéraire/hébergement.",
+                    ],
+                    evidence=trip_evidence,
+                )
+            )
+    else:
+        if trip_end < trip_start:
+            issues.append(
+                DocumentIssue(
+                    severity="risk",
+                    code="TRIP_DATES_INVALID",
+                    message="Dates de voyage incohérentes: la fin est avant le début.",
+                    suggested_fix=["Corriger les dates (itinéraire/hébergement) et relancer la vérification."],
+                    evidence=trip_evidence,
+                )
+            )
+        else:
+            # Passport validity relative to trip end
+            if passports:
+                p = sorted(passports, key=lambda x: (x.expires_date or date.min), reverse=True)[0]
+                exp = p.expires_date or _parse_iso_date(p.extracted.get("expires_date"))
+                if exp is not None:
+                    if exp <= trip_end:
+                        issues.append(
+                            DocumentIssue(
+                                severity="risk",
+                                code="TRIP_AFTER_PASSPORT_EXPIRES",
+                                message="Le voyage se termine après l'expiration du passeport.",
+                                why=["La demande est généralement irrecevable si le passeport expire avant/pendant le séjour."],
+                                suggested_fix=["Renouveler le passeport ou ajuster les dates de voyage avant dépôt."],
+                                evidence=[
+                                    DocumentEvidence(
+                                        doc_id=p.doc_id,
+                                        doc_type=p.doc_type.value,
+                                        extracted_key="expires_date",
+                                        value=exp.isoformat(),
+                                        present=True,
+                                        note="Expiration passeport.",
+                                    ),
+                                    *trip_evidence,
+                                ],
+                            )
+                        )
+                    else:
+                        buffer_days = _region_min_passport_validity_after_trip_days(destination_region)
+                        if (exp - trip_end).days < buffer_days:
+                            issues.append(
+                                DocumentIssue(
+                                    severity="warning",
+                                    code="PASSPORT_VALIDITY_AFTER_TRIP_SHORT",
+                                    message=f"Validité passeport après le voyage possiblement insuffisante (< {buffer_days} jours).",
+                                    why=["De nombreux pays exigent une marge de validité après le retour (3 à 6 mois)."],
+                                    suggested_fix=["Vérifier l'exigence officielle; envisager un renouvellement préventif."],
+                                    evidence=[
+                                        DocumentEvidence(
+                                            doc_id=p.doc_id,
+                                            doc_type=p.doc_type.value,
+                                            extracted_key="expires_date",
+                                            value=exp.isoformat(),
+                                            present=True,
+                                            note="Expiration passeport.",
+                                        ),
+                                        *trip_evidence,
+                                    ],
+                                )
+                            )
+
+            # Insurance coverage vs trip window (if insurance present)
+            if ins:
+                d0 = ins[0]
+                cov_start = _parse_iso_date(d0.extracted.get("coverage_start_date") or d0.extracted.get("start_date"))
+                cov_end = _parse_iso_date(
+                    d0.extracted.get("coverage_end_date") or d0.extracted.get("end_date") or d0.extracted.get("expires_date") or d0.expires_date
+                )
+                if cov_start is None or cov_end is None:
+                    issues.append(
+                        DocumentIssue(
+                            severity="warning",
+                            code="INSURANCE_COVERAGE_DATES_MISSING",
+                            message="Dates de couverture assurance manquantes: impossible de vérifier qu'elle couvre tout le séjour.",
+                            suggested_fix=["Compléter `coverage_start_date` et `coverage_end_date` (ou dates équivalentes) puis relancer."],
+                            evidence=[
+                                DocumentEvidence(
+                                    doc_id=d0.doc_id,
+                                    doc_type=d0.doc_type.value,
+                                    extracted_key="coverage_start_date",
+                                    value=d0.extracted.get("coverage_start_date"),
+                                    present=cov_start is not None,
+                                    note="Début de couverture.",
+                                ),
+                                DocumentEvidence(
+                                    doc_id=d0.doc_id,
+                                    doc_type=d0.doc_type.value,
+                                    extracted_key="coverage_end_date",
+                                    value=d0.extracted.get("coverage_end_date") or d0.extracted.get("end_date") or d0.extracted.get("expires_date"),
+                                    present=cov_end is not None,
+                                    note="Fin de couverture.",
+                                ),
+                                *trip_evidence,
+                            ],
+                        )
+                    )
+                else:
+                    if cov_start > trip_start or cov_end < trip_end:
+                        issues.append(
+                            DocumentIssue(
+                                severity="risk",
+                                code="INSURANCE_NOT_COVERING_TRIP",
+                                message="Assurance voyage: la couverture ne couvre pas l’intégralité des dates du séjour.",
+                                why=["Si exigée, l’assurance doit couvrir toutes les dates du voyage (et parfois des garanties minimales)."],
+                                suggested_fix=["Ajuster l'assurance aux dates exactes (sans paiement irréversible avant visa)."],
+                                evidence=[
+                                    DocumentEvidence(
+                                        doc_id=d0.doc_id,
+                                        doc_type=d0.doc_type.value,
+                                        extracted_key="coverage_start_date",
+                                        value=cov_start.isoformat(),
+                                        present=True,
+                                        note="Début de couverture.",
+                                    ),
+                                    DocumentEvidence(
+                                        doc_id=d0.doc_id,
+                                        doc_type=d0.doc_type.value,
+                                        extracted_key="coverage_end_date",
+                                        value=cov_end.isoformat(),
+                                        present=True,
+                                        note="Fin de couverture.",
+                                    ),
+                                    *trip_evidence,
+                                ],
+                            )
+                        )
+
+            # Funds sufficiency (heuristic) if we have trip length + balance
+            if bank:
+                freshest = sorted(bank, key=lambda x: (x.issued_date or date.min), reverse=True)[0]
+                bal = _parse_float(freshest.extracted.get("ending_balance_usd"))
+                if bal is not None:
+                    duration = (trip_end - trip_start).days + 1
+                    duration = max(1, int(duration))
+                    rate = _region_daily_budget_usd(destination_region)
+                    required_est = rate * float(duration) + 300.0  # buffer
+                    if bal < required_est:
+                        severity = "warning" if bal >= 0.85 * required_est else "risk"
+                        issues.append(
+                            DocumentIssue(
+                                severity=severity,
+                                code="FUNDS_ESTIMATE_LOW",
+                                message="Capacité financière possiblement insuffisante au regard de la durée estimée du séjour (heuristique).",
+                                why=[
+                                    "Les consulats comparent souvent durée/budget/ressources et cherchent la cohérence.",
+                                    "Ce calcul est une estimation: vérifier les seuils officiels (si publiés).",
+                                ],
+                                suggested_fix=[
+                                    "Fournir des relevés plus solides/récents, cohérents avec la durée, ou expliquer la prise en charge (sponsor).",
+                                ],
+                                evidence=[
+                                    DocumentEvidence(
+                                        doc_id=freshest.doc_id,
+                                        doc_type=freshest.doc_type.value,
+                                        extracted_key="ending_balance_usd",
+                                        value=bal,
+                                        present=True,
+                                        note=f"Solde utilisé (USD). Estimation requise ~ {round(required_est, 0)} USD pour {duration} jours.",
+                                    ),
+                                    *trip_evidence,
+                                ],
+                            )
+                        )
+
     disclaimers = [
         "Ces contrôles sont génériques: la liste officielle des documents dépend du pays, du visa, de la nationalité et du contexte.",
         "Aucune falsification: si un élément manque ou paraît faible, la solution est d'améliorer le dossier, pas de créer de faux documents.",
+        "Les contrôles dates/budget sont heuristiques: ils servent à détecter des incohérences, pas à remplacer les exigences officielles.",
     ]
 
     return DocumentCheckResult(
