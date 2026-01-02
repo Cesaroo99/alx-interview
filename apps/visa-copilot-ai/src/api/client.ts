@@ -337,6 +337,7 @@ export type ProcedureTimelineResponse = {
     estimated_duration?: string | null;
     priority?: "Low" | "Medium" | "High" | string;
     action_key?: string | null;
+    suggested_events?: Array<{ type: string; title: string; notes?: string }>;
     substeps?: Array<{
       id: string;
       name: string;
@@ -348,6 +349,7 @@ export type ProcedureTimelineResponse = {
       estimated_duration?: string | null;
       priority?: string;
       action_key?: string | null;
+      suggested_events?: Array<{ type: string; title: string; notes?: string }>;
     }>;
   }>;
   B_next_action_summary: string[];

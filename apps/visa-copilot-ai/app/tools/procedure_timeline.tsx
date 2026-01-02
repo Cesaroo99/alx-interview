@@ -38,7 +38,7 @@ export default function ProcedureTimelineScreen() {
   const { profile } = useProfile();
   const { insights } = useInsights();
   const { docs } = useDocuments();
-  const { state: timelineState, upsertVisa, toggleProcedureStep, addManualEvent } = useVisaTimeline();
+  const { state: timelineState, upsertVisa, toggleProcedureStep, addManualEvent, markProcedureAutoCreated } = useVisaTimeline();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +86,12 @@ export default function ProcedureTimelineScreen() {
     return (timelineState.procedure || {})[visa.id]?.completedStepIds || [];
   }, [ctx.destination_region, ctx.visa_type, timelineState.procedure, timelineState.visas]);
 
+  const visaIdForThisCase = useMemo(() => {
+    const key = `${String(ctx.destination_region).toLowerCase()}__${String(ctx.visa_type)}`.toLowerCase();
+    const visa = (timelineState.visas || []).find((v) => `${v.country}__${v.visaType}`.toLowerCase() === key);
+    return visa?.id || null;
+  }, [ctx.destination_region, ctx.visa_type, timelineState.visas]);
+
   async function run() {
     if (!profile) {
       setError("Profil requis.");
@@ -115,6 +121,37 @@ export default function ProcedureTimelineScreen() {
     void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.destination_region, ctx.visa_type, payloadDocs.length]);
+
+  // Auto-planification: créer des tâches (sans date) quand une étape devient actionnable.
+  useEffect(() => {
+    (async () => {
+      if (!data || !profile) return;
+      const visaId = visaIdForThisCase || (await upsertVisa({ country: ctx.destination_region, visaType: ctx.visa_type, objective: "visa", stage: "application" }));
+      const proc = (timelineState.procedure || {})[visaId] || { completedStepIds: [], autoCreatedStepIds: [], updatedAt: Date.now() };
+      const already = new Set((proc.autoCreatedStepIds || []).map((x) => String(x)));
+
+      const actionable = (data.A_timeline_view || []).filter((s) => {
+        const st = String(s.status || "").toLowerCase();
+        return st === "not started" || st === "in progress";
+      });
+
+      for (const s of actionable.slice(0, 6)) {
+        if (already.has(s.id)) continue;
+        const events = (s.suggested_events || []).slice(0, 1);
+        const e0 = events[0];
+        if (!e0) continue;
+        await addManualEvent({
+          visaId,
+          type: (e0.type as any) || "other",
+          title: e0.title || `Procédure: ${s.name}`,
+          notes: e0.notes || s.instruction_now,
+          meta: { procedure_step_id: s.id, procedure_step_name: s.name },
+        });
+        await markProcedureAutoCreated(visaId, s.id);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.A_timeline_view?.length, visaIdForThisCase]);
 
   const steps = useMemo(() => data?.A_timeline_view || [], [data?.A_timeline_view]);
   const filtered = useMemo(() => {

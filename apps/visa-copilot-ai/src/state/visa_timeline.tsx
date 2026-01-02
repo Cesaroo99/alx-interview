@@ -73,7 +73,7 @@ export type TimelineState = {
   visas: VisaCase[];
   events: VisaEvent[];
   pending: PendingDetection[];
-  procedure?: Record<string, { completedStepIds: string[]; updatedAt: number }>;
+  procedure?: Record<string, { completedStepIds: string[]; autoCreatedStepIds?: string[]; updatedAt: number }>;
   settings?: {
     silentMode: boolean; // true = notifications UI minimal; validations in dashboard
   };
@@ -107,6 +107,7 @@ type Ctx = {
   deleteEvent: (eventId: string) => Promise<void>;
 
   toggleProcedureStep: (visaId: string, stepId: string) => Promise<void>;
+  markProcedureAutoCreated: (visaId: string, stepId: string) => Promise<void>;
 
   setSilentMode: (enabled: boolean) => Promise<void>;
 };
@@ -479,6 +480,26 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
     [persist, state]
   );
 
+  const markProcedureAutoCreated = useCallback(
+    async (visaId: string, stepId: string) => {
+      const vid = String(visaId || "").trim();
+      const sid = String(stepId || "").trim();
+      if (!vid || !sid) return;
+      const current = (state.procedure || {})[vid] || { completedStepIds: [], autoCreatedStepIds: [], updatedAt: Date.now() };
+      const set = new Set((current.autoCreatedStepIds || []).map((x) => String(x)));
+      set.add(sid);
+      const next: TimelineState = {
+        ...state,
+        procedure: {
+          ...(state.procedure || {}),
+          [vid]: { completedStepIds: current.completedStepIds || [], autoCreatedStepIds: Array.from(set), updatedAt: Date.now() },
+        },
+      };
+      await persist(next);
+    },
+    [persist, state]
+  );
+
   const value = useMemo(
     () => ({
       state,
@@ -491,9 +512,10 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       markEventCompleted,
       deleteEvent,
       toggleProcedureStep,
+      markProcedureAutoCreated,
       setSilentMode,
     }),
-    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent, toggleProcedureStep, setSilentMode]
+    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent, toggleProcedureStep, markProcedureAutoCreated, setSilentMode]
   );
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;

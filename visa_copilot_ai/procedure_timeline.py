@@ -38,6 +38,7 @@ class Step:
     estimated_duration: Optional[str] = None
     priority: str = "Medium"  # Low | Medium | High
     action_key: Optional[str] = None
+    suggested_events: list[dict[str, Any]] = field(default_factory=list)
     substeps: list["Step"] = field(default_factory=list)
 
 
@@ -113,6 +114,9 @@ def generate_procedure_timeline(
             estimated_duration="10–20 min",
             priority="High",
             action_key="open_eligibility",
+            suggested_events=[
+                {"type": "other", "title": "Procédure: confirmer visa & destination", "notes": "Vérifier visa_type/destination/motif avant de commencer les formulaires."}
+            ],
         )
     )
 
@@ -132,6 +136,7 @@ def generate_procedure_timeline(
             estimated_duration="30–90 min",
             priority="High",
             action_key="open_documents",
+            suggested_events=[{"type": "other", "title": "Procédure: uploader documents", "notes": "Ajouter les pièces clés dans le coffre."}],
         )
     )
     doc_sub.append(
@@ -150,6 +155,7 @@ def generate_procedure_timeline(
             estimated_duration="5–20 min / document",
             priority="High",
             action_key="open_documents",
+            suggested_events=[{"type": "other", "title": "Procédure: OCR documents", "notes": "Lancer l’OCR sur passeport/relevés/assurance pour auto-remplir les champs."}],
         )
     )
     doc_sub.append(
@@ -164,6 +170,7 @@ def generate_procedure_timeline(
             estimated_duration="5–10 min",
             priority="High",
             action_key="open_dossier",
+            suggested_events=[{"type": "other", "title": "Procédure: vérifier dossier", "notes": "Corriger incohérences détectées (dates/noms/fonds/assurance)."}],
         )
     )
 
@@ -198,6 +205,7 @@ def generate_procedure_timeline(
             estimated_duration="30–60 min",
             priority="High",
             action_key="open_travel",
+            suggested_events=[{"type": "other", "title": "Procédure: générer itinéraire", "notes": "Générer un itinéraire visa-compliant et résoudre les alertes."}],
         )
     )
 
@@ -217,6 +225,7 @@ def generate_procedure_timeline(
             estimated_duration="15–30 min",
             priority="High",
             action_key="open_costs",
+            suggested_events=[{"type": "payment", "title": "Procédure: estimer coûts & planifier paiement", "notes": "Entrer frais officiels + vérifier alertes de frais suspects."}],
         )
     )
 
@@ -224,13 +233,73 @@ def generate_procedure_timeline(
     forms_id = "forms"
     forms_blocked = not docs_ready
     forms_done = is_done(forms_id)
-    forms_name = "Formulaire en ligne"
+    forms_name = "Formulaire en ligne (portail officiel)"
     if usa:
         forms_name = "Formulaire DS‑160"
     elif uk:
         forms_name = "Formulaire UKVI"
     elif schengen:
         forms_name = "Formulaire Schengen (France‑Visas/VIDEX…)"
+
+    forms_sub: list[Step] = []
+    if schengen:
+        forms_sub = [
+            Step(
+                id="forms_schengen_draft",
+                name="Brouillon + cohérence (Schengen)",
+                category="Forms",
+                status=_status(completed=False, in_progress=docs_ready, blocked=not docs_ready),
+                instruction_now="Remplir le brouillon et copier/coller dans le portail (noms/dates exacts).",
+                blocked_until=["Documents ready"] if not docs_ready else [],
+                blocked_reason="Besoin des infos exactes du passeport." if not docs_ready else None,
+                estimated_duration="45–90 min",
+                priority="High",
+                action_key="open_forms",
+                suggested_events=[{"type": "other", "title": "Procédure: remplir formulaire Schengen", "notes": "Brouillon + assistant de champs avant saisie sur portail."}],
+            ),
+            Step(
+                id="forms_schengen_insurance",
+                name="Assurance & couverture (si requise)",
+                category="Forms",
+                status=_status(completed=DocumentType.TRAVEL_INSURANCE.value in doc_types, in_progress=DocumentType.TRAVEL_INSURANCE.value in doc_types, blocked=not docs_ready),
+                instruction_now="Vérifier couverture et dates alignées avec le voyage.",
+                blocked_until=["Documents ready"] if not docs_ready else [],
+                blocked_reason=None if docs_ready else "Documents manquants.",
+                estimated_duration="10–30 min",
+                priority="Medium",
+                action_key="open_documents",
+            ),
+        ]
+    if uk:
+        forms_sub = [
+            Step(
+                id="forms_uk_draft",
+                name="Brouillon + UKVI",
+                category="Forms",
+                status=_status(completed=False, in_progress=docs_ready, blocked=not docs_ready),
+                instruction_now="Remplir UKVI (profil, emploi/études, finances) + cohérence dossier.",
+                blocked_until=["Documents ready"] if not docs_ready else [],
+                blocked_reason="Infos passeport/attaches requises." if not docs_ready else None,
+                estimated_duration="60–120 min",
+                priority="High",
+                action_key="open_forms",
+            )
+        ]
+    if usa:
+        forms_sub = [
+            Step(
+                id="forms_ds160",
+                name="Remplir DS‑160",
+                category="Forms",
+                status=_status(completed=False, in_progress=docs_ready, blocked=not docs_ready),
+                instruction_now="Remplir DS‑160 (identité/passeport/voyage) en cohérence stricte.",
+                blocked_until=["Documents ready"] if not docs_ready else [],
+                blocked_reason="Infos passeport requises." if not docs_ready else None,
+                estimated_duration="60–150 min",
+                priority="High",
+                action_key="open_forms",
+            )
+        ]
 
     steps.append(
         Step(
@@ -244,6 +313,8 @@ def generate_procedure_timeline(
             estimated_duration="45–120 min",
             priority="High",
             action_key="open_forms",
+            suggested_events=[{"type": "other", "title": f"Procédure: {forms_name}", "notes": "Utiliser brouillon + assistant; ne pas soumettre sans cohérence."}],
+            substeps=forms_sub,
         )
     )
 
@@ -263,6 +334,7 @@ def generate_procedure_timeline(
             estimated_duration="10–30 min (booking) + délai variable",
             priority="High",
             action_key="open_appointments",
+            suggested_events=[{"type": "appointment", "title": "Procédure: planifier RDV/biométrie", "notes": "Ouvrir portail/centre agréé et enregistrer la date dans la timeline."}],
         )
     )
 
@@ -282,6 +354,7 @@ def generate_procedure_timeline(
             estimated_duration="30–60 min",
             priority="High",
             action_key="open_portals",
+            suggested_events=[{"type": "submission", "title": "Procédure: soumission & suivi", "notes": "Soumettre + sauvegarder reçus + suivre statut."}],
         )
     )
 
@@ -321,6 +394,7 @@ def procedure_timeline_to_dict(out: TimelineOutput) -> dict[str, Any]:
             "estimated_duration": s.estimated_duration,
             "priority": s.priority,
             "action_key": s.action_key,
+            "suggested_events": list(s.suggested_events or []),
             "substeps": [step_to_dict(x) for x in (s.substeps or [])],
         }
 
