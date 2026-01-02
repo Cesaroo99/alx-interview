@@ -20,8 +20,8 @@ function ageRangeFromAge(age?: number) {
 }
 
 export default function EligibilityScreen() {
-  const { profile } = useProfile();
-  const [residence, setResidence] = useState("");
+  const { profile, setProfile } = useProfile();
+  const [residence, setResidence] = useState(String(profile?.country_of_residence || ""));
   const [ageRange, setAgeRange] = useState(ageRangeFromAge(profile?.age));
   const [purpose, setPurpose] = useState((profile?.travel_purpose || "tourism").toString());
   const [destinations, setDestinations] = useState((profile?.destination_region_hint || "canada").toLowerCase());
@@ -30,7 +30,10 @@ export default function EligibilityScreen() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
 
-  const canRun = useMemo(() => !!profile?.nationality && Number.isFinite(profile?.age) && !!ageRange && !!purpose, [profile, ageRange, purpose]);
+  const canRun = useMemo(
+    () => !!profile?.nationality && Number.isFinite(profile?.age) && !!ageRange && !!purpose && residence.trim().length >= 2,
+    [profile, ageRange, purpose, residence]
+  );
 
   useEffect(() => {
     setError(null);
@@ -92,6 +95,10 @@ export default function EligibilityScreen() {
             title={loading ? "Analyse…" : "Lancer l’évaluation"}
             onPress={async () => {
               if (!profile) return;
+              if (residence.trim().length < 2) {
+                setError("Pays de résidence manquant.");
+                return;
+              }
               setLoading(true);
               setError(null);
               try {
@@ -116,6 +123,10 @@ export default function EligibilityScreen() {
                   },
                 });
                 setData(res);
+                // Persist residence to avoid re-entry next time (user already provided it here).
+                if ((profile.country_of_residence || "").trim() !== residence.trim()) {
+                  await setProfile({ ...profile, country_of_residence: residence.trim() });
+                }
               } catch (e: any) {
                 setError(String(e?.message || e));
               } finally {

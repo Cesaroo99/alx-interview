@@ -24,6 +24,7 @@ export default function OnboardingSummary() {
     // profession obligatoire dans notre modèle backend
     return {
       nationality: draft.nationality || "",
+      country_of_residence: draft.country_of_residence || "",
       age: draft.age ?? 0,
       profession: draft.profession || "—",
       employment_status: draft.employment_status || "other",

@@ -13,13 +13,14 @@ import { Screen } from "@/src/ui/Screen";
 export default function Onboarding() {
   const { draft, setDraft } = useOnboardingDraft();
   const [nationality, setNationality] = useState(draft.nationality || "");
+  const [residence, setResidence] = useState(draft.country_of_residence || "");
   const [age, setAge] = useState(draft.age?.toString() || "");
   const [profession, setProfession] = useState(draft.profession || "");
 
   const canContinue = useMemo(() => {
     const a = Number(age);
-    return nationality.trim().length >= 2 && profession.trim().length >= 2 && Number.isFinite(a) && a >= 0 && a <= 120;
-  }, [age, nationality, profession]);
+    return nationality.trim().length >= 2 && residence.trim().length >= 2 && profession.trim().length >= 2 && Number.isFinite(a) && a >= 0 && a <= 120;
+  }, [age, nationality, profession, residence]);
 
   return (
     <Screen>
@@ -39,6 +40,15 @@ export default function Onboarding() {
         <TextInput
           value={nationality}
           onChangeText={setNationality}
+          placeholder="Ex: Maroc"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+          style={styles.input}
+        />
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>Pays de résidence</Text>
+        <TextInput
+          value={residence}
+          onChangeText={setResidence}
           placeholder="Ex: Maroc"
           placeholderTextColor="rgba(245,247,255,0.35)"
           style={styles.input}
@@ -70,6 +80,7 @@ export default function Onboarding() {
             if (!canContinue) return;
             setDraft({
               nationality: nationality.trim(),
+              country_of_residence: residence.trim(),
               age: Number(age),
               profession: profession.trim(),
             });

@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 
 export type UserProfile = {
   nationality: string;
+  country_of_residence?: string;
   age: number;
   profession: string;
   employment_status?: "employed" | "self_employed" | "student" | "unemployed" | "retired" | "other";

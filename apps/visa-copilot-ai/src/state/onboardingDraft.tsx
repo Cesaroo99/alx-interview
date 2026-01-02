@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useState } from "react";
 
 export type OnboardingDraft = {
   nationality?: string;
+  country_of_residence?: string;
   destination_region_hint?: string;
   travel_purpose?: "tourism" | "business" | "study" | "family" | "transit" | "medical" | "other";
   employment_status?: "employed" | "self_employed" | "student" | "unemployed" | "retired" | "other";
