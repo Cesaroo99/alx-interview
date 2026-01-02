@@ -21,6 +21,8 @@ class DocumentType(str, Enum):
     ITINERARY = "itinerary"
     CIVIL_STATUS = "civil_status"
     SPONSOR_LETTER = "sponsor_letter"
+    # Document sensible: refus consulaire (activations discrètes côté UI)
+    REFUSAL_LETTER = "refusal_letter"
     OTHER = "other"
 
 

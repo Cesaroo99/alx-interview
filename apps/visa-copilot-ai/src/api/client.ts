@@ -166,6 +166,33 @@ export type RefusalResponse = {
   disclaimers: string[];
 };
 
+export type RefusalAnalyzeResponse = {
+  ok: boolean;
+  A_refusal_summary: Array<{
+    reason: string;
+    explanation: string;
+    severity_level: "Low" | "Medium" | "High" | string;
+    verifiable_factors: string[];
+  }>;
+  B_corrective_steps: Array<{
+    step: string;
+    verification_required: boolean;
+    priority: "Low" | "Medium" | "High" | string;
+    related_reason: string;
+  }>;
+  C_plan_b_options: Array<{
+    strategy: string;
+    benefits: string[];
+    risks: string[];
+    timeline: string;
+    notes: string[];
+    alignment_with_user_goals: string;
+  }>;
+  patterns: string[];
+  disclaimers: string[];
+  final_user_prompt: string;
+};
+
 export type VisaEligibilityEngineResponse = {
   ok: boolean;
   error?: string;
@@ -285,6 +312,9 @@ export const Api = {
   },
   explainRefusal(payload: { refusal_reasons: string[]; refusal_letter_text?: string | null }) {
     return post<RefusalResponse>("/explain-refusal", payload);
+  },
+  refusalAnalyze(payload: { profile?: UserProfile | null; transcript_text?: string | null; refusal_letter_text?: string | null; objective?: string | null }) {
+    return post<RefusalAnalyzeResponse>("/refusal/analyze", payload);
   },
   visaProposals(country: string, userProfile: UserProfile) {
     return post<{

@@ -17,6 +17,7 @@ export type DocumentType =
   | "itinerary"
   | "civil_status"
   | "sponsor_letter"
+  | "refusal_letter"
   | "other";
 
 export type StoredDocument = {

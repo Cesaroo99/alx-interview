@@ -15,7 +15,7 @@ export default function ToolsScreen() {
       <HeroBanner
         kicker="Boîte à outils"
         title="Outils"
-        subtitle="Plan, coûts, refus, sécurité… tout ce qu’il faut pour rendre ton dossier cohérent."
+        subtitle="Plan, coûts, sécurité… tout ce qu’il faut pour rendre ton dossier cohérent."
       />
 
       <GlassCard>
@@ -25,7 +25,6 @@ export default function ToolsScreen() {
         <View style={styles.rowButtons}>
           <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
           <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
-          <PrimaryButton title="Refus / Plan B" variant="ghost" onPress={() => router.push("/tools/refusal")} style={{ flex: 1 }} />
         </View>
       </GlassCard>
 
@@ -69,13 +68,6 @@ export default function ToolsScreen() {
         <Text style={styles.body}>Calcule un total à partir des montants officiels + détecte des frais suspects.</Text>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/costs")} />
-      </GlassCard>
-
-      <GlassCard>
-        <Text style={styles.cardTitle}>Refus: explication + plan B</Text>
-        <Text style={styles.body}>Analyse les motifs et sort une liste d’actions vérifiables + alternatives.</Text>
-        <View style={{ height: Tokens.space.md }} />
-        <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/refusal")} />
       </GlassCard>
 
       <GlassCard>

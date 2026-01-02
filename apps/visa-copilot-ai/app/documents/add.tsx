@@ -26,6 +26,7 @@ const TYPES: Array<{ key: DocumentType; label: string }> = [
   { key: "accommodation_plan", label: "Hébergement" },
   { key: "civil_status", label: "État civil" },
   { key: "sponsor_letter", label: "Lettre de sponsor" },
+  { key: "refusal_letter", label: "Refus de visa (confidentiel)" },
   { key: "other", label: "Autre" },
 ];
 

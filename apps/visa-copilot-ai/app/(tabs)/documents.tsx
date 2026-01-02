@@ -80,6 +80,8 @@ export default function DocumentsScreen() {
     [docs]
   );
 
+  const refusalDoc = useMemo(() => docs.find((d) => d.doc_type === "refusal_letter") || null, [docs]);
+
   return (
     <Screen>
       <HeroBanner
@@ -96,6 +98,16 @@ export default function DocumentsScreen() {
         </Text>
         <View style={{ height: Tokens.space.lg }} />
         <PrimaryButton title="Ajouter un document" onPress={() => router.push("/documents/add")} />
+        {refusalDoc ? (
+          <>
+            <View style={{ height: Tokens.space.sm }} />
+            <PrimaryButton
+              title="Analyse confidentielle du refus"
+              variant="ghost"
+              onPress={() => router.push({ pathname: "/tools/refusal", params: { doc_id: refusalDoc.id } })}
+            />
+          </>
+        ) : null}
         {docs.length ? (
           <>
             <View style={{ height: Tokens.space.sm }} />

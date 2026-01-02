@@ -21,7 +21,7 @@ from visa_copilot_ai.eligibility import (
 from visa_copilot_ai.eligibility_engine import run_visa_eligibility_engine
 from visa_copilot_ai.form_guidance import field_guidance_to_dict, get_field_guidance
 from visa_copilot_ai.models import EmploymentStatus, FinancialProfile, TravelPurpose, UserProfile
-from visa_copilot_ai.refusal import explain_refusal, refusal_to_dict
+from visa_copilot_ai.refusal import analyze_refusal, explain_refusal, refusal_decision_support_to_dict, refusal_to_dict
 from visa_copilot_ai.security import security_verdict_to_dict, verify_official_url
 from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_travel_plan
 
@@ -179,6 +179,39 @@ def explain_refusal_endpoint(payload: dict[str, Any]) -> dict[str, Any]:
         refusal_letter_text=str(payload.get("refusal_letter_text") or "") or None,
     )
     return refusal_to_dict(result)
+
+
+@app.post("/refusal/analyze")
+def refusal_analyze_endpoint(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Module discret d'analyse de refus.
+    IMPORTANT: ce endpoint ne doit être appelé que sur action explicite utilisateur (upload / transcript).
+    """
+    txt = payload.get("refusal_letter_text") or payload.get("transcript_text")
+    reasons = payload.get("refusal_reasons")
+    if reasons is not None and not isinstance(reasons, list):
+        raise ValueError("refusal_reasons doit être une liste.")
+
+    profile_raw = payload.get("profile")
+    prior_refusals = None
+    objective = payload.get("objective")
+    if isinstance(profile_raw, dict):
+        p = _parse_profile(profile_raw)
+        prior_refusals = int(p.prior_visa_refusals or 0)
+        objective = objective or (p.travel_purpose.value if p.travel_purpose else None)
+
+    if not (str(txt or "").strip() or (isinstance(reasons, list) and len(reasons) > 0)):
+        raise HTTPException(status_code=400, detail="Document/transcript requis (ou liste de motifs).")
+
+    out = analyze_refusal(
+        refusal_letter_text=str(txt or "").strip() or None,
+        refusal_reasons=[str(x) for x in (reasons or [])],
+        prior_refusals_count=prior_refusals,
+        travel_objective=str(objective or "").strip() or None,
+    )
+    resp = refusal_decision_support_to_dict(out)
+    resp["ok"] = True
+    return resp
 
 
 @app.post("/estimate-costs")

@@ -95,7 +95,7 @@ export default function DossierScreen() {
         <View style={styles.rowButtons}>
           <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
           <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
-          <PrimaryButton title="Refus / Plan B" variant="ghost" onPress={() => router.push("/tools/refusal")} style={{ flex: 1 }} />
+          {/* Module refus volontairement discret: pas d'accès depuis la navigation générale */}
         </View>
       </GlassCard>
 
