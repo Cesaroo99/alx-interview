@@ -357,6 +357,23 @@ export type ProcedureTimelineResponse = {
   final_user_prompt: string;
 };
 
+export type FinalCheckResponse = {
+  ok: boolean;
+  A_dossier_summary: { total_checks: number; high_risks: number; medium_risks: number; low_risks: number; readiness_status: string };
+  B_detailed_findings: Array<{
+    id: string;
+    issue: string;
+    description: string;
+    risk_level: "Low" | "Medium" | "High" | string;
+    priority: "Low" | "Medium" | "High" | string;
+    suggested_action: string;
+    status: "Pending" | "Completed" | "Not Applicable" | string;
+    action?: any;
+  }>;
+  C_next_steps_summary: { what_to_do_now: string[]; what_is_blocked: string[] };
+  final_user_prompt: string;
+};
+
 export const Api = {
   diagnose(profile: UserProfile) {
     return post<DiagnosticResponse>("/diagnose", { profile });
@@ -532,6 +549,18 @@ export const Api = {
     manual_completed_step_ids?: string[];
   }) {
     return post<ProcedureTimelineResponse>("/procedure/timeline", payload);
+  },
+  finalCheck(payload: {
+    profile: UserProfile;
+    destination_region: string;
+    visa_type: string;
+    documents?: Array<{ doc_id: string; doc_type: string; extracted?: Record<string, unknown> }>;
+    travel_signals?: Record<string, unknown>;
+    cost_signals?: Record<string, unknown>;
+    timeline_signals?: Record<string, unknown>;
+    completed_finding_ids?: string[];
+  }) {
+    return post<FinalCheckResponse>("/final-check", payload);
   },
 };
 

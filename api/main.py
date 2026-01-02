@@ -27,6 +27,7 @@ from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_tr
 from visa_copilot_ai.catalogs import get_form_template, list_portals, load_catalog, validate_form_draft
 from visa_copilot_ai.ocr import extract_from_base64
 from visa_copilot_ai.procedure_timeline import generate_procedure_timeline, procedure_timeline_to_dict
+from visa_copilot_ai.final_verification import final_check_to_dict, run_final_verification
 
 from .rules_admin import delete_override_rules, load_rules, save_override_rules, validate_rules
 from .content_admin import (
@@ -290,6 +291,42 @@ def procedure_timeline(payload: dict[str, Any]) -> dict[str, Any]:
         manual_completed_step_ids=[str(x) for x in manual_completed],
     )
     resp = procedure_timeline_to_dict(out)
+    resp["ok"] = True
+    return resp
+
+
+@app.post("/final-check")
+def final_check(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Vérification finale avant soumission:
+    - agrège: dossier (documents/cohérence), itinéraire, coûts, timeline
+    - sort: summary + findings + next steps + prompt
+    """
+    profile_raw = payload.get("profile")
+    if not isinstance(profile_raw, dict):
+        raise HTTPException(status_code=400, detail="profile requis (objet).")
+    profile = _parse_profile(profile_raw)
+
+    docs = _parse_documents(payload.get("documents"))
+    visa_type = str(payload.get("visa_type", "") or "")
+    destination_region = str(payload.get("destination_region", "") or profile.destination_region_hint or "")
+
+    travel_signals = payload.get("travel_signals") if isinstance(payload.get("travel_signals"), dict) else None
+    cost_signals = payload.get("cost_signals") if isinstance(payload.get("cost_signals"), dict) else None
+    timeline_signals = payload.get("timeline_signals") if isinstance(payload.get("timeline_signals"), dict) else None
+    completed = payload.get("completed_finding_ids") if isinstance(payload.get("completed_finding_ids"), list) else []
+
+    out = run_final_verification(
+        profile=profile,
+        destination_region=destination_region,
+        visa_type=visa_type,
+        documents=docs,
+        travel_signals=travel_signals,
+        cost_signals=cost_signals,
+        timeline_signals=timeline_signals,
+        completed_finding_ids=[str(x) for x in completed],
+    )
+    resp = final_check_to_dict(out)
     resp["ok"] = True
     return resp
 

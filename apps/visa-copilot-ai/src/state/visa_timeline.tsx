@@ -74,6 +74,7 @@ export type TimelineState = {
   events: VisaEvent[];
   pending: PendingDetection[];
   procedure?: Record<string, { completedStepIds: string[]; autoCreatedStepIds?: string[]; updatedAt: number }>;
+  finalCheck?: Record<string, { completedFindingIds: string[]; updatedAt: number }>;
   settings?: {
     silentMode: boolean; // true = notifications UI minimal; validations in dashboard
   };
@@ -108,6 +109,7 @@ type Ctx = {
 
   toggleProcedureStep: (visaId: string, stepId: string) => Promise<void>;
   markProcedureAutoCreated: (visaId: string, stepId: string) => Promise<void>;
+  toggleFinalCheckFinding: (visaId: string, findingId: string) => Promise<void>;
 
   setSilentMode: (enabled: boolean) => Promise<void>;
 };
@@ -230,10 +232,11 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
             events: Array.isArray(parsed?.events) ? parsed.events : [],
             pending: Array.isArray(parsed?.pending) ? parsed.pending : [],
             procedure: typeof parsed?.procedure === "object" && parsed?.procedure ? parsed.procedure : {},
+            finalCheck: typeof parsed?.finalCheck === "object" && parsed?.finalCheck ? parsed.finalCheck : {},
             settings: { silentMode: parsed?.settings?.silentMode !== false },
           });
         } else {
-          setState({ visas: [], events: [], pending: [], procedure: {}, settings: { silentMode: true } });
+          setState({ visas: [], events: [], pending: [], procedure: {}, finalCheck: {}, settings: { silentMode: true } });
         }
       } finally {
         setLoaded(true);
@@ -500,6 +503,27 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
     [persist, state]
   );
 
+  const toggleFinalCheckFinding = useCallback(
+    async (visaId: string, findingId: string) => {
+      const vid = String(visaId || "").trim();
+      const fid = String(findingId || "").trim();
+      if (!vid || !fid) return;
+      const current = (state.finalCheck || {})[vid] || { completedFindingIds: [], updatedAt: Date.now() };
+      const set = new Set((current.completedFindingIds || []).map((x) => String(x)));
+      if (set.has(fid)) set.delete(fid);
+      else set.add(fid);
+      const next: TimelineState = {
+        ...state,
+        finalCheck: {
+          ...(state.finalCheck || {}),
+          [vid]: { completedFindingIds: Array.from(set), updatedAt: Date.now() },
+        },
+      };
+      await persist(next);
+    },
+    [persist, state]
+  );
+
   const value = useMemo(
     () => ({
       state,
@@ -513,9 +537,24 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       deleteEvent,
       toggleProcedureStep,
       markProcedureAutoCreated,
+      toggleFinalCheckFinding,
       setSilentMode,
     }),
-    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent, toggleProcedureStep, markProcedureAutoCreated, setSilentMode]
+    [
+      state,
+      loaded,
+      upsertVisa,
+      addManualEvent,
+      addPendingDetection,
+      resolvePendingDetection,
+      editEventDate,
+      markEventCompleted,
+      deleteEvent,
+      toggleProcedureStep,
+      markProcedureAutoCreated,
+      toggleFinalCheckFinding,
+      setSilentMode,
+    ]
   );
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;
