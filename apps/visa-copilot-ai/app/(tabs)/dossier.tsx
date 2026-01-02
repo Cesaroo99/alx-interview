@@ -12,10 +12,12 @@ import { Screen } from "@/src/ui/Screen";
 import { ScorePill } from "@/src/ui/ScorePill";
 import { useDocuments } from "@/src/state/documents";
 import { useProfile } from "@/src/state/profile";
+import { useVisaTimeline } from "@/src/state/visa_timeline";
 
 export default function DossierScreen() {
   const { profile } = useProfile();
   const { docs } = useDocuments();
+  const { state: timelineState } = useVisaTimeline();
   const [destination, setDestination] = useState(profile?.destination_region_hint || "Zone Schengen");
   const [visaType, setVisaType] = useState("Visa visiteur / tourisme");
   const [loading, setLoading] = useState(false);
@@ -54,6 +56,36 @@ export default function DossierScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const activeVisaId = useMemo(() => {
+    const visas = timelineState.visas || [];
+    if (!visas.length) return null;
+    return visas.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0]?.id || null;
+  }, [timelineState.visas]);
+
+  function goToBlockingIssue() {
+    const missing = (result?.document_check?.missing_document_types || []) as string[];
+    if (missing.length) {
+      router.push({ pathname: "/documents/add", params: { doc_type: String(missing[0]) } });
+      return;
+    }
+    const issues = (result?.document_check?.issues || []) as any[];
+    const top = issues.find((x) => String(x?.severity || "").toLowerCase() === "risk") || issues[0];
+    const code = String(top?.code || "").toUpperCase();
+    if (code.includes("TRIP") || code.includes("ITIN") || code.includes("INSURANCE")) {
+      router.push("/tools/travel");
+      return;
+    }
+    if (code.includes("BANK") || code.includes("FUNDS")) {
+      router.push("/(tabs)/documents");
+      return;
+    }
+    if (activeVisaId) {
+      router.push(`/visa/${activeVisaId}` as any);
+      return;
+    }
+    router.push("/(tabs)/parcours");
   }
 
   return (
@@ -115,6 +147,33 @@ export default function DossierScreen() {
         </GlassCard>
       ) : result ? (
         <>
+          <GlassCard>
+            <Text style={styles.cardTitle}>Résumé (read-only)</Text>
+            <Text style={styles.body}>Ce tableau sert à prioriser ce qui bloque la soumission. Corrigez, puis relancez.</Text>
+            <View style={{ height: Tokens.space.md }} />
+            <View style={styles.row}>
+              <Text style={styles.k}>Checks</Text>
+              <Text style={styles.v}>{Array.isArray(result?.document_check?.issues) ? result.document_check.issues.length : 0}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.k}>High risks</Text>
+              <Text style={styles.v}>
+                {Array.isArray(result?.document_check?.issues) ? result.document_check.issues.filter((x: any) => String(x?.severity || "").toLowerCase() === "risk").length : 0}
+              </Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.k}>Medium risks</Text>
+              <Text style={styles.v}>
+                {Array.isArray(result?.document_check?.issues) ? result.document_check.issues.filter((x: any) => String(x?.severity || "").toLowerCase() === "warning").length : 0}
+              </Text>
+            </View>
+            <View style={{ height: Tokens.space.md }} />
+            <View style={styles.rowButtons}>
+              <PrimaryButton title="Go to blocking issue" onPress={goToBlockingIssue} style={{ flex: 1 }} />
+              <PrimaryButton title="Run verification again" variant="ghost" onPress={run} style={{ flex: 1 }} />
+            </View>
+          </GlassCard>
+
           <GlassCard>
             <Text style={styles.cardTitle}>Score dossier</Text>
             <View style={{ height: Tokens.space.md }} />

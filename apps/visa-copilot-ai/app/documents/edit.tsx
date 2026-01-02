@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
+import * as DocumentPicker from "expo-document-picker";
 
 import { useDocuments } from "@/src/state/documents";
 import { Api } from "@/src/api/client";
@@ -89,6 +90,42 @@ export default function EditDocumentModal() {
                 setOcrMsg(String(e?.message || e || "OCR impossible."));
               } finally {
                 setOcrLoading(false);
+              }
+            }}
+            style={{ flex: 1 }}
+          />
+          <PrimaryButton
+            title="Remplacer"
+            variant="ghost"
+            onPress={async () => {
+              try {
+                const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false });
+                if (res.canceled) return;
+                const picked = res.assets[0];
+                if (!picked?.uri) return;
+                const baseDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+                if (!baseDir) throw new Error("Stockage indisponible.");
+                const dir = `${baseDir}globalvisa_docs/`;
+                await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => undefined);
+                const safeName = (picked.name || `document_${Date.now()}`).replace(/[^\w.\-]+/g, "_");
+                const dest = `${dir}${Date.now()}_${safeName}`;
+                await FileSystem.copyAsync({ from: picked.uri, to: dest });
+                // best-effort cleanup old file
+                try {
+                  if (doc.uri) await FileSystem.deleteAsync(doc.uri, { idempotent: true } as any);
+                } catch {
+                  // ignore
+                }
+                await updateDoc(doc.id, {
+                  uri: dest,
+                  filename: picked.name || safeName,
+                  mimeType: picked.mimeType || undefined,
+                  size: picked.size || undefined,
+                  extracted: { _replaced_at: new Date().toISOString().slice(0, 10) },
+                });
+                setOcrMsg("Fichier remplacé. Relancez l’OCR si besoin.");
+              } catch (e: any) {
+                setOcrMsg(String(e?.message || e || "Remplacement impossible."));
               }
             }}
             style={{ flex: 1 }}
