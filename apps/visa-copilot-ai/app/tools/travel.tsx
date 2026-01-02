@@ -38,6 +38,8 @@ export default function TravelIntelligenceScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TravelPlanResponse | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editAddText, setEditAddText] = useState<Record<number, string>>({});
 
   const durationHint = useMemo(() => {
     // Approximatif (sans parser dates), juste pour UX.
@@ -328,17 +330,98 @@ export default function TravelIntelligenceScreen() {
           <GlassCard>
             <Text style={styles.cardTitle}>A. Travel plan</Text>
             <View style={{ height: Tokens.space.sm }} />
+            <View style={styles.row2}>
+              <PrimaryButton title={editOpen ? "Mode édition: ON" : "Éditer activités"} variant="ghost" onPress={() => setEditOpen((v) => !v)} style={{ flex: 1 }} />
+              <PrimaryButton
+                title="Regénérer activités"
+                variant="ghost"
+                onPress={async () => {
+                  // re-run with same parameters to refresh activities (simple MVP)
+                  if (!profile) return;
+                  const budget = parseNumberOrNull(budgetUsd);
+                  if (!budget || budget <= 0) return;
+                  setLoading(true);
+                  setError(null);
+                  try {
+                    const visaType = insights?.lastDossier?.visa_type || "unknown";
+                    const res = await Api.planTrip({
+                      profile,
+                      destination,
+                      start_date: startDate,
+                      end_date: endDate,
+                      estimated_budget_usd: budget,
+                      mode,
+                      anchor_city: anchorCity.trim() || undefined,
+                      visa_type: visaType,
+                      maximize_compliance: maximizeCompliance,
+                    });
+                    setResult(res);
+                  } catch (e: any) {
+                    setError(String(e?.message || e));
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
             {result.itinerary.slice(0, 12).map((d) => (
               <View key={`${d.day}-${d.date}-${d.country_or_city}`} style={styles.dayRow}>
                 <Text style={styles.dayTitle}>
                   Étape {d.day} — {d.country_or_city} ({d.date}) · {d.activity_type || "—"}
                 </Text>
-                {d.activities.map((a) => (
-                  <View key={a} style={styles.bulletRow}>
+                {d.activities.map((a, idx) => (
+                  <View key={`${a}_${idx}`} style={styles.activityRow}>
                     <View style={[styles.dot, { backgroundColor: Colors.faint }]} />
-                    <Text style={styles.text}>{a}</Text>
+                    <Text style={[styles.text, { flex: 1 }]}>{a}</Text>
+                    {editOpen ? (
+                      <PrimaryButton
+                        title="Suppr."
+                        variant="ghost"
+                        onPress={() => {
+                          setResult((prev) => {
+                            if (!prev) return prev;
+                            const next = { ...prev, itinerary: prev.itinerary.map((x) => ({ ...x, activities: [...x.activities] })) };
+                            const dayIdx = next.itinerary.findIndex((x) => x.day === d.day && x.date === d.date);
+                            if (dayIdx < 0) return prev;
+                            next.itinerary[dayIdx].activities = next.itinerary[dayIdx].activities.filter((_, i) => i !== idx);
+                            return next;
+                          });
+                        }}
+                      />
+                    ) : null}
                   </View>
                 ))}
+                {editOpen ? (
+                  <>
+                    <Text style={styles.label}>Ajouter une activité</Text>
+                    <TextInput
+                      value={editAddText[d.day] || ""}
+                      onChangeText={(t) => setEditAddText((p) => ({ ...p, [d.day]: t }))}
+                      placeholder="Ex: Visite musée / rendez-vous"
+                      placeholderTextColor="rgba(16,22,47,0.35)"
+                      style={styles.input}
+                    />
+                    <View style={{ height: Tokens.space.sm }} />
+                    <PrimaryButton
+                      title="Ajouter"
+                      onPress={() => {
+                        const txt = String(editAddText[d.day] || "").trim();
+                        if (!txt) return;
+                        setResult((prev) => {
+                          if (!prev) return prev;
+                          const next = { ...prev, itinerary: prev.itinerary.map((x) => ({ ...x, activities: [...x.activities] })) };
+                          const dayIdx = next.itinerary.findIndex((x) => x.day === d.day && x.date === d.date);
+                          if (dayIdx < 0) return prev;
+                          next.itinerary[dayIdx].activities = [...next.itinerary[dayIdx].activities, txt];
+                          return next;
+                        });
+                        setEditAddText((p) => ({ ...p, [d.day]: "" }));
+                      }}
+                      style={{ opacity: String(editAddText[d.day] || "").trim() ? 1 : 0.6 }}
+                    />
+                  </>
+                ) : null}
                 <Text style={styles.note}>{d.accommodation_note}</Text>
                 {(d.notes || []).length ? <Text style={styles.note}>Notes: {(d.notes || []).join(" · ")}</Text> : null}
                 <View style={{ height: Tokens.space.sm }} />
@@ -449,6 +532,7 @@ const styles = StyleSheet.create({
   k: { color: Colors.faint, fontSize: Tokens.font.size.sm, width: 120 },
   v: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold, flex: 1 },
   bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
+  activityRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "center" },
   dot: { width: 10, height: 10, borderRadius: 99, marginTop: 6 },
   text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   dayRow: { marginTop: Tokens.space.sm },

@@ -61,6 +61,10 @@ export type DiagnosticResponse = {
   key_risks: string[];
   next_best_actions: string[];
   anti_scam_warnings: string[];
+  eligible_countries_or_regions?: Array<{ label: string; confidence: number; why: string[] }>;
+  recommended_visa_types?: Array<{ label: string; confidence: number; why: string[] }>;
+  assumptions?: string[];
+  disclaimers?: string[];
 };
 
 export type VerifyUrlResponse = {
@@ -248,6 +252,69 @@ export type NewsItem = {
   disclaimer: string;
 };
 
+export type PrimaryChoicesResponse = {
+  source?: any;
+  updated_at?: string;
+  disclaimer?: string;
+  purposes?: Array<{ key: string; label: string }>;
+  visa_types?: Array<{ key: string; label: string }>;
+  provider_types?: Array<{ key: string; label: string }>;
+  countries_min?: Array<{ key: string; label: string }>;
+};
+
+export type PortalsResponse = {
+  source?: any;
+  disclaimer: string;
+  items: Array<{
+    id: string;
+    country: string;
+    provider_type: string;
+    name: string;
+    official_url: string;
+    login_required?: boolean;
+    known_forms?: string[];
+    payment_supported?: boolean;
+    appointment_supported?: boolean;
+    tags?: string[];
+    sources?: string[];
+  }>;
+};
+
+export type FormsCatalogResponse = {
+  source?: any;
+  disclaimer?: string;
+  forms?: Array<{ form_type: string; label?: string; sections?: string[]; fields?: Array<{ name: string; label?: string; required?: boolean }> }>;
+  form?: { form_type: string; label?: string; sections?: string[]; fields?: Array<{ name: string; label?: string; required?: boolean }> };
+};
+
+export type FormsSuggestResponse = {
+  ok: boolean;
+  form_type: string;
+  suggestions: Array<{
+    form_type: string;
+    field_name: string;
+    explanation: string;
+    suggested_value: string | null;
+    consistency_checks: string[];
+    why: string[];
+    warnings: string[];
+    disclaimers: string[];
+  }>;
+};
+
+export type FormsValidateResponse = { ok: boolean; errors: string[]; warnings: string[] };
+
+export type GuideFieldResponse = {
+  form_type: string;
+  field_name: string;
+  explanation: string;
+  suggested_value: string | null;
+  consistency_checks: string[];
+  why: string[];
+  warnings: string[];
+  disclaimers: string[];
+};
+
 export const Api = {
   diagnose(profile: UserProfile) {
     return post<DiagnosticResponse>("/diagnose", { profile });
@@ -380,6 +447,30 @@ export const Api = {
     if (params?.limit) qs.set("limit", String(params.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return get<{ source: any; items: NewsItem[] }>(`/news${suffix}`);
+  },
+  primaryChoices() {
+    return get<PrimaryChoicesResponse>("/primary/choices");
+  },
+  portals(params?: { country?: string; provider_type?: string; q?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.country) qs.set("country", params.country);
+    if (params?.provider_type) qs.set("provider_type", params.provider_type);
+    if (params?.q) qs.set("q", params.q);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return get<PortalsResponse>(`/portals${suffix}`);
+  },
+  formsCatalog(form_type?: string) {
+    const suffix = form_type ? `?form_type=${encodeURIComponent(form_type)}` : "";
+    return get<FormsCatalogResponse>(`/forms/catalog${suffix}`);
+  },
+  formsSuggest(payload: { profile: UserProfile; form_type: string; fields: string[]; context?: Record<string, unknown> }) {
+    return post<FormsSuggestResponse>("/forms/suggest", payload);
+  },
+  formsValidate(payload: { form_type: string; draft_values: Record<string, unknown> }) {
+    return post<FormsValidateResponse>("/forms/validate", payload);
+  },
+  guideField(payload: { profile: UserProfile; form_type: string; field_name: string; context?: Record<string, unknown> }) {
+    return post<GuideFieldResponse>("/guide-field", payload);
   },
 };
 

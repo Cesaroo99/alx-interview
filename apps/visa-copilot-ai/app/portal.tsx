@@ -1,6 +1,7 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
@@ -8,6 +9,8 @@ import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useVisaTimeline } from "@/src/state/visa_timeline";
+import { Api, type FormsCatalogResponse, type GuideFieldResponse } from "@/src/api/client";
+import { useProfile } from "@/src/state/profile";
 
 let NativeWebView: any = null;
 if (Platform.OS !== "web") {
@@ -25,6 +28,12 @@ type DetectedMsg = {
   endDateIso?: string;
   snippet?: string;
   confidence?: number;
+};
+
+type DetectedFieldMsg = {
+  type: "form_fields_detected";
+  url: string;
+  fields: Array<{ name?: string; id?: string; label?: string; placeholder?: string; tag?: string; inputType?: string; required?: boolean }>;
 };
 
 function norm(s?: string) {
@@ -149,24 +158,64 @@ const INJECTED = `
 
   setTimeout(extract, 1200);
   setInterval(extract, 7000);
+
+  function scanFormFields(){
+    try{
+      const nodes = Array.from(document.querySelectorAll('input,select,textarea')).slice(0, 60);
+      const fields = [];
+      for(const el of nodes){
+        const tag = (el.tagName || '').toLowerCase();
+        const id = el.id || '';
+        const name = el.name || '';
+        const placeholder = el.placeholder || '';
+        let label = '';
+        if(id){
+          const l = document.querySelector('label[for="'+id.replace(/"/g,'')+'"]');
+          if(l && l.innerText) label = l.innerText.trim();
+        }
+        if(!label){
+          const parentLabel = el.closest && el.closest('label');
+          if(parentLabel && parentLabel.innerText) label = parentLabel.innerText.trim();
+        }
+        const required = !!el.required || (String(el.getAttribute('aria-required')||'').toLowerCase()==='true');
+        const inputType = tag === 'input' ? (el.type || 'text') : tag;
+        fields.push({ tag, id, name, label, placeholder, required, inputType });
+      }
+      const payload = { type:'form_fields_detected', url: location.href, fields };
+      window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+    }catch(e){}
+  }
+  setTimeout(scanFormFields, 1600);
+  setInterval(scanFormFields, 11000);
 })(); true;
 `;
 
 export default function PortalScreen() {
-  const params = useLocalSearchParams<{ url?: string; country?: string; visa_type?: string; stage?: string; objective?: string }>();
+  const params = useLocalSearchParams<{ url?: string; country?: string; visa_type?: string; stage?: string; objective?: string; form_type?: string; assistant?: string }>();
   const url = norm(params.url);
   const country = norm(params.country) || "unknown";
   const visaType = norm(params.visa_type) || "unknown";
   const stage = norm(params.stage) || "research";
   const objective = norm(params.objective) || "";
+  const formType = norm(params.form_type) || "schengen_visa";
+  const assistantDefaultOn = norm(params.assistant) === "1";
 
   const { state, upsertVisa, addPendingDetection, resolvePendingDetection } = useVisaTimeline();
   const visaIdRef = useRef<string | null>(null);
+  const { profile } = useProfile();
 
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [pendingMsg, setPendingMsg] = useState<DetectedMsg | null>(null);
   const [editDate, setEditDate] = useState<string>("");
   const [silentToast, setSilentToast] = useState<{ id: string; title: string } | null>(null);
+
+  const [assistantOpen, setAssistantOpen] = useState(assistantDefaultOn);
+  const [formsCat, setFormsCat] = useState<FormsCatalogResponse | null>(null);
+  const [fieldsDetected, setFieldsDetected] = useState<Array<{ name?: string; id?: string; label?: string; placeholder?: string; required?: boolean; inputType?: string }> | null>(null);
+  const [focusField, setFocusField] = useState<string>("");
+  const [guidance, setGuidance] = useState<GuideFieldResponse | null>(null);
+  const [guidanceLoading, setGuidanceLoading] = useState(false);
+  const [guidanceError, setGuidanceError] = useState<string | null>(null);
 
   const canOpen = useMemo(() => url.startsWith("http://") || url.startsWith("https://"), [url]);
 
@@ -180,7 +229,21 @@ export default function PortalScreen() {
   async function onDetected(raw: any) {
     let msg: DetectedMsg | null = null;
     try {
-      msg = typeof raw === "string" ? (JSON.parse(raw) as DetectedMsg) : (raw as DetectedMsg);
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (parsed?.type === "form_fields_detected") {
+        const m = parsed as DetectedFieldMsg;
+        const mapped = (m.fields || []).map((f) => ({
+          name: norm(f.name),
+          id: norm(f.id),
+          label: norm(f.label),
+          placeholder: norm(f.placeholder),
+          required: !!f.required,
+          inputType: norm(f.inputType),
+        }));
+        setFieldsDetected(mapped);
+        return;
+      }
+      msg = parsed as DetectedMsg;
     } catch {
       return;
     }
@@ -206,6 +269,63 @@ export default function PortalScreen() {
     setEditDate(msg.dateIso || "");
   }
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const cat = await Api.formsCatalog(formType);
+        setFormsCat(cat);
+      } catch {
+        setFormsCat(null);
+      }
+    })();
+  }, [formType]);
+
+  const templateFields = useMemo(() => {
+    const f = formsCat?.form?.fields || [];
+    return f.map((x) => ({ name: String(x.name || ""), label: String(x.label || x.name || ""), required: !!x.required }));
+  }, [formsCat?.form?.fields]);
+
+  const assistantFields = useMemo(() => {
+    // Sur web (iframe), pas de scan cross-origin → on utilise le template.
+    if (Platform.OS === "web") return templateFields;
+    const detected = fieldsDetected || [];
+    if (!detected.length) return templateFields;
+
+    // Merge: detected fields first; if empty names, fallback to template
+    const out: Array<{ name: string; label: string; required: boolean }> = [];
+    for (const d of detected) {
+      const name = norm(d.name) || norm(d.id) || norm(d.label) || norm(d.placeholder);
+      if (!name) continue;
+      out.push({ name, label: norm(d.label) || name, required: !!d.required });
+    }
+    if (!out.length) return templateFields;
+    return out.slice(0, 30);
+  }, [fieldsDetected, templateFields]);
+
+  async function loadGuidance(fieldName: string) {
+    if (!profile) {
+      setGuidanceError("Profil requis pour proposer des valeurs (onboarding).");
+      setGuidance(null);
+      return;
+    }
+    setGuidanceLoading(true);
+    setGuidanceError(null);
+    try {
+      const g = await Api.guideField({
+        profile,
+        form_type: formType,
+        field_name: fieldName,
+        context: { country, visa_type: visaType, objective },
+      });
+      setGuidance(g);
+    } catch (e: any) {
+      setGuidanceError(String(e?.message || e));
+      setGuidance(null);
+    } finally {
+      setGuidanceLoading(false);
+    }
+  }
+
   return (
     <Screen scroll={false}>
       <View style={styles.topBar}>
@@ -214,8 +334,14 @@ export default function PortalScreen() {
           <Text style={styles.sub} numberOfLines={1}>
             {country.toUpperCase()} · {visaType} · stage: {stage}
           </Text>
+          <Text style={styles.sub} numberOfLines={1}>
+            Form: {formType} · Assistant: {assistantOpen ? "ON" : "OFF"}
+          </Text>
         </View>
-        <PrimaryButton title="Fermer" variant="ghost" onPress={() => router.back()} />
+        <View style={{ gap: 10 }}>
+          <PrimaryButton title={assistantOpen ? "Assistant: ON" : "Assistant: OFF"} variant="ghost" onPress={() => setAssistantOpen((v) => !v)} />
+          <PrimaryButton title="Fermer" variant="ghost" onPress={() => router.back()} />
+        </View>
       </View>
 
       {!canOpen ? (
@@ -239,6 +365,128 @@ export default function PortalScreen() {
           />
         </View>
       )}
+
+      {assistantOpen ? (
+        <View style={styles.assistantPanel}>
+          <GlassCard style={styles.assistantCard}>
+            <Text style={styles.cardTitle}>Assistant formulaire</Text>
+            <Text style={styles.body}>
+              Sélectionnez un champ pour voir une explication + une valeur proposée. Conseil: copiez/collez manuellement dans le portail.
+            </Text>
+            {Platform.OS === "web" ? (
+              <Text style={styles.hint}>Sur web, l’inspection automatique des champs du site n’est pas possible (iframe). On utilise le template.</Text>
+            ) : null}
+
+            <View style={{ height: Tokens.space.sm }} />
+            <Text style={styles.label}>Champ</Text>
+            <TextInput
+              value={focusField}
+              onChangeText={setFocusField}
+              placeholder="Ex: nationality"
+              placeholderTextColor="rgba(16,22,47,0.35)"
+              style={styles.input}
+            />
+            <View style={styles.row3}>
+              <PrimaryButton
+                title="Charger l’aide"
+                onPress={async () => {
+                  const x = focusField.trim();
+                  if (!x) return;
+                  await loadGuidance(x);
+                }}
+                style={{ flex: 1 }}
+              />
+              <PrimaryButton
+                title="Template"
+                variant="ghost"
+                onPress={() => {
+                  const first = assistantFields[0]?.name || "";
+                  setFocusField(first);
+                  if (first) void loadGuidance(first);
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
+
+            <View style={{ height: Tokens.space.md }} />
+            <Text style={styles.smallTitle}>Champs suggérés</Text>
+            <View style={styles.row3}>
+              {assistantFields.slice(0, 8).map((f) => (
+                <PrimaryButton
+                  key={f.name}
+                  title={f.required ? `${f.label} *` : f.label}
+                  variant={focusField.trim() === f.name ? "brand" : "ghost"}
+                  onPress={() => {
+                    setFocusField(f.name);
+                    void loadGuidance(f.name);
+                  }}
+                  style={{ flex: 1 }}
+                />
+              ))}
+            </View>
+
+            <View style={{ height: Tokens.space.md }} />
+            {guidanceLoading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator />
+                <Text style={styles.loadingText}>Chargement…</Text>
+              </View>
+            ) : guidanceError ? (
+              <Text style={styles.err}>{guidanceError}</Text>
+            ) : guidance ? (
+              <>
+                <Text style={styles.smallTitle}>Explication</Text>
+                <Text style={styles.body}>{guidance.explanation}</Text>
+                {guidance.suggested_value ? (
+                  <>
+                    <View style={{ height: Tokens.space.sm }} />
+                    <Text style={styles.smallTitle}>Valeur proposée</Text>
+                    <TextInput value={guidance.suggested_value} editable={false} style={styles.input} />
+                    <View style={styles.row3}>
+                      <PrimaryButton
+                        title="Copier"
+                        onPress={async () => {
+                          if (!guidance.suggested_value) return;
+                          await Clipboard.setStringAsync(String(guidance.suggested_value));
+                        }}
+                        style={{ flex: 1 }}
+                      />
+                      <PrimaryButton title="Pourquoi" variant="ghost" onPress={() => {}} style={{ flex: 1 }} />
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.hint}>Aucune valeur proposée (souvent: besoin du passeport exact/OCR).</Text>
+                )}
+
+                {(guidance.consistency_checks || []).length ? (
+                  <>
+                    <View style={{ height: Tokens.space.sm }} />
+                    <Text style={styles.smallTitle}>Checks</Text>
+                    {(guidance.consistency_checks || []).slice(0, 6).map((x) => (
+                      <Text key={x} style={styles.hint}>
+                        - {x}
+                      </Text>
+                    ))}
+                  </>
+                ) : null}
+                {(guidance.warnings || []).length ? (
+                  <>
+                    <View style={{ height: Tokens.space.sm }} />
+                    <Text style={styles.smallTitle}>Alertes</Text>
+                    {(guidance.warnings || []).slice(0, 3).map((x) => (
+                      <Text key={x} style={[styles.hint, { color: Colors.warning }]}>
+                        - {x}
+                      </Text>
+                    ))}
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <Text style={styles.hint}>Sélectionnez un champ pour démarrer.</Text>
+            )}
+          </GlassCard>
+        </View>
+      ) : null}
 
       {pendingId && pendingMsg ? (
         <View style={styles.overlay}>
@@ -377,5 +625,10 @@ const styles = StyleSheet.create({
     fontSize: Tokens.font.size.md,
   },
   err: { color: Colors.danger, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  assistantPanel: { position: "absolute", left: 0, right: 0, top: 86, bottom: 0, padding: Tokens.space.xl, pointerEvents: "box-none" },
+  assistantCard: { maxHeight: "92%" as any },
+  smallTitle: { marginTop: Tokens.space.sm, color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: Tokens.space.sm },
+  loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
 });
 

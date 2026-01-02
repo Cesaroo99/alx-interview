@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 
 import { Api, type DiagnosticResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { GlassCard } from "@/src/ui/GlassCard";
+import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { SkeletonCard } from "@/src/ui/Skeleton";
 import { ScorePill } from "@/src/ui/ScorePill";
@@ -17,6 +19,7 @@ export default function DiagnosticScreen() {
   const [data, setData] = useState<DiagnosticResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +40,12 @@ export default function DiagnosticScreen() {
       cancelled = true;
     };
   }, [profile]);
+
+  const optionCards = useMemo(() => {
+    const regions = (data?.eligible_countries_or_regions || []).map((x) => ({ ...x, kind: "region" as const }));
+    const visas = (data?.recommended_visa_types || []).map((x) => ({ ...x, kind: "visa" as const }));
+    return [...visas, ...regions].slice(0, 8);
+  }, [data?.eligible_countries_or_regions, data?.recommended_visa_types]);
 
   return (
     <Screen>
@@ -123,6 +132,55 @@ export default function DiagnosticScreen() {
               ))}
             </GlassCard>
           </AnimatedIn>
+
+          {(optionCards || []).length ? (
+            <AnimatedIn delayMs={260}>
+              <GlassCard>
+                <Text style={styles.cardTitle}>Options favorables (à explorer)</Text>
+                <Text style={styles.meta}>Clique pour voir plus, puis “Lancer la procédure”.</Text>
+                <View style={{ height: Tokens.space.sm }} />
+                {optionCards.map((o) => {
+                  const key = `${o.kind}_${o.label}`;
+                  const open = !!expanded[key];
+                  return (
+                    <View key={key} style={styles.optionRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.optionTitle}>
+                          {o.label} · confiance {Math.round((Number(o.confidence || 0) * 100) || 0)}%
+                        </Text>
+                        {open ? (
+                          <>
+                            {(o.why || []).slice(0, 4).map((w) => (
+                              <Text key={w} style={styles.text}>
+                                - {w}
+                              </Text>
+                            ))}
+                          </>
+                        ) : (
+                          <Text style={styles.meta}>Clique “Voir plus” pour le détail.</Text>
+                        )}
+                      </View>
+                      <View style={{ width: 170, gap: 8 }}>
+                        <PrimaryButton title={open ? "Masquer" : "Voir plus"} variant="ghost" onPress={() => setExpanded((p) => ({ ...p, [key]: !p[key] }))} />
+                        <PrimaryButton
+                          title="Lancer la procédure"
+                          onPress={() =>
+                            router.push({
+                              pathname: "/procedure",
+                              params: {
+                                country: o.kind === "region" ? o.label : String(profile?.destination_region_hint || o.label),
+                                visa_type: o.kind === "visa" ? o.label : String(profile?.travel_purpose || "visa"),
+                              } as any,
+                            })
+                          }
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </GlassCard>
+            </AnimatedIn>
+          ) : null}
         </>
       ) : null}
     </Screen>
@@ -172,5 +230,7 @@ const styles = StyleSheet.create({
     fontSize: Tokens.font.size.md,
     lineHeight: 22,
   },
+  optionRow: { flexDirection: "row", gap: 12, marginTop: Tokens.space.md, alignItems: "flex-start" },
+  optionTitle: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold, lineHeight: 22 },
 });
 
