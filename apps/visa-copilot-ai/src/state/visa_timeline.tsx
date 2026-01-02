@@ -71,6 +71,9 @@ export type TimelineState = {
   visas: VisaCase[];
   events: VisaEvent[];
   pending: PendingDetection[];
+  settings?: {
+    silentMode: boolean; // true = notifications UI minimal; validations in dashboard
+  };
 };
 
 const STORAGE_KEY = "globalvisa.timeline.v1";
@@ -98,6 +101,8 @@ type Ctx = {
   editEventDate: (eventId: string, edited: { dateIso?: string; startDateIso?: string; endDateIso?: string }) => Promise<void>;
   markEventCompleted: (eventId: string) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
+
+  setSilentMode: (enabled: boolean) => Promise<void>;
 };
 
 const TimelineContext = createContext<Ctx | null>(null);
@@ -194,7 +199,7 @@ async function cancelEventReminders(reminders: VisaEvent["reminders"]) {
 }
 
 export function VisaTimelineProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<TimelineState>({ visas: [], events: [], pending: [] });
+  const [state, setState] = useState<TimelineState>({ visas: [], events: [], pending: [], settings: { silentMode: true } });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -211,7 +216,17 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) setState(JSON.parse(raw));
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setState({
+            visas: Array.isArray(parsed?.visas) ? parsed.visas : [],
+            events: Array.isArray(parsed?.events) ? parsed.events : [],
+            pending: Array.isArray(parsed?.pending) ? parsed.pending : [],
+            settings: { silentMode: parsed?.settings?.silentMode !== false },
+          });
+        } else {
+          setState({ visas: [], events: [], pending: [], settings: { silentMode: true } });
+        }
       } finally {
         setLoaded(true);
       }
@@ -418,6 +433,17 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
     [persist, state]
   );
 
+  const setSilentMode = useCallback(
+    async (enabled: boolean) => {
+      const next: TimelineState = {
+        ...state,
+        settings: { ...(state.settings || { silentMode: true }), silentMode: !!enabled },
+      };
+      await persist(next);
+    },
+    [persist, state]
+  );
+
   const value = useMemo(
     () => ({
       state,
@@ -429,8 +455,9 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       editEventDate,
       markEventCompleted,
       deleteEvent,
+      setSilentMode,
     }),
-    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent]
+    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent, setSilentMode]
   );
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;

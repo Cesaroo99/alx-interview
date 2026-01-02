@@ -160,12 +160,13 @@ export default function PortalScreen() {
   const stage = norm(params.stage) || "research";
   const objective = norm(params.objective) || "";
 
-  const { upsertVisa, addPendingDetection, resolvePendingDetection } = useVisaTimeline();
+  const { state, upsertVisa, addPendingDetection, resolvePendingDetection } = useVisaTimeline();
   const visaIdRef = useRef<string | null>(null);
 
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [pendingMsg, setPendingMsg] = useState<DetectedMsg | null>(null);
   const [editDate, setEditDate] = useState<string>("");
+  const [silentToast, setSilentToast] = useState<{ id: string; title: string } | null>(null);
 
   const canOpen = useMemo(() => url.startsWith("http://") || url.startsWith("https://"), [url]);
 
@@ -193,6 +194,13 @@ export default function PortalScreen() {
       snippet: msg.snippet,
       sourceUrl: msg.url,
     });
+    const silent = state.settings?.silentMode !== false;
+    if (silent) {
+      setSilentToast({ id, title: msg.title });
+      // auto-hide toast
+      setTimeout(() => setSilentToast(null), 4500);
+      return;
+    }
     setPendingId(id);
     setPendingMsg(msg);
     setEditDate(msg.dateIso || "");
@@ -291,6 +299,52 @@ export default function PortalScreen() {
           </GlassCard>
         </View>
       ) : null}
+
+      {silentToast ? (
+        <View style={styles.toast}>
+          <GlassCard style={styles.toastCard}>
+            <Text style={styles.body}>Date détectée: {silentToast.title}</Text>
+            <View style={{ height: Tokens.space.sm }} />
+            <View style={styles.row3}>
+              <PrimaryButton
+                title="Revoir"
+                variant="ghost"
+                onPress={() => {
+                  router.push("/(tabs)/appointments");
+                  setSilentToast(null);
+                }}
+                style={{ flex: 1 }}
+              />
+              <PrimaryButton
+                title="Valider maintenant"
+                onPress={async () => {
+                  // open confirmation overlay for this pending
+                  setPendingId(silentToast.id);
+                  setPendingMsg({
+                    type: "date_detected",
+                    url,
+                    eventType: "other",
+                    title: silentToast.title,
+                    dateIso: "",
+                  });
+                  setEditDate("");
+                  setSilentToast(null);
+                }}
+                style={{ flex: 1 }}
+              />
+              <PrimaryButton
+                title="Ignorer"
+                variant="ghost"
+                onPress={async () => {
+                  await resolvePendingDetection(silentToast.id, "ignore");
+                  setSilentToast(null);
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </GlassCard>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -302,6 +356,8 @@ const styles = StyleSheet.create({
   webWrap: { flex: 1, marginHorizontal: Tokens.space.xl, marginBottom: Tokens.space.xl, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
   overlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: Tokens.space.xl },
   overlayCard: { paddingBottom: Tokens.space.lg },
+  toast: { position: "absolute", left: 0, right: 0, bottom: 0, padding: Tokens.space.xl },
+  toastCard: { paddingBottom: Tokens.space.md },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   hint: { marginTop: Tokens.space.sm, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
