@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
+import { router } from "expo-router";
 
 import { Api, type VerifyUrlResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
@@ -121,6 +122,18 @@ export default function SecurityScreen() {
                 <Text style={styles.text}>{s}</Text>
               </View>
             ))}
+            <View style={{ height: Tokens.space.md }} />
+            <PrimaryButton
+              title="Ouvrir dans l’app (WebView)"
+              variant="ghost"
+              onPress={() =>
+                router.push({
+                  pathname: "/portal",
+                  params: { url, country: "", visa_type: "unknown", stage: "research", objective: "security_check" },
+                })
+              }
+              style={{ opacity: url.trim() ? 1 : 0.6 }}
+            />
           </GlassCard>
         </>
       ) : null}

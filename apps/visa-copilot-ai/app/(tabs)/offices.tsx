@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, View } from "react-native";
+import { router } from "expo-router";
 
 import { Api, OfficeItem } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
@@ -205,7 +206,22 @@ export default function OfficesScreen() {
                 <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => Linking.openURL(mapsDirectionsUrl(it))} />
                 <PrimaryButton title="Contacter" variant="ghost" onPress={() => openContact(it)} />
                 {it.official_url ? (
-                  <PrimaryButton title="Site officiel" variant="ghost" onPress={() => Linking.openURL(it.official_url)} />
+                  <PrimaryButton
+                    title="Site officiel"
+                    variant="ghost"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/portal",
+                        params: {
+                          url: it.official_url,
+                          country: it.country,
+                          visa_type: "unknown",
+                          stage: "research",
+                          objective: "visa",
+                        },
+                      })
+                    }
+                  />
                 ) : null}
               </View>
 

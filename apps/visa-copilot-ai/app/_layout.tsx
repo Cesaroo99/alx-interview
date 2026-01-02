@@ -11,6 +11,7 @@ import { DocumentsProvider } from "@/src/state/documents";
 import { ProfileProvider } from '@/src/state/profile';
 import { RemindersProvider } from "@/src/state/reminders";
 import { InsightsProvider } from "@/src/state/insights";
+import { VisaTimelineProvider } from "@/src/state/visa_timeline";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -57,16 +58,19 @@ function RootLayoutNav() {
       <DocumentsProvider>
         <RemindersProvider>
           <InsightsProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="documents/add" options={{ presentation: "modal", headerShown: false }} />
-                <Stack.Screen name="documents/edit" options={{ presentation: "modal", headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              </Stack>
-            </ThemeProvider>
+            <VisaTimelineProvider>
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <Stack>
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="documents/add" options={{ presentation: "modal", headerShown: false }} />
+                  <Stack.Screen name="documents/edit" options={{ presentation: "modal", headerShown: false }} />
+                  <Stack.Screen name="portal" options={{ presentation: "modal", headerShown: false }} />
+                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                </Stack>
+              </ThemeProvider>
+            </VisaTimelineProvider>
           </InsightsProvider>
         </RemindersProvider>
       </DocumentsProvider>
