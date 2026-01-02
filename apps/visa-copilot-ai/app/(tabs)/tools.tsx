@@ -26,6 +26,7 @@ export default function ToolsScreen() {
           <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
           <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
           <PrimaryButton title="Portails" variant="ghost" onPress={() => router.push("/tools/portals")} style={{ flex: 1 }} />
+          <PrimaryButton title="Formulaires" variant="ghost" onPress={() => router.push("/tools/forms")} style={{ flex: 1 }} />
         </View>
       </GlassCard>
 

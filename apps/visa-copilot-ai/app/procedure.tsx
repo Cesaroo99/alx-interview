@@ -108,8 +108,10 @@ export default function ProcedureScreen() {
             }}
             style={{ flex: 1 }}
           />
-          <PrimaryButton title="Ouvrir timeline" variant="ghost" onPress={() => router.push("/(tabs)/appointments")} style={{ flex: 1 }} />
+          <PrimaryButton title="Brouillon formulaire" variant="ghost" onPress={() => router.push("/tools/forms")} style={{ flex: 1 }} />
         </View>
+        <View style={{ height: Tokens.space.sm }} />
+        <PrimaryButton title="Ouvrir timeline" variant="ghost" onPress={() => router.push("/(tabs)/appointments")} />
         {portalData?.disclaimer ? <Text style={styles.hint}>{portalData.disclaimer}</Text> : null}
       </GlassCard>
 

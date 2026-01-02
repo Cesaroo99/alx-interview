@@ -24,8 +24,11 @@
   "countries_min": [
     { "key": "france", "label": "France" },
     { "key": "germany", "label": "Allemagne" },
+    { "key": "canada", "label": "Canada" },
     { "key": "uk", "label": "Royaume-Uni" },
     { "key": "usa", "label": "États-Unis" },
+    { "key": "australia", "label": "Australie" },
+    { "key": "uae", "label": "Émirats arabes unis" },
     { "key": "multi", "label": "Multi-pays" }
   ]
 }

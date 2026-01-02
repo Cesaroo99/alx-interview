@@ -91,6 +91,58 @@
       "appointment_supported": false,
       "tags": ["admission", "school", "study"],
       "sources": []
+    },
+    {
+      "id": "campus_france",
+      "country": "france",
+      "provider_type": "school",
+      "name": "Campus France (études en France)",
+      "official_url": "https://www.campusfrance.org/",
+      "login_required": true,
+      "known_forms": ["school_admission_basic"],
+      "payment_supported": true,
+      "appointment_supported": false,
+      "tags": ["france", "study", "admission"],
+      "sources": ["https://www.campusfrance.org/"]
+    },
+    {
+      "id": "ircc_canada",
+      "country": "canada",
+      "provider_type": "government",
+      "name": "IRCC Canada (immigration & visas)",
+      "official_url": "https://www.canada.ca/en/services/immigration-citizenship.html",
+      "login_required": true,
+      "known_forms": [],
+      "payment_supported": true,
+      "appointment_supported": true,
+      "tags": ["canada", "visa", "payment"],
+      "sources": ["https://www.canada.ca/en/services/immigration-citizenship.html"]
+    },
+    {
+      "id": "australia_home_affairs",
+      "country": "australia",
+      "provider_type": "government",
+      "name": "Australia Home Affairs (immiAccount)",
+      "official_url": "https://immi.homeaffairs.gov.au/",
+      "login_required": true,
+      "known_forms": [],
+      "payment_supported": true,
+      "appointment_supported": true,
+      "tags": ["australia", "visa", "payment"],
+      "sources": ["https://immi.homeaffairs.gov.au/"]
+    },
+    {
+      "id": "uae_ica",
+      "country": "uae",
+      "provider_type": "government",
+      "name": "UAE ICA (services)",
+      "official_url": "https://icp.gov.ae/en/",
+      "login_required": true,
+      "known_forms": [],
+      "payment_supported": true,
+      "appointment_supported": false,
+      "tags": ["uae", "admin_service"],
+      "sources": ["https://icp.gov.ae/en/"]
     }
   ]
 }

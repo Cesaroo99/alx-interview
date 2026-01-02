@@ -52,7 +52,21 @@
         { "name": "nationality", "label": "Nationalité", "required": true },
         { "name": "profession", "label": "Statut actuel (études/travail)", "required": true },
         { "name": "purpose_of_trip", "label": "Objectif (études)", "required": true },
-        { "name": "bank_balance", "label": "Capacité financière", "required": false }
+        { "name": "home_address", "label": "Adresse", "required": true },
+        { "name": "bank_balance", "label": "Capacité financière", "required": false },
+        { "name": "sponsor", "label": "Sponsor (si applicable)", "required": false }
+      ]
+    },
+    {
+      "form_type": "admin_service_basic",
+      "label": "Service administratif (générique)",
+      "sections": ["Identité", "Coordonnées", "Documents"],
+      "fields": [
+        { "name": "full_name", "label": "Nom complet", "required": true },
+        { "name": "nationality", "label": "Nationalité", "required": true },
+        { "name": "passport_number", "label": "Numéro de passeport", "required": true },
+        { "name": "home_address", "label": "Adresse", "required": true },
+        { "name": "purpose_of_trip", "label": "Objet / motif", "required": true }
       ]
     }
   ]
