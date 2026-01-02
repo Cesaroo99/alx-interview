@@ -49,12 +49,26 @@ def get_field_guidance(
     # Champs communs (génériques)
     if fname in {"full_name", "name", "surname", "given_name"}:
         explanation = "Nom tel qu'il apparaît sur le passeport (orthographe exacte, ordre selon champ)."
-        suggested = None  # on évite d'inventer sans OCR/passeport extrait
+        # Si on dispose d'extractions (passeport) ou d'un contexte fiable, on propose.
+        if fname in {"full_name", "name"}:
+            suggested = _norm(ctx.get("full_name")) or None
+        elif fname == "surname":
+            suggested = _norm(ctx.get("surname")) or _norm(ctx.get("last_name")) or None
+        elif fname == "given_name":
+            suggested = _norm(ctx.get("given_name")) or _norm(ctx.get("first_name")) or None
+        else:
+            suggested = _norm(ctx.get("full_name")) or None
         checks += [
             "Comparer avec le passeport (page identité) caractère par caractère.",
             "Respecter les accents/traits d'union selon le passeport (si le portail les accepte).",
         ]
         why += ["Le moindre écart de nom peut bloquer la demande ou créer une suspicion d'incohérence."]
+
+    elif fname in {"passport_number", "passport_no", "passport"}:
+        explanation = "Numéro de passeport (tel qu'imprimé sur le passeport)."
+        suggested = _norm(ctx.get("passport_number")) or None
+        checks += ["Doit correspondre au passeport (page identité).", "Attention aux 0/O, 1/I, espaces et caractères spéciaux."]
+        why += ["Un numéro erroné invalide la demande ou empêche la vérification."]
 
     elif fname in {"nationality", "citizenship"}:
         explanation = "Nationalité (citoyenneté) telle qu'indiquée sur le passeport."

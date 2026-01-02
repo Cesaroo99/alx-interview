@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Api, type FormsCatalogResponse, type FormsSuggestResponse, type FormsValidateResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
@@ -9,28 +10,56 @@ import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
+import { useDocuments } from "@/src/state/documents";
 import { useInsights } from "@/src/state/insights";
 import { useProfile } from "@/src/state/profile";
+import { useVisaTimeline } from "@/src/state/visa_timeline";
 
 function norm(s?: string) {
   return String(s || "").trim();
 }
 
 export default function FormsDraftScreen() {
+  const params = useLocalSearchParams<{ form_type?: string }>();
   const { profile } = useProfile();
   const { insights } = useInsights();
+  const { docs } = useDocuments();
+  const { upsertVisa, addManualEvent } = useVisaTimeline();
 
   const [catalog, setCatalog] = useState<FormsCatalogResponse | null>(null);
   const [formType, setFormType] = useState("schengen_visa");
   const [tpl, setTpl] = useState<FormsCatalogResponse["form"] | null>(null);
 
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [draftTitle, setDraftTitle] = useState("");
+  const [saved, setSaved] = useState<Array<{ id: string; form_type: string; title: string; draft: Record<string, string>; createdAt: number; updatedAt: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [suggestions, setSuggestions] = useState<FormsSuggestResponse | null>(null);
   const [validation, setValidation] = useState<FormsValidateResponse | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+
+  useEffect(() => {
+    const ft = norm(params?.form_type);
+    if (ft) setFormType(ft);
+  }, [params?.form_type]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem("globalvisa.form_drafts.v1");
+        if (raw) setSaved(JSON.parse(raw));
+      } catch {
+        setSaved([]);
+      }
+    })();
+  }, []);
+
+  async function persistSaved(next: any) {
+    setSaved(next);
+    await AsyncStorage.setItem("globalvisa.form_drafts.v1", JSON.stringify(next));
+  }
 
   useEffect(() => {
     (async () => {
@@ -51,6 +80,7 @@ export default function FormsDraftScreen() {
         const res = await Api.formsCatalog(formType);
         setTpl(res.form || null);
         setDraft({});
+        setDraftTitle(`${(res.form?.label || res.form?.form_type || formType) as string} — ${new Date().toISOString().slice(0, 10)}`);
         setSuggestions(null);
         setValidation(null);
       } catch (e: any) {
@@ -86,6 +116,17 @@ export default function FormsDraftScreen() {
     };
   }, [insights?.lastDossier, profile?.destination_region_hint, profile?.travel_purpose]);
 
+  const payloadDocs = useMemo(
+    () =>
+      (docs || []).map((d) => ({
+        doc_id: d.id,
+        doc_type: d.doc_type,
+        filename: d.filename,
+        extracted: d.extracted || {},
+      })),
+    [docs]
+  );
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -119,6 +160,36 @@ export default function FormsDraftScreen() {
         {catalog?.disclaimer ? <Text style={styles.hint}>{catalog.disclaimer}</Text> : null}
       </GlassCard>
 
+      {saved.length ? (
+        <GlassCard>
+          <Text style={styles.cardTitle}>Brouillons sauvegardés</Text>
+          <Text style={styles.body}>Charge un brouillon existant (stocké localement).</Text>
+          {saved
+            .filter((x) => !formType || x.form_type === formType)
+            .slice(0, 5)
+            .map((x) => (
+              <View key={x.id} style={styles.rowSaved}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.savedTitle}>{x.title}</Text>
+                  <Text style={styles.hint}>Form: {x.form_type} · maj: {new Date(x.updatedAt).toISOString().slice(0, 10)}</Text>
+                </View>
+                <View style={{ width: 160, gap: 8 }}>
+                  <PrimaryButton
+                    title="Charger"
+                    variant="ghost"
+                    onPress={() => {
+                      setFormType(x.form_type);
+                      setDraft(x.draft || {});
+                      setDraftTitle(x.title);
+                    }}
+                  />
+                  <PrimaryButton title="Suppr." variant="ghost" onPress={() => persistSaved(saved.filter((y) => y.id !== x.id))} />
+                </View>
+              </View>
+            ))}
+        </GlassCard>
+      ) : null}
+
       {loading ? (
         <GlassCard>
           <View style={styles.loadingRow}>
@@ -137,6 +208,9 @@ export default function FormsDraftScreen() {
             <Text style={styles.body}>{tpl.label || tpl.form_type}</Text>
             <View style={{ height: Tokens.space.md }} />
 
+            <Text style={styles.label}>Titre (optionnel)</Text>
+            <TextInput value={draftTitle} onChangeText={setDraftTitle} placeholder="Ex: DS-160 — Jan 2026" placeholderTextColor="rgba(16,22,47,0.35)" style={styles.input} />
+
             <View style={styles.row2}>
               <PrimaryButton
                 title="Pré-remplir (profil)"
@@ -151,6 +225,7 @@ export default function FormsDraftScreen() {
                       form_type: tpl.form_type,
                       fields: fields.map((f) => f.name),
                       context: { country: portalHint.country, visa_type: portalHint.visaType, objective: portalHint.objective },
+                      documents: payloadDocs,
                     });
                     setSuggestions(res);
                     setDraft((prev) => {
@@ -192,6 +267,16 @@ export default function FormsDraftScreen() {
 
             <View style={{ height: Tokens.space.sm }} />
             <View style={styles.row2}>
+              <PrimaryButton
+                title="Sauver"
+                variant="ghost"
+                onPress={async () => {
+                  const id = `draft_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+                  const item = { id, form_type: tpl.form_type, title: draftTitle.trim() || tpl.form_type, draft, createdAt: Date.now(), updatedAt: Date.now() };
+                  await persistSaved([item, ...saved]);
+                }}
+                style={{ flex: 1 }}
+              />
               <PrimaryButton title="Exporter" variant="ghost" onPress={() => setExportOpen(true)} style={{ flex: 1 }} />
               <PrimaryButton
                 title="Ouvrir Portail + Assistant"
@@ -212,6 +297,28 @@ export default function FormsDraftScreen() {
                 style={{ flex: 1 }}
               />
             </View>
+
+            <View style={{ height: Tokens.space.sm }} />
+            <PrimaryButton
+              title="Sauver dans la timeline"
+              variant="ghost"
+              onPress={async () => {
+                if (!profile) return;
+                const visaId = await upsertVisa({
+                  country: String(portalHint.country || "unknown"),
+                  visaType: String(portalHint.visaType || "unknown"),
+                  objective: String(profile.travel_purpose || "visa"),
+                  stage: "application",
+                });
+                await addManualEvent({
+                  visaId,
+                  type: "other",
+                  title: `Brouillon formulaire: ${draftTitle.trim() || tpl.form_type}`,
+                  notes: exportText,
+                  meta: { form_type: tpl.form_type, draft },
+                });
+              }}
+            />
 
             {validation?.errors?.length ? (
               <Text style={[styles.hint, { color: Colors.warning }]}>Erreurs: {validation.errors.join(" · ")}</Text>
@@ -293,5 +400,7 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
   error: { color: Colors.warning, fontSize: Tokens.font.size.md, lineHeight: 22 },
   overlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: Tokens.space.xl },
+  rowSaved: { flexDirection: "row", gap: 12, marginTop: Tokens.space.md, alignItems: "flex-start" },
+  savedTitle: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold, lineHeight: 22 },
 });
 

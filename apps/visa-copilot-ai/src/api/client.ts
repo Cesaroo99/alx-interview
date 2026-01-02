@@ -463,7 +463,13 @@ export const Api = {
     const suffix = form_type ? `?form_type=${encodeURIComponent(form_type)}` : "";
     return get<FormsCatalogResponse>(`/forms/catalog${suffix}`);
   },
-  formsSuggest(payload: { profile: UserProfile; form_type: string; fields: string[]; context?: Record<string, unknown> }) {
+  formsSuggest(payload: {
+    profile: UserProfile;
+    form_type: string;
+    fields: string[];
+    context?: Record<string, unknown>;
+    documents?: Array<{ doc_id: string; doc_type: string; filename?: string; extracted?: Record<string, unknown> }>;
+  }) {
     return post<FormsSuggestResponse>("/forms/suggest", payload);
   },
   formsValidate(payload: { form_type: string; draft_values: Record<string, unknown> }) {

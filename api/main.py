@@ -189,7 +189,24 @@ def forms_suggest(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(fields, list) or not fields:
         raise HTTPException(status_code=400, detail="fields requis (liste).")
 
-    ctx = payload.get("context") if isinstance(payload.get("context"), dict) else None
+    ctx = dict(payload.get("context") or {}) if isinstance(payload.get("context"), dict) else {}
+    # Optionnel: exploiter des champs déjà saisis dans les documents (ex: passeport)
+    docs = _parse_documents(payload.get("documents"))
+    try:
+        passports = [d for d in docs if str(d.doc_type.value) == "passport"]
+        if passports:
+            extracted = dict(passports[0].extracted or {})
+            # clés attendues côté UI / form_guidance
+            if extracted.get("full_name"):
+                ctx["full_name"] = extracted.get("full_name")
+            if extracted.get("passport_number"):
+                ctx["passport_number"] = extracted.get("passport_number")
+            if extracted.get("surname"):
+                ctx["surname"] = extracted.get("surname")
+            if extracted.get("given_name"):
+                ctx["given_name"] = extracted.get("given_name")
+    except Exception:
+        pass
     from visa_copilot_ai.form_guidance import field_guidance_to_dict, get_field_guidance
 
     out: list[dict[str, Any]] = []
