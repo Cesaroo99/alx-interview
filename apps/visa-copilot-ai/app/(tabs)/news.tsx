@@ -90,7 +90,7 @@ export default function NewsScreen() {
             <PrimaryButton
               key={c.key}
               title={c.label}
-              variant={category === c.key ? "primary" : "ghost"}
+              variant={category === c.key ? "brand" : "ghost"}
               onPress={() => setCategory(c.key)}
             />
           ))}
@@ -127,7 +127,7 @@ export default function NewsScreen() {
                 </Text>
               </View>
               <Badge
-                text={it.reliability_score >= 0.75 ? "Source forte" : it.reliability_score >= 0.6 ? "Source ok" : "À confirmer"}
+                label={it.reliability_score >= 0.75 ? "Source forte" : it.reliability_score >= 0.6 ? "Source ok" : "À confirmer"}
                 tone={it.reliability_score >= 0.75 ? "success" : it.reliability_score >= 0.6 ? "neutral" : "warning"}
               />
             </View>
@@ -142,7 +142,7 @@ export default function NewsScreen() {
             <View style={{ height: Tokens.space.sm }} />
             <View style={styles.badgesRow}>
               {(it.tags || []).slice(0, 6).map((t) => (
-                <Badge key={`${it.id}-${t}`} text={t} tone="neutral" />
+                  <Badge key={`${it.id}-${t}`} label={t} tone="neutral" />
               ))}
             </View>
 
@@ -151,7 +151,7 @@ export default function NewsScreen() {
               {it.source_url ? (
                 <PrimaryButton title="Ouvrir la source" variant="ghost" onPress={() => Linking.openURL(it.source_url)} />
               ) : null}
-              {it.source_name ? <Badge text={it.source_name} tone="neutral" /> : null}
+              {it.source_name ? <Badge label={it.source_name} tone="neutral" /> : null}
             </View>
 
             <View style={{ height: Tokens.space.sm }} />

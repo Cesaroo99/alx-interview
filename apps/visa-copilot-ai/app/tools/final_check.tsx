@@ -153,7 +153,7 @@ export default function FinalCheckScreen() {
       ) : data ? (
         <>
           <GlassCard>
-            <Text style={styles.cardTitle}>A. Dossier Summary</Text>
+            <Text style={styles.cardTitle}>A. Résumé du dossier</Text>
             <View style={{ height: Tokens.space.sm }} />
             <Text style={styles.body}>Statut: {data.A_dossier_summary.readiness_status}</Text>
             <Text style={styles.body}>
@@ -169,7 +169,7 @@ export default function FinalCheckScreen() {
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>C. Next Steps Summary</Text>
+            <Text style={styles.cardTitle}>C. Prochaines étapes</Text>
             {(data.C_next_steps_summary.what_to_do_now || []).slice(0, 6).map((x) => (
               <View key={x} style={styles.bulletRow}>
                 <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
@@ -185,7 +185,7 @@ export default function FinalCheckScreen() {
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>B. Detailed Findings</Text>
+            <Text style={styles.cardTitle}>B. Constats détaillés</Text>
             <View style={{ height: Tokens.space.sm }} />
             {findings.map((f) => {
               const dot = riskDot(f.risk_level);
@@ -227,7 +227,7 @@ export default function FinalCheckScreen() {
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>Final user prompt</Text>
+            <Text style={styles.cardTitle}>Votre choix</Text>
             <Text style={styles.body}>{data.final_user_prompt}</Text>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>

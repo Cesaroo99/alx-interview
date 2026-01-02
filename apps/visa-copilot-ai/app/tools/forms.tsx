@@ -102,8 +102,8 @@ export default function FormsDraftScreen() {
         return `${f.label}${f.required ? " *" : ""}: ${v || "—"}`;
       })
       .join("\n");
-    const warnings = validation?.warnings?.length ? `\n\nWarnings:\n- ${validation.warnings.join("\n- ")}` : "";
-    const errors2 = validation?.errors?.length ? `\n\nErrors:\n- ${validation.errors.join("\n- ")}` : "";
+    const warnings = validation?.warnings?.length ? `\n\nAvertissements:\n- ${validation.warnings.join("\n- ")}` : "";
+    const errors2 = validation?.errors?.length ? `\n\nErreurs:\n- ${validation.errors.join("\n- ")}` : "";
     return [`Form: ${tpl.form_type}`, "", lines, warnings, errors2].filter(Boolean).join("\n");
   }, [draft, fields, tpl, validation?.errors, validation?.warnings]);
 
@@ -112,7 +112,7 @@ export default function FormsDraftScreen() {
     return {
       country: String(d?.destination_region || profile?.destination_region_hint || "unknown"),
       visaType: String(d?.visa_type || "unknown"),
-      objective: String(d?.objective || profile?.travel_purpose || "visa"),
+      objective: "visa",
     };
   }, [insights?.lastDossier, profile?.destination_region_hint, profile?.travel_purpose]);
 
@@ -130,7 +130,7 @@ export default function FormsDraftScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Form Draft (guidé)</Text>
+        <Text style={styles.title}>Brouillon de formulaire</Text>
         <Text style={styles.subtitle}>Remplissez un brouillon structuré, validez, exportez, puis copiez/collez dans le portail officiel.</Text>
       </View>
 

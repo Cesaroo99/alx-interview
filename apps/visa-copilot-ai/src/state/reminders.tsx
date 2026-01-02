@@ -48,6 +48,9 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
+        // SDK 54+: explicit web/OS UI toggles
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: false,
         shouldSetBadge: false,
       }),
@@ -86,7 +89,7 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
             if (trig.getTime() <= Date.now()) continue;
             const nid = await Notifications.scheduleNotificationAsync({
               content: { title: "GlobalVisa", body: off === 0 ? title : `${title} (J-${off})` },
-              trigger: trig,
+              trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trig },
             });
             notificationIds.push(nid);
           }

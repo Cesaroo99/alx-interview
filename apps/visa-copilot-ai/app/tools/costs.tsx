@@ -142,16 +142,16 @@ export default function CostsScreen() {
       `Type de visa: ${result.visa_type}`,
       `Devise: ${result.currency}`,
       "",
-      "A. Cost Summary",
+      "A. Résumé des coûts",
       "Category | Amount | Official / Optional | Notes",
       rows,
       "",
       `Total estimé: ${Math.round(result.totals.total_estimated)} ${result.currency}`,
       "",
-      "B. Suspicious Fees / Alerts",
+      "B. Alertes / frais suspects",
       alerts || "- Aucun",
       "",
-      "C. User Guidance",
+      "C. Conseils",
       ...(result.guidance || []).map((g) => `- ${g}`),
     ].join("\n");
   }, [result]);
@@ -161,7 +161,7 @@ export default function CostsScreen() {
     return {
       country: String(d?.destination_region || destinationRegion || "unknown"),
       visaType: String(d?.visa_type || visaType || "unknown"),
-      objective: String(d?.objective || "visa"),
+      objective: "visa",
       stage: "application" as const,
     };
   }, [destinationRegion, insights, visaType]);
@@ -338,7 +338,7 @@ export default function CostsScreen() {
       ) : result ? (
         <>
           <GlassCard>
-            <Text style={styles.cardTitle}>A. Cost Summary</Text>
+            <Text style={styles.cardTitle}>A. Résumé des coûts</Text>
             <View style={{ height: Tokens.space.sm }} />
             <View style={styles.kv}>
               <Text style={styles.k}>Total</Text>
@@ -383,7 +383,7 @@ export default function CostsScreen() {
 
           {(result.suspicious_fees_alerts || []).filter((a) => !dismissedAlerts[a.fee_flagged]).length ? (
             <GlassCard>
-              <Text style={styles.cardTitle}>B. Suspicious Fees / Alerts</Text>
+              <Text style={styles.cardTitle}>B. Alertes / frais suspects</Text>
               <View style={{ height: Tokens.space.sm }} />
               {(result.suspicious_fees_alerts || [])
                 .filter((a) => !dismissedAlerts[a.fee_flagged])
@@ -410,7 +410,7 @@ export default function CostsScreen() {
           ) : null}
 
           <GlassCard>
-            <Text style={styles.cardTitle}>C. User Guidance</Text>
+            <Text style={styles.cardTitle}>C. Conseils</Text>
             <View style={{ height: Tokens.space.sm }} />
             {(result.guidance || []).map((s) => (
               <View key={s} style={styles.bulletRow}>
@@ -430,7 +430,7 @@ export default function CostsScreen() {
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>Final prompt</Text>
+            <Text style={styles.cardTitle}>Votre choix</Text>
             <Text style={styles.body}>{result.final_user_prompt || "Souhaitez-vous sauvegarder / rappels / vérifier les mises à jour ?"}</Text>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>

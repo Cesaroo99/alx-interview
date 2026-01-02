@@ -23,7 +23,6 @@ export default function TabLayout() {
           backgroundColor: "rgba(6,8,20,0.94)",
           borderTopColor: "rgba(255,255,255,0.10)",
         },
-        headerShown: false,
         // Disable static header on web to prevent hydration error
         headerShown: useClientOnlyValue(false, true),
       }}>

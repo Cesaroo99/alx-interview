@@ -186,7 +186,7 @@ async function scheduleReminders(title: string, dateIso: string, offsets: number
           title: "GlobalVisa",
           body: off === 0 ? title : `${title} (J-${off})`,
         },
-        trigger: trig,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trig },
       });
     } catch {
       nid = undefined;
@@ -215,6 +215,9 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
+        // SDK 54+: explicit web/OS UI toggles
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: false,
         shouldSetBadge: false,
       }),

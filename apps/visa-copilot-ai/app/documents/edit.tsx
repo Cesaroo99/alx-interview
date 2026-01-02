@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { useDocuments } from "@/src/state/documents";
 import { Api } from "@/src/api/client";
@@ -75,7 +75,8 @@ export default function EditDocumentModal() {
               setOcrMsg("");
               try {
                 const info = await FileSystem.getInfoAsync(doc.uri);
-                if (info?.size && info.size > 3_000_000) {
+                const size = info && (info as any).exists ? (info as any).size : undefined;
+                if (typeof size === "number" && size > 3_000_000) {
                   setOcrMsg("Fichier volumineux: OCR ignoré (MVP).");
                   return;
                 }

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { Api, type RefusalAnalyzeResponse } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
@@ -37,6 +38,8 @@ export default function RefusalCoachScreen() {
 
   const [picked, setPicked] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [transcript, setTranscript] = useState("");
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMsg, setOcrMsg] = useState<string>("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +57,7 @@ export default function RefusalCoachScreen() {
     return {
       country: String(d?.destination_region || profile?.destination_region_hint || "unknown"),
       visaType: String(d?.visa_type || "unknown"),
-      objective: String(d?.objective || profile?.travel_purpose || "visa"),
+      objective: "visa",
       stage: "application" as const,
     };
   }, [insights, profile]);
@@ -74,7 +77,7 @@ export default function RefusalCoachScreen() {
       .filter((x) => followPlanB[x.strategy])
       .map((x) => `- ${x.strategy} | ${x.timeline}`)
       .join("\n");
-    return ["A. Refusal Summary", a || "- —", "", "B. Corrective Steps", b || "- —", "", "C. Plan B (sélections)", c || "- —"].join("\n");
+    return ["A. Résumé du refus", a || "- —", "", "B. Actions correctives", b || "- —", "", "C. Plan B (sélections)", c || "- —"].join("\n");
   }, [followPlanB, resolved, result]);
 
   return (
@@ -96,7 +99,7 @@ export default function RefusalCoachScreen() {
         {refusalDoc ? (
           <View style={styles.notice}>
             <Text style={styles.noticeText}>Document lié au coffre: {refusalDoc.filename}</Text>
-            <Text style={styles.noticeText}>Note: l’OCR n’est pas encore branché. Collez le texte/transcript ci‑dessous pour l’extraction.</Text>
+            <Text style={styles.noticeText}>Astuce: vous pouvez extraire le texte (OCR) depuis ce document, puis lancer l’analyse.</Text>
           </View>
         ) : null}
 
@@ -114,6 +117,44 @@ export default function RefusalCoachScreen() {
           />
           <PrimaryButton title="Fermer" variant="ghost" onPress={() => router.back()} style={{ flex: 1 }} />
         </View>
+        <View style={{ height: Tokens.space.sm }} />
+        <View style={styles.row2}>
+          <PrimaryButton
+            title={ocrLoading ? "OCR…" : "Extraire le texte (OCR)"}
+            variant="ghost"
+            onPress={async () => {
+              if (ocrLoading) return;
+              const uri = picked?.uri || refusalDoc?.uri;
+              const mime = picked?.mimeType || refusalDoc?.mimeType || "application/octet-stream";
+              if (!uri) return;
+              setOcrLoading(true);
+              setOcrMsg("");
+              try {
+                const info = await FileSystem.getInfoAsync(uri);
+                const size = info && (info as any).exists ? (info as any).size : undefined;
+                if (typeof size === "number" && size > 3_000_000) {
+                  setOcrMsg("Fichier volumineux: OCR ignoré (MVP). Collez le texte manuellement, ou utilisez un extrait.");
+                  return;
+                }
+                const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+                const res = await Api.ocrExtract({ content_base64: b64, mime_type: mime });
+                const text = String(res.text || "").trim();
+                if (text.length < 40) {
+                  setOcrMsg(res.warnings?.length ? `OCR: texte faible. ${res.warnings[0]}` : "OCR: texte insuffisant.");
+                } else {
+                  setTranscript(text);
+                  setOcrMsg(res.warnings?.length ? `OCR terminé (avec avertissements).` : "OCR terminé.");
+                }
+              } catch (e: any) {
+                setOcrMsg(String(e?.message || e || "OCR impossible."));
+              } finally {
+                setOcrLoading(false);
+              }
+            }}
+            style={{ flex: 1, opacity: picked || refusalDoc ? 1 : 0.5 }}
+          />
+        </View>
+        {ocrMsg ? <Text style={styles.body}>{ocrMsg}</Text> : null}
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>Texte / transcript (copié-collé)</Text>

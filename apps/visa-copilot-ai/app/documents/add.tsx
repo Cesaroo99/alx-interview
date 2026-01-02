@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { type DocumentType, useDocuments } from "@/src/state/documents";
 import { Api } from "@/src/api/client";
@@ -99,7 +99,9 @@ export default function AddDocumentModal() {
           title="Enregistrer"
           onPress={async () => {
             if (!picked) return;
-            const dir = `${FileSystem.documentDirectory}globalvisa_docs/`;
+            const baseDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+            if (!baseDir) throw new Error("Stockage indisponible.");
+            const dir = `${baseDir}globalvisa_docs/`;
             await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => undefined);
             const filename = sanitize(picked.name || `document_${Date.now()}`);
             const dest = `${dir}${Date.now()}_${filename}`;
@@ -116,15 +118,16 @@ export default function AddDocumentModal() {
               try {
                 setOcrStatus("Extraction OCR…");
                 const info = await FileSystem.getInfoAsync(dest);
-                if (info?.size && info.size > 3_000_000) {
+                const size = info && (info as any).exists ? (info as any).size : undefined;
+                if (typeof size === "number" && size > 3_000_000) {
                   setOcrStatus("OCR ignoré (fichier volumineux). Ouvrez le document et lancez l’OCR manuellement.");
                 } else {
-                const b64 = await FileSystem.readAsStringAsync(dest, { encoding: FileSystem.EncodingType.Base64 });
-                const res = await Api.ocrExtract({ content_base64: b64, mime_type: picked.mimeType || "application/octet-stream" });
-                // write extracted back into stored doc
-                const extracted = { ...(created.extracted || {}), ...(res.extracted || {}) };
-                await updateDoc(created.id, { extracted });
-                setOcrStatus(res.warnings?.length ? `OCR fini (avec avertissements).` : "OCR fini.");
+                  const b64 = await FileSystem.readAsStringAsync(dest, { encoding: FileSystem.EncodingType.Base64 });
+                  const res = await Api.ocrExtract({ content_base64: b64, mime_type: picked.mimeType || "application/octet-stream" });
+                  // write extracted back into stored doc
+                  const extracted = { ...(created.extracted || {}), ...(res.extracted || {}) };
+                  await updateDoc(created.id, { extracted });
+                  setOcrStatus(res.warnings?.length ? `OCR fini (avec avertissements).` : "OCR fini.");
                 }
               } catch {
                 setOcrStatus("OCR non disponible (vous pouvez remplir manuellement les champs extraits).");

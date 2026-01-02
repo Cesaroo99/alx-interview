@@ -121,7 +121,7 @@ export default function OfficesScreen() {
             <PrimaryButton
               key={c.key}
               title={c.label}
-              variant={type === c.key ? "primary" : "ghost"}
+              variant={type === c.key ? "brand" : "ghost"}
               onPress={() => setType(c.key)}
             />
           ))}
@@ -132,7 +132,7 @@ export default function OfficesScreen() {
             <PrimaryButton
               key={c.key}
               title={c.label}
-              variant={service === c.key ? "primary" : "ghost"}
+              variant={service === c.key ? "brand" : "ghost"}
               onPress={() => setService(c.key)}
             />
           ))}
@@ -174,7 +174,7 @@ export default function OfficesScreen() {
                     {it.type?.toUpperCase?.() || it.type} · {it.city}, {it.country}
                   </Text>
                 </View>
-                <Badge text={critical ? "Horaires critiques" : "Horaires"} tone={critical ? "warning" : "neutral"} />
+                <Badge label={critical ? "Horaires critiques" : "Horaires"} tone={critical ? "warning" : "neutral"} />
               </View>
 
               <View style={{ height: Tokens.space.sm }} />
@@ -183,9 +183,9 @@ export default function OfficesScreen() {
               <View style={{ height: Tokens.space.sm }} />
               <View style={styles.badgesRow}>
                 {it.services?.slice(0, 4).map((s) => (
-                  <Badge key={s} text={s} tone="neutral" />
+                  <Badge key={s} label={s} tone="neutral" />
                 ))}
-                {it.official_url ? <Badge text={urlBadge.text} tone={urlBadge.tone} /> : null}
+                {it.official_url ? <Badge label={urlBadge.text} tone={urlBadge.tone} /> : null}
               </View>
 
               <View style={{ height: Tokens.space.md }} />

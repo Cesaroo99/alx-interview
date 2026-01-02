@@ -71,7 +71,7 @@ export default function PortalsScreen() {
     return {
       country: String(d?.destination_region || country || "unknown"),
       visaType: String(d?.visa_type || "unknown"),
-      objective: String(d?.objective || profile?.travel_purpose || "visa"),
+      objective: "visa",
       stage: "research",
       form_type: String(d?.destination_region || "").toLowerCase().includes("schengen") ? "schengen_visa" : "schengen_visa",
     };

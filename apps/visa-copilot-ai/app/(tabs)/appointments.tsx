@@ -36,13 +36,13 @@ export default function AppointmentsScreen() {
       country: String(d?.destination_region || "unknown"),
       visaType: String(d?.visa_type || "unknown"),
       objective: "visa",
-      stage: "appointment",
+      stage: "appointment" as const,
     };
   }, [insights]);
 
   const upcoming = useMemo(() => {
     const iso = todayIso();
-    const events = (state.events || []).filter((e) => e.status !== "deleted");
+    const events = state.events || [];
     const dated = events
       .map((e) => ({ e, d: e.dateIso || e.startDateIso }))
       .filter((x) => !!x.d)
@@ -201,7 +201,7 @@ export default function AppointmentsScreen() {
             title="Ajouter"
             onPress={async () => {
               if (!canAdd) return;
-              const visaId = await upsertVisa(activeVisaHint);
+              const visaId = await upsertVisa({ ...activeVisaHint, stage: "appointment" as const });
               await addManualEvent({
                 visaId,
                 title: title.trim(),

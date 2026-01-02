@@ -170,10 +170,10 @@ export default function ProcedureTimelineScreen() {
       </View>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>B. Next Action Summary</Text>
+            <Text style={styles.cardTitle}>B. Résumé des prochaines actions</Text>
         <View style={{ height: Tokens.space.sm }} />
         <View style={styles.row2}>
-          <PrimaryButton title="Focus next" variant={mode === "next" ? "brand" : "ghost"} onPress={() => setMode("next")} style={{ flex: 1 }} />
+          <PrimaryButton title="Priorité" variant={mode === "next" ? "brand" : "ghost"} onPress={() => setMode("next")} style={{ flex: 1 }} />
           <PrimaryButton title="Voir bloqués" variant={mode === "blocked" ? "brand" : "ghost"} onPress={() => setMode("blocked")} style={{ flex: 1 }} />
           <PrimaryButton title="Tout" variant={mode === "all" ? "brand" : "ghost"} onPress={() => setMode("all")} style={{ flex: 1 }} />
         </View>
@@ -202,7 +202,7 @@ export default function ProcedureTimelineScreen() {
       ) : (
         <>
           <GlassCard>
-            <Text style={styles.cardTitle}>A. Timeline View</Text>
+            <Text style={styles.cardTitle}>A. Vue chronologique</Text>
             <Text style={styles.body}>
               Destination: {ctx.destination_region} · Visa: {ctx.visa_type}
             </Text>
@@ -258,8 +258,8 @@ export default function ProcedureTimelineScreen() {
 
           {(data?.C_dependencies || []).length ? (
             <GlassCard>
-              <Text style={styles.cardTitle}>C. Dependencies / Prerequisites</Text>
-              {(data.C_dependencies || []).map((d) => (
+              <Text style={styles.cardTitle}>C. Dépendances / Prérequis</Text>
+              {(data?.C_dependencies || []).map((d) => (
                 <View key={d.step_id} style={styles.depRow}>
                   <Text style={styles.stepTitle}>{d.step_name}</Text>
                   <Text style={styles.note}>{d.blocked_reason || "Bloqué"}</Text>
@@ -270,17 +270,17 @@ export default function ProcedureTimelineScreen() {
           ) : null}
 
           <GlassCard>
-            <Text style={styles.cardTitle}>Final user prompt</Text>
+            <Text style={styles.cardTitle}>Votre choix</Text>
             <Text style={styles.body}>{data?.final_user_prompt}</Text>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>
-              <PrimaryButton title="1) Focus next" onPress={() => setMode("next")} style={{ flex: 1 }} />
+              <PrimaryButton title="1) Priorité" onPress={() => setMode("next")} style={{ flex: 1 }} />
               <PrimaryButton title="2) Bloqués" variant="ghost" onPress={() => setMode("blocked")} style={{ flex: 1 }} />
               <PrimaryButton
                 title="3) Export + rappels"
                 variant="ghost"
                 onPress={async () => {
-                  const visaId = await upsertVisa({ country: ctx.destination_region, visaType: ctx.visa_type, objective: "visa", stage: "application" });
+                  const visaId = await upsertVisa({ country: ctx.destination_region, visaType: ctx.visa_type, objective: "visa", stage: "application" as const });
                   const text = (data?.B_next_action_summary || []).join("\n");
                   await addManualEvent({ visaId, type: "other", title: "Export timeline procédure", notes: text, meta: { procedure_timeline: data } });
                   router.push("/(tabs)/appointments");
