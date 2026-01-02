@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 
@@ -13,12 +13,19 @@ import { Screen } from "@/src/ui/Screen";
 
 const TYPES: Array<{ key: DocumentType; label: string }> = [
   { key: "passport", label: "Passeport" },
+  { key: "photo", label: "Photo" },
   { key: "bank_statement", label: "Relevé bancaire" },
+  { key: "payslips", label: "Fiches de paie" },
   { key: "employment_letter", label: "Attestation employeur" },
+  { key: "business_registration", label: "Registre / entreprise" },
+  { key: "student_certificate", label: "Certificat étudiant" },
+  { key: "enrollment_letter", label: "Lettre d’inscription" },
   { key: "invitation_letter", label: "Lettre d’invitation" },
   { key: "travel_insurance", label: "Assurance voyage" },
   { key: "itinerary", label: "Itinéraire" },
   { key: "accommodation_plan", label: "Hébergement" },
+  { key: "civil_status", label: "État civil" },
+  { key: "sponsor_letter", label: "Lettre de sponsor" },
   { key: "other", label: "Autre" },
 ];
 
@@ -27,10 +34,18 @@ function sanitize(name: string) {
 }
 
 export default function AddDocumentModal() {
+  const params = useLocalSearchParams<{ doc_type?: string }>();
   const { addDoc } = useDocuments();
   const [docType, setDocType] = useState<DocumentType>("passport");
   const [picked, setPicked] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const canSave = useMemo(() => !!picked, [picked]);
+
+  useEffect(() => {
+    const raw = String(params?.doc_type || "").trim();
+    if (!raw) return;
+    const isKnown = TYPES.some((t) => t.key === raw);
+    if (isKnown) setDocType(raw as DocumentType);
+  }, [params?.doc_type]);
 
   return (
     <Screen>

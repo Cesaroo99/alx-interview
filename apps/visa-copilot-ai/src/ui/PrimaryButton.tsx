@@ -19,7 +19,7 @@ export function PrimaryButton({
 }) {
   const bg = useMemo(() => {
     if (variant === "danger") return Colors.danger;
-    if (variant === "ghost") return "rgba(255,255,255,0.10)";
+    if (variant === "ghost") return "rgba(16,22,47,0.06)";
     return Colors.brandA;
   }, [variant]);
 

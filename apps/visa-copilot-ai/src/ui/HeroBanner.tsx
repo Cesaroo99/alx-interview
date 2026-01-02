@@ -19,7 +19,7 @@ export function HeroBanner({
   return (
     <View style={[styles.root, style]}>
       <LinearGradient
-        colors={["rgba(124,92,255,0.35)", "rgba(53,230,255,0.18)", "rgba(255,77,255,0.12)"]}
+        colors={["rgba(124,92,255,0.22)", "rgba(53,230,255,0.18)", "rgba(255,77,255,0.14)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.banner}
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     borderRadius: Tokens.radius.xl,
     padding: Tokens.space.xl,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: Colors.border,
     overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
@@ -57,9 +57,9 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 18,
-    backgroundColor: "rgba(6,8,20,0.50)",
+    backgroundColor: "rgba(255,255,255,0.55)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
   },

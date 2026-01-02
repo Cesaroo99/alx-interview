@@ -14,7 +14,7 @@ export function GlassCard({
 }) {
   return (
     <LinearGradient
-      colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.04)"]}
+      colors={[Colors.card, Colors.card2]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.card, style]}
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 999,
-    backgroundColor: "rgba(53,230,255,0.10)",
+    backgroundColor: "rgba(53,230,255,0.12)",
   },
 });
 

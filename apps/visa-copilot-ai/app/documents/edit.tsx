@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -10,13 +10,31 @@ import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function EditDocumentModal() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, focus } = useLocalSearchParams<{ id?: string; focus?: string }>();
   const { docs, updateDoc, removeDoc } = useDocuments();
   const doc = useMemo(() => docs.find((d) => d.id === id), [docs, id]);
 
   const [expires, setExpires] = useState<string>(String(doc?.extracted?.expires_date || ""));
   const [issued, setIssued] = useState<string>(String(doc?.extracted?.issued_date || ""));
   const [balance, setBalance] = useState<string>(String(doc?.extracted?.ending_balance_usd || ""));
+  const [fullName, setFullName] = useState<string>(String(doc?.extracted?.full_name || ""));
+  const [passportNo, setPassportNo] = useState<string>(String(doc?.extracted?.passport_number || ""));
+  const [accountHolderName, setAccountHolderName] = useState<string>(String(doc?.extracted?.account_holder_name || ""));
+  const focusKey = String(focus || "").trim();
+  const [focusValue, setFocusValue] = useState<string>("");
+
+  const knownKeys = useMemo(
+    () => new Set(["full_name", "passport_number", "expires_date", "issued_date", "account_holder_name", "ending_balance_usd"]),
+    []
+  );
+
+  useEffect(() => {
+    if (!doc) return;
+    if (!focusKey) return;
+    if (knownKeys.has(focusKey)) return;
+    const v = (doc.extracted as any)?.[focusKey];
+    setFocusValue(v === null || v === undefined ? "" : String(v));
+  }, [doc, focusKey, knownKeys]);
 
   if (!doc) {
     return (
@@ -40,18 +58,79 @@ export default function EditDocumentModal() {
       <GlassCard>
         <Text style={styles.cardTitle}>Métadonnées (MVP)</Text>
         <Text style={styles.body}>Ces champs servent à la cohérence (expiration, fraîcheur, soldes). Format ISO recommandé.</Text>
+        {focusKey ? <Text style={styles.focusHint}>À compléter: {focusKey}</Text> : null}
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>full_name</Text>
+        <TextInput
+          value={fullName}
+          onChangeText={setFullName}
+          style={[styles.input, focusKey === "full_name" ? styles.inputFocus : null]}
+          placeholder="Ex: Mohamed El Amrani"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>passport_number</Text>
+        <TextInput
+          value={passportNo}
+          onChangeText={setPassportNo}
+          style={[styles.input, focusKey === "passport_number" ? styles.inputFocus : null]}
+          placeholder="Ex: AB1234567"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>expires_date (YYYY-MM-DD)</Text>
-        <TextInput value={expires} onChangeText={setExpires} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={expires}
+          onChangeText={setExpires}
+          style={[styles.input, focusKey === "expires_date" ? styles.inputFocus : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>issued_date (YYYY-MM-DD)</Text>
-        <TextInput value={issued} onChangeText={setIssued} style={styles.input} placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={issued}
+          onChangeText={setIssued}
+          style={[styles.input, focusKey === "issued_date" ? styles.inputFocus : null]}
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
+
+        <View style={{ height: Tokens.space.md }} />
+        <Text style={styles.label}>account_holder_name</Text>
+        <TextInput
+          value={accountHolderName}
+          onChangeText={setAccountHolderName}
+          style={[styles.input, focusKey === "account_holder_name" ? styles.inputFocus : null]}
+          placeholder="Ex: Mohamed El Amrani"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>ending_balance_usd</Text>
-        <TextInput value={balance} onChangeText={setBalance} style={styles.input} keyboardType="numeric" placeholderTextColor="rgba(245,247,255,0.35)" />
+        <TextInput
+          value={balance}
+          onChangeText={setBalance}
+          style={[styles.input, focusKey === "ending_balance_usd" ? styles.inputFocus : null]}
+          keyboardType="numeric"
+          placeholderTextColor="rgba(245,247,255,0.35)"
+        />
+
+        {focusKey && !knownKeys.has(focusKey) ? (
+          <>
+            <View style={{ height: Tokens.space.md }} />
+            <Text style={styles.label}>{focusKey}</Text>
+            <TextInput
+              value={focusValue}
+              onChangeText={setFocusValue}
+              style={[styles.input, styles.inputFocus]}
+              placeholder="Valeur (texte)"
+              placeholderTextColor="rgba(245,247,255,0.35)"
+            />
+          </>
+        ) : null}
 
         <View style={{ height: Tokens.space.lg }} />
         <View style={styles.row}>
@@ -60,12 +139,22 @@ export default function EditDocumentModal() {
             title="Enregistrer"
             onPress={async () => {
               const extracted = { ...(doc.extracted || {}) } as any;
+              if (fullName.trim()) extracted.full_name = fullName.trim();
+              else delete extracted.full_name;
+              if (passportNo.trim()) extracted.passport_number = passportNo.trim();
+              else delete extracted.passport_number;
               if (expires.trim()) extracted.expires_date = expires.trim();
               else delete extracted.expires_date;
               if (issued.trim()) extracted.issued_date = issued.trim();
               else delete extracted.issued_date;
+              if (accountHolderName.trim()) extracted.account_holder_name = accountHolderName.trim();
+              else delete extracted.account_holder_name;
               if (balance.trim()) extracted.ending_balance_usd = Number(balance);
               else delete extracted.ending_balance_usd;
+              if (focusKey && !knownKeys.has(focusKey)) {
+                if (focusValue.trim()) extracted[focusKey] = focusValue.trim();
+                else delete extracted[focusKey];
+              }
               await updateDoc(doc.id, { extracted });
               router.back();
             }}
@@ -84,6 +173,7 @@ const styles = StyleSheet.create({
   title: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  focusHint: { marginTop: Tokens.space.sm, color: Colors.brandB, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
   label: { color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.medium },
   input: {
     marginTop: 8,
@@ -95,6 +185,10 @@ const styles = StyleSheet.create({
     paddingVertical: Tokens.space.md,
     color: Colors.text,
     fontSize: Tokens.font.size.md,
+  },
+  inputFocus: {
+    borderColor: "rgba(46,233,255,0.70)",
+    backgroundColor: "rgba(46,233,255,0.08)",
   },
   row: { flexDirection: "row", gap: 10 },
 });

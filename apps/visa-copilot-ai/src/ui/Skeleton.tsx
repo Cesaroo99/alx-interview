@@ -48,7 +48,7 @@ export function SkeletonCard() {
 const styles = StyleSheet.create({
   line: {
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: Colors.skeleton,
   },
   card: {
     borderRadius: Tokens.radius.lg,

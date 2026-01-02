@@ -14,10 +14,10 @@ export function GradientBackground({ children }: { children: React.ReactNode }) 
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
-        colors={["rgba(124,92,255,0.40)", "rgba(53,230,255,0.14)", "rgba(255,77,255,0.10)"]}
+        colors={["rgba(124,92,255,0.22)", "rgba(53,230,255,0.16)", "rgba(255,77,255,0.12)"]}
         start={{ x: 0.1, y: 0.1 }}
         end={{ x: 0.9, y: 0.9 }}
-        style={[StyleSheet.absoluteFill, { opacity: 0.9 }]}
+        style={[StyleSheet.absoluteFill, { opacity: 0.75 }]}
       />
       {children}
     </View>
