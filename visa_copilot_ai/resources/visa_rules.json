@@ -154,7 +154,15 @@
           }
         }
       }
-    }
+    },
+    "france": { "inherits": "default" },
+    "germany": { "inherits": "default" },
+    "portugal": { "inherits": "default" },
+    "spain": { "inherits": "default" },
+    "uk": { "inherits": "default" },
+    "usa": { "inherits": "default" },
+    "uae": { "inherits": "default" },
+    "australia": { "inherits": "default" }
   }
 }
 

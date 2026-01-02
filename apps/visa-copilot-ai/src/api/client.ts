@@ -128,6 +128,30 @@ export type RefusalResponse = {
   disclaimers: string[];
 };
 
+export type VisaEligibilityEngineResponse = {
+  ok: boolean;
+  error?: string;
+  missing_required?: string[];
+  assumptions?: string[];
+  disclaimer?: string;
+  engine?: any;
+  input_summary?: any;
+  top_visa_options?: Array<{
+    country: string;
+    visa_type: string;
+    estimated_approval_likelihood: "High" | "Medium" | "Low" | string;
+    key_reasons_supporting_eligibility: string[];
+    main_risk_factors: string[];
+    required_documents_summary: string[];
+    typical_processing_time_range: string;
+    estimated_minimum_budget_usd: number | null;
+  }>;
+  alternative_strategic_pathways?: string[];
+  profile_strength_score?: { total: number; breakdown: Record<string, number> };
+  improvement_recommendations?: string[];
+  next_question?: string;
+};
+
 export type OfficeItem = {
   id: string;
   type: "embassy" | "consulate" | "tls" | "vfs" | string;
@@ -221,6 +245,9 @@ export const Api = {
         why: string[];
       }>;
     }>("/eligibility/proposals", { country, userProfile });
+  },
+  visaEligibilityEngine(payload: any) {
+    return post<VisaEligibilityEngineResponse>("/eligibility/engine", payload);
   },
   adminGetEligibilityRules(adminKey: string) {
     return request<{ source: string; path: string; rules: any }>("/admin/eligibility/rules", {

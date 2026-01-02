@@ -5,91 +5,116 @@ import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
-import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { SkeletonCard } from "@/src/ui/Skeleton";
 import { useProfile } from "@/src/state/profile";
 
-function toneFromColor(c: "green" | "orange" | "red") {
-  if (c === "green") return "success" as const;
-  if (c === "orange") return "warning" as const;
-  return "danger" as const;
+function ageRangeFromAge(age?: number) {
+  if (!age || age <= 0) return "";
+  if (age >= 18 && age <= 25) return "18–25";
+  if (age >= 26 && age <= 35) return "26–35";
+  if (age >= 36 && age <= 45) return "36–45";
+  return "46+";
 }
 
 export default function EligibilityScreen() {
-  const { profile, setProfile } = useProfile();
-  const [country, setCountry] = useState((profile?.destination_region_hint || "canada").toLowerCase());
+  const { profile } = useProfile();
+  const [residence, setResidence] = useState("");
+  const [ageRange, setAgeRange] = useState(ageRangeFromAge(profile?.age));
+  const [purpose, setPurpose] = useState((profile?.travel_purpose || "tourism").toString());
+  const [destinations, setDestinations] = useState((profile?.destination_region_hint || "canada").toLowerCase());
+  const [visaInterest, setVisaInterest] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
 
-  // mini-form (MVP) pour enrichir l’éligibilité sans refaire tout l’onboarding
-  const [edu, setEdu] = useState(String(profile?.education_level || "bachelor"));
-  const [exp, setExp] = useState(String(profile?.years_experience ?? 2));
-  const [lang, setLang] = useState(String(profile?.language?.band ?? 6));
-  const [funds, setFunds] = useState(String(profile?.financial_capacity_usd ?? 5000));
-
-  const canRun = useMemo(() => !!profile?.nationality && Number.isFinite(profile?.age), [profile]);
+  const canRun = useMemo(() => !!profile?.nationality && Number.isFinite(profile?.age) && !!ageRange && !!purpose, [profile, ageRange, purpose]);
 
   useEffect(() => {
     setError(null);
     setData(null);
-  }, [country]);
+  }, [destinations]);
 
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Propositions de visa</Text>
+        <Text style={styles.title}>Visa Eligibility Engine</Text>
         <Text style={styles.subtitle}>
-          Liste de visas potentiellement accessibles + score (heuristique) et actions pour améliorer vos chances.
+          Évalue vos meilleures options de visa par probabilité (High/Medium/Low), explique les risques, et propose des voies stratégiques.
         </Text>
       </View>
 
       <AnimatedIn delayMs={0}>
         <GlassCard>
           <View style={styles.rowTop}>
-            <Text style={styles.cardTitle}>Pays cible</Text>
+            <Text style={styles.cardTitle}>Entrée (REQUIS + OPTIONNELS)</Text>
             {loading ? <ActivityIndicator /> : null}
           </View>
+          <Text style={styles.label}>Nationalité (REQUIS)</Text>
+          <TextInput value={profile?.nationality || ""} editable={false} style={[styles.input, { opacity: 0.8 }]} />
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>Pays de résidence (REQUIS)</Text>
+          <TextInput value={residence} onChangeText={setResidence} placeholder="Ex: Maroc" placeholderTextColor="rgba(16,22,47,0.35)" style={styles.input} />
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>Tranche d’âge (REQUIS)</Text>
+          <TextInput value={ageRange} onChangeText={setAgeRange} placeholder="18–25 / 26–35 / 36–45 / 46+" placeholderTextColor="rgba(16,22,47,0.35)" style={styles.input} />
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>But principal (REQUIS)</Text>
           <TextInput
-            value={country}
-            onChangeText={setCountry}
-            placeholder="Ex: canada"
-            placeholderTextColor="rgba(245,247,255,0.35)"
+            value={purpose}
+            onChangeText={setPurpose}
+            placeholder="Study / Work / Tourism / Business / Transit / Family reunion / Permanent residence"
+            placeholderTextColor="rgba(16,22,47,0.35)"
             style={styles.input}
           />
           <View style={{ height: Tokens.space.md }} />
-          <Text style={styles.label}>Niveau d’études (ex: bachelor/master/phd)</Text>
-          <TextInput value={edu} onChangeText={setEdu} placeholder="bachelor" placeholderTextColor="rgba(245,247,255,0.35)" style={styles.input} />
+          <Text style={styles.label}>Destinations (REQUIS, ou “pas de préférence”)</Text>
+          <TextInput
+            value={destinations}
+            onChangeText={setDestinations}
+            placeholder="Ex: canada, france (ou: pas de préférence)"
+            placeholderTextColor="rgba(16,22,47,0.35)"
+            style={styles.input}
+          />
           <View style={{ height: Tokens.space.md }} />
-          <Text style={styles.label}>Expérience (années)</Text>
-          <TextInput value={exp} onChangeText={setExp} keyboardType="numeric" placeholder="2" placeholderTextColor="rgba(245,247,255,0.35)" style={styles.input} />
-          <View style={{ height: Tokens.space.md }} />
-          <Text style={styles.label}>Langue (band 0..9, ex: 6)</Text>
-          <TextInput value={lang} onChangeText={setLang} keyboardType="numeric" placeholder="6" placeholderTextColor="rgba(245,247,255,0.35)" style={styles.input} />
-          <View style={{ height: Tokens.space.md }} />
-          <Text style={styles.label}>Capacité financière (USD)</Text>
-          <TextInput value={funds} onChangeText={setFunds} keyboardType="numeric" placeholder="5000" placeholderTextColor="rgba(245,247,255,0.35)" style={styles.input} />
+          <Text style={styles.label}>Visa(s) d’intérêt (OPTIONNEL)</Text>
+          <TextInput
+            value={visaInterest}
+            onChangeText={setVisaInterest}
+            placeholder="Ex: étudiant, touristique (séparés par virgules)"
+            placeholderTextColor="rgba(16,22,47,0.35)"
+            style={styles.input}
+          />
           <View style={{ height: Tokens.space.lg }} />
           <PrimaryButton
-            title={loading ? "Analyse…" : "Voir les propositions"}
+            title={loading ? "Analyse…" : "Lancer l’évaluation"}
             onPress={async () => {
               if (!profile) return;
               setLoading(true);
               setError(null);
               try {
-                const enriched = {
-                  ...profile,
-                  destination_region_hint: country,
-                  education_level: edu.trim(),
-                  years_experience: Number(exp),
-                  language: { exam: "self", band: Number(lang) },
-                  financial_capacity_usd: Number(funds),
-                };
-                await setProfile(enriched);
-                const res = await Api.visaProposals(country, enriched);
+                const dests = destinations
+                  .split(",")
+                  .map((x) => x.trim())
+                  .filter(Boolean);
+                const interest = visaInterest
+                  .split(",")
+                  .map((x) => x.trim())
+                  .filter(Boolean);
+                const res = await Api.visaEligibilityEngine({
+                  identity: {
+                    nationality: profile.nationality,
+                    country_of_residence: residence,
+                    age_range: ageRange,
+                  },
+                  objective: {
+                    purpose,
+                    destinations: dests.length ? dests : ["no_preference"],
+                    visa_types_interest: interest,
+                  },
+                });
                 setData(res);
               } catch (e: any) {
                 setError(String(e?.message || e));
@@ -99,7 +124,9 @@ export default function EligibilityScreen() {
             }}
             style={{ opacity: canRun ? 1 : 0.6 }}
           />
-          {!canRun ? <Text style={[styles.body, { color: Colors.warning }]}>Complétez d’abord le profil (onboarding).</Text> : null}
+          {!profile?.nationality || !Number.isFinite(profile?.age) ? (
+            <Text style={[styles.body, { color: Colors.warning }]}>Complétez d’abord le profil (onboarding).</Text>
+          ) : null}
         </GlassCard>
       </AnimatedIn>
 
@@ -118,60 +145,91 @@ export default function EligibilityScreen() {
         </AnimatedIn>
       ) : null}
 
-      {data?.results ? (
+      {data?.ok ? (
         <AnimatedIn delayMs={160}>
           <GlassCard>
             <Text style={styles.cardTitle}>Résultats</Text>
-            <Text style={styles.body}>{data.disclaimer}</Text>
-            {data.engine?.type ? (
-              <Text style={styles.hint}>Moteur: {data.engine.type} · source règles: {data.engine.rules_source}</Text>
+            {data.disclaimer ? <Text style={styles.body}>{data.disclaimer}</Text> : null}
+            {Array.isArray(data.assumptions) && data.assumptions.length ? (
+              <Text style={styles.hint}>Hypothèses: {data.assumptions.join(" · ")}</Text>
             ) : null}
             <View style={{ height: Tokens.space.md }} />
-            {data.results.map((r: any) => (
-              <View key={r.visaType} style={styles.resultCard}>
-                <View style={styles.resultTop}>
-                  <Text style={styles.resultTitle}>{r.visaType}</Text>
-                  <Badge tone={toneFromColor(r.color)} label={`${r.score}%`} />
-                </View>
-                <Text style={styles.body}>{r.message}</Text>
-                {r.ai?.summary ? (
+            <Text style={styles.smallTitle}>A. Top visa options</Text>
+            {(data.top_visa_options || []).map((o: any) => (
+              <View key={`${o.country}_${o.visa_type}`} style={styles.resultCard}>
+                <Text style={styles.resultTitle}>
+                  {o.country.toUpperCase()} · {o.visa_type} · {o.estimated_approval_likelihood}
+                </Text>
+                {o.key_reasons_supporting_eligibility?.length ? (
                   <>
-                    <Text style={styles.smallTitle}>Pourquoi (IA)</Text>
-                    <Text style={styles.body}>{r.ai.summary}</Text>
-                    <View style={styles.pills}>
-                      {(r.ai.strengths || []).slice(0, 3).map((s: any) => (
-                        <Badge key={`s_${s.criterion}`} tone="success" label={`${s.label}`} />
-                      ))}
-                      {(r.ai.weaknesses || []).slice(0, 3).map((w: any) => (
-                        <Badge key={`w_${w.criterion}`} tone="warning" label={`${w.label}`} />
-                      ))}
-                    </View>
-                  </>
-                ) : null}
-                {r.missingRequirements?.length ? (
-                  <>
-                    <Text style={styles.smallTitle}>Manque / points bloquants</Text>
-                    {r.missingRequirements.slice(0, 3).map((m: string) => (
+                    <Text style={styles.smallTitle}>Raisons</Text>
+                    {o.key_reasons_supporting_eligibility.slice(0, 4).map((m: string) => (
                       <View key={m} style={styles.bulletRow}>
-                        <View style={[styles.bulletDot, { backgroundColor: Colors.danger }]} />
+                        <View style={[styles.bulletDot, { backgroundColor: Colors.success }]} />
                         <Text style={styles.bulletText}>{m}</Text>
                       </View>
                     ))}
                   </>
                 ) : null}
-                {r.improvementsToNextLevel?.length ? (
+                {o.main_risk_factors?.length ? (
                   <>
-                    <Text style={styles.smallTitle}>Pour passer au niveau supérieur</Text>
-                    {r.improvementsToNextLevel.slice(0, 3).map((m: string) => (
+                    <Text style={styles.smallTitle}>Risques</Text>
+                    {o.main_risk_factors.slice(0, 4).map((m: string) => (
                       <View key={m} style={styles.bulletRow}>
-                        <View style={[styles.bulletDot, { backgroundColor: Colors.brandB }]} />
+                        <View style={[styles.bulletDot, { backgroundColor: Colors.warning }]} />
                         <Text style={styles.bulletText}>{m}</Text>
                       </View>
                     ))}
                   </>
                 ) : null}
+                <Text style={styles.hint}>
+                  Délai: {o.typical_processing_time_range} · Budget min:{" "}
+                  {o.estimated_minimum_budget_usd === null || o.estimated_minimum_budget_usd === undefined ? "—" : `${o.estimated_minimum_budget_usd} USD`}
+                </Text>
               </View>
             ))}
+
+            {Array.isArray(data.alternative_strategic_pathways) && data.alternative_strategic_pathways.length ? (
+              <>
+                <Text style={styles.smallTitle}>B. Pathways</Text>
+                {data.alternative_strategic_pathways.map((p: string) => (
+                  <View key={p} style={styles.bulletRow}>
+                    <View style={[styles.bulletDot, { backgroundColor: Colors.brandA }]} />
+                    <Text style={styles.bulletText}>{p}</Text>
+                  </View>
+                ))}
+              </>
+            ) : null}
+
+            {data.profile_strength_score?.total !== undefined ? (
+              <>
+                <Text style={styles.smallTitle}>C. Score profil</Text>
+                <Text style={styles.body}>Total: {data.profile_strength_score.total}/100</Text>
+              </>
+            ) : null}
+
+            {Array.isArray(data.improvement_recommendations) && data.improvement_recommendations.length ? (
+              <>
+                <Text style={styles.smallTitle}>D. Recommandations</Text>
+                {data.improvement_recommendations.slice(0, 6).map((p: string) => (
+                  <View key={p} style={styles.bulletRow}>
+                    <View style={[styles.bulletDot, { backgroundColor: Colors.brandB }]} />
+                    <Text style={styles.bulletText}>{p}</Text>
+                  </View>
+                ))}
+              </>
+            ) : null}
+
+            {data.next_question ? <Text style={[styles.body, { marginTop: Tokens.space.md }]}>{data.next_question}</Text> : null}
+          </GlassCard>
+        </AnimatedIn>
+      ) : data?.ok === false ? (
+        <AnimatedIn delayMs={160}>
+          <GlassCard>
+            <Text style={[styles.body, { color: Colors.warning }]}>{data.error || "Erreur"}</Text>
+            {Array.isArray(data.missing_required) && data.missing_required.length ? (
+              <Text style={styles.body}>Champs requis manquants: {data.missing_required.join(", ")}</Text>
+            ) : null}
           </GlassCard>
         </AnimatedIn>
       ) : null}

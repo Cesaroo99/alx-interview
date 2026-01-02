@@ -17,6 +17,7 @@ from visa_copilot_ai.eligibility import (
     eligibility_to_dict,
     evaluate_visa_eligibility,
 )
+from visa_copilot_ai.eligibility_engine import run_visa_eligibility_engine
 from visa_copilot_ai.form_guidance import field_guidance_to_dict, get_field_guidance
 from visa_copilot_ai.models import EmploymentStatus, FinancialProfile, TravelPurpose, UserProfile
 from visa_copilot_ai.refusal import explain_refusal, refusal_to_dict
@@ -407,6 +408,24 @@ def eligibility_proposals(payload: dict[str, Any]) -> dict[str, Any]:
         "disclaimer": "Scores heuristiques (IA explicable): ils n’impliquent pas une décision. Vérifiez toujours les règles officielles.",
         "results": [eligibility_to_dict(r) for r in results],
     }
+
+
+@app.post("/eligibility/engine")
+def eligibility_engine(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Visa Eligibility Engine (decision-support):
+    - Entrée flexible (champs requis + optionnels).
+    - Sortie structurée (Top options / Pathways / Score / Recos).
+    """
+    rules_pack = load_rules()
+    out = run_visa_eligibility_engine(payload, rules=rules_pack.rules)
+    # enrich with engine meta
+    out["engine"] = {
+        "type": "visa_eligibility_engine",
+        "rules_source": rules_pack.source,
+        "rules_path": rules_pack.path,
+    }
+    return out
 
 
 @app.get("/offices")
