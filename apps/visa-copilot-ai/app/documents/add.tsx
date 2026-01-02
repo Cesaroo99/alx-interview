@@ -5,6 +5,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 
 import { type DocumentType, useDocuments } from "@/src/state/documents";
+import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
@@ -36,10 +37,12 @@ function sanitize(name: string) {
 
 export default function AddDocumentModal() {
   const params = useLocalSearchParams<{ doc_type?: string }>();
-  const { addDoc } = useDocuments();
+  const { addDoc, updateDoc } = useDocuments();
   const [docType, setDocType] = useState<DocumentType>("passport");
   const [picked, setPicked] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const canSave = useMemo(() => !!picked, [picked]);
+  const [ocrAuto, setOcrAuto] = useState(true);
+  const [ocrStatus, setOcrStatus] = useState<string>("");
 
   useEffect(() => {
     const raw = String(params?.doc_type || "").trim();
@@ -83,6 +86,11 @@ export default function AddDocumentModal() {
             setPicked(res.assets[0] || null);
           }}
         />
+        <View style={{ height: Tokens.space.sm }} />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <PrimaryButton title={ocrAuto ? "OCR auto: ON" : "OCR auto: OFF"} variant="ghost" onPress={() => setOcrAuto((v) => !v)} style={{ flex: 1 }} />
+        </View>
+        {ocrStatus ? <Text style={styles.body}>{ocrStatus}</Text> : null}
       </GlassCard>
 
       <View style={styles.actions}>
@@ -96,7 +104,7 @@ export default function AddDocumentModal() {
             const filename = sanitize(picked.name || `document_${Date.now()}`);
             const dest = `${dir}${Date.now()}_${filename}`;
             await FileSystem.copyAsync({ from: picked.uri, to: dest });
-            await addDoc({
+            const created = await addDoc({
               doc_type: docType,
               filename: picked.name || filename,
               uri: dest,
@@ -104,6 +112,24 @@ export default function AddDocumentModal() {
               size: picked.size || undefined,
               extracted: {},
             });
+            if (ocrAuto) {
+              try {
+                setOcrStatus("Extraction OCR…");
+                const info = await FileSystem.getInfoAsync(dest);
+                if (info?.size && info.size > 3_000_000) {
+                  setOcrStatus("OCR ignoré (fichier volumineux). Ouvrez le document et lancez l’OCR manuellement.");
+                } else {
+                const b64 = await FileSystem.readAsStringAsync(dest, { encoding: FileSystem.EncodingType.Base64 });
+                const res = await Api.ocrExtract({ content_base64: b64, mime_type: picked.mimeType || "application/octet-stream" });
+                // write extracted back into stored doc
+                const extracted = { ...(created.extracted || {}), ...(res.extracted || {}) };
+                await updateDoc(created.id, { extracted });
+                setOcrStatus(res.warnings?.length ? `OCR fini (avec avertissements).` : "OCR fini.");
+                }
+              } catch {
+                setOcrStatus("OCR non disponible (vous pouvez remplir manuellement les champs extraits).");
+              }
+            }
             router.back();
           }}
           style={{ flex: 1, opacity: canSave ? 1 : 0.6 }}

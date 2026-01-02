@@ -315,6 +315,15 @@ export type GuideFieldResponse = {
   disclaimers: string[];
 };
 
+export type OcrExtractResponse = {
+  ok: boolean;
+  engine: string;
+  took_ms: number;
+  warnings: string[];
+  text: string;
+  extracted: Record<string, unknown>;
+};
+
 export const Api = {
   diagnose(profile: UserProfile) {
     return post<DiagnosticResponse>("/diagnose", { profile });
@@ -477,6 +486,9 @@ export const Api = {
   },
   guideField(payload: { profile: UserProfile; form_type: string; field_name: string; context?: Record<string, unknown> }) {
     return post<GuideFieldResponse>("/guide-field", payload);
+  },
+  ocrExtract(payload: { content_base64: string; mime_type: string }) {
+    return post<OcrExtractResponse>("/ocr/extract", payload);
   },
 };
 

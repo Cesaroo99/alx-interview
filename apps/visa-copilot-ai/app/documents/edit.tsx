@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import * as FileSystem from "expo-file-system";
 
 import { useDocuments } from "@/src/state/documents";
+import { Api } from "@/src/api/client";
 import { Colors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
@@ -22,6 +24,8 @@ export default function EditDocumentModal() {
   const [accountHolderName, setAccountHolderName] = useState<string>(String(doc?.extracted?.account_holder_name || ""));
   const focusKey = String(focus || "").trim();
   const [focusValue, setFocusValue] = useState<string>("");
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMsg, setOcrMsg] = useState<string>("");
 
   const knownKeys = useMemo(
     () => new Set(["full_name", "passport_number", "expires_date", "issued_date", "account_holder_name", "ending_balance_usd"]),
@@ -59,6 +63,38 @@ export default function EditDocumentModal() {
         <Text style={styles.cardTitle}>Métadonnées (MVP)</Text>
         <Text style={styles.body}>Ces champs servent à la cohérence (expiration, fraîcheur, soldes). Format ISO recommandé.</Text>
         {focusKey ? <Text style={styles.focusHint}>À compléter: {focusKey}</Text> : null}
+
+        <View style={{ height: Tokens.space.md }} />
+        <View style={styles.row}>
+          <PrimaryButton
+            title={ocrLoading ? "OCR…" : "Extraire (OCR)"}
+            variant="ghost"
+            onPress={async () => {
+              if (ocrLoading) return;
+              setOcrLoading(true);
+              setOcrMsg("");
+              try {
+                const info = await FileSystem.getInfoAsync(doc.uri);
+                if (info?.size && info.size > 3_000_000) {
+                  setOcrMsg("Fichier volumineux: OCR ignoré (MVP).");
+                  return;
+                }
+                const b64 = await FileSystem.readAsStringAsync(doc.uri, { encoding: FileSystem.EncodingType.Base64 });
+                const res = await Api.ocrExtract({ content_base64: b64, mime_type: doc.mimeType || "application/octet-stream" });
+                const nextExtracted = { ...(doc.extracted || {}), ...(res.extracted || {}) } as any;
+                await updateDoc(doc.id, { extracted: nextExtracted });
+                setOcrMsg(res.warnings?.length ? "OCR terminé (avec avertissements)." : "OCR terminé.");
+              } catch (e: any) {
+                setOcrMsg(String(e?.message || e || "OCR impossible."));
+              } finally {
+                setOcrLoading(false);
+              }
+            }}
+            style={{ flex: 1 }}
+          />
+          <PrimaryButton title="Fermer" variant="ghost" onPress={() => router.back()} style={{ flex: 1 }} />
+        </View>
+        {ocrMsg ? <Text style={styles.body}>{ocrMsg}</Text> : null}
 
         <View style={{ height: Tokens.space.md }} />
         <Text style={styles.label}>full_name</Text>
@@ -134,7 +170,15 @@ export default function EditDocumentModal() {
 
         <View style={{ height: Tokens.space.lg }} />
         <View style={styles.row}>
-          <PrimaryButton title="Supprimer" variant="danger" onPress={async () => { await removeDoc(doc.id); router.back(); }} style={{ flex: 1 }} />
+          <PrimaryButton
+            title="Supprimer"
+            variant="danger"
+            onPress={async () => {
+              await removeDoc(doc.id);
+              router.back();
+            }}
+            style={{ flex: 1 }}
+          />
           <PrimaryButton
             title="Enregistrer"
             onPress={async () => {

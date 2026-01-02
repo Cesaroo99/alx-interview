@@ -25,6 +25,7 @@ from visa_copilot_ai.refusal import analyze_refusal, explain_refusal, refusal_de
 from visa_copilot_ai.security import security_verdict_to_dict, verify_official_url
 from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_travel_plan
 from visa_copilot_ai.catalogs import get_form_template, list_portals, load_catalog, validate_form_draft
+from visa_copilot_ai.ocr import extract_from_base64
 
 from .rules_admin import delete_override_rules, load_rules, save_override_rules, validate_rules
 from .content_admin import (
@@ -218,6 +219,35 @@ def forms_suggest(payload: dict[str, Any]) -> dict[str, Any]:
         out.append(field_guidance_to_dict(g))
 
     return {"ok": True, "form_type": form_type, "suggestions": out}
+
+
+@app.post("/ocr/extract")
+def ocr_extract(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    OCR/extraction (MVP):
+    - entrée: base64 d'un PDF/image
+    - sortie: texte + extracted{} (champs)
+
+    Note:
+    - Sur PDF texte: extraction via pypdf.
+    - Sur image: tente pytesseract si disponible (sinon warnings).
+    """
+    b64 = str(payload.get("content_base64", "") or "")
+    mime = str(payload.get("mime_type", "") or payload.get("mimeType", "") or "")
+    if not b64.strip():
+        raise HTTPException(status_code=400, detail="content_base64 requis.")
+    if not mime.strip():
+        mime = "application/octet-stream"
+
+    res = extract_from_base64(content_base64=b64, mime_type=mime)
+    return {
+        "ok": bool(res.ok),
+        "engine": res.engine,
+        "took_ms": int(res.took_ms),
+        "warnings": list(res.warnings),
+        "text": res.text,
+        "extracted": dict(res.extracted),
+    }
 
 @app.post("/diagnose")
 def diagnose(payload: dict[str, Any]) -> dict[str, Any]:
