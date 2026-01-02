@@ -124,6 +124,7 @@ def generate_travel_plan(
     mode: str = "simulation",
     anchor_city: Optional[str] = None,
     visa_type: Optional[str] = None,
+    maximize_compliance: bool = False,
 ) -> TravelPlanResult:
     """
     Travel Intelligence (pas une app de voyage):
@@ -198,28 +199,59 @@ def generate_travel_plan(
     if profile.travel_purpose in {TravelPurpose.TOURISM, TravelPurpose.BUSINESS}:
         limit_days = _tourist_duration_limit_days(dest)
         if duration > limit_days:
-            msg = f"Durée estimée ({duration} jours) potentiellement au-delà d'une limite touristique typique ({limit_days} jours) pour cette zone."
-            warnings.append(msg)
-            alerts.append(
-                Alert(
-                    alert_type="visa_duration_limit",
-                    description=msg,
-                    risk_level="High",
-                    suggested_action="Réduire la durée ou vérifier la limite officielle exacte avant de finaliser l'itinéraire.",
+            if maximize_compliance:
+                # Auto-adjust end_date (no assumption beyond user-provided start_date).
+                new_ed = sd + timedelta(days=limit_days - 1)
+                ed = new_ed
+                duration = (ed - sd).days + 1
+                msg = f"Durée ajustée automatiquement à {limit_days} jours (max compliance) pour rester sous une limite touristique typique."
+                warnings.append(msg)
+                alerts.append(
+                    Alert(
+                        alert_type="visa_duration_limit_adjusted",
+                        description=msg,
+                        risk_level="Low",
+                        suggested_action="Vérifier la limite officielle exacte; ajuster si nécessaire.",
+                    )
                 )
-            )
+                why.append("En mode Max compliance, la durée a été plafonnée pour réduire le risque de non‑conformité.")
+            else:
+                msg = f"Durée estimée ({duration} jours) potentiellement au-delà d'une limite touristique typique ({limit_days} jours) pour cette zone."
+                warnings.append(msg)
+                alerts.append(
+                    Alert(
+                        alert_type="visa_duration_limit",
+                        description=msg,
+                        risk_level="High",
+                        suggested_action="Réduire la durée ou vérifier la limite officielle exacte avant de finaliser l'itinéraire.",
+                    )
+                )
 
     # Multi-destination / transit heuristic
     dest_parts = _parse_destination_list(dest)
     if len(dest_parts) >= 2:
-        alerts.append(
-            Alert(
-                alert_type="transit_visa_possible",
-                description="Trajet multi-destinations: certains transits peuvent nécessiter un visa selon nationalité et aéroport (règles variables).",
-                risk_level="Medium",
-                suggested_action="Vérifier les exigences de transit (airside/landside) pour chaque pays d'escale avant de déposer le dossier.",
+        if maximize_compliance:
+            # Simplify to single anchor to reduce transit/sequence risk.
+            dest_parts = dest_parts[:1]
+            dest = dest_parts[0]
+            alerts.append(
+                Alert(
+                    alert_type="simplified_multi_destination",
+                    description="Mode Max compliance: itinéraire simplifié à une destination principale pour réduire le risque de transit/visa d'escale.",
+                    risk_level="Low",
+                    suggested_action="Si vous maintenez plusieurs pays, vérifier les visas de transit et la séquence entrée/sortie.",
+                )
             )
-        )
+            why.append("Un itinéraire simple et cohérent réduit le risque de questions (transits, visas d'escale, dates serrées).")
+        else:
+            alerts.append(
+                Alert(
+                    alert_type="transit_visa_possible",
+                    description="Trajet multi-destinations: certains transits peuvent nécessiter un visa selon nationalité et aéroport (règles variables).",
+                    risk_level="Medium",
+                    suggested_action="Vérifier les exigences de transit (airside/landside) pour chaque pays d'escale avant de déposer le dossier.",
+                )
+            )
 
     # Itinerary generation: simple, consistent, low-risk.
     base_city = _norm(anchor_city) or (dest_parts[0] if dest_parts else dest)

@@ -218,6 +218,8 @@ export const Api = {
     estimated_budget_usd: number;
     mode?: "simulation" | "post_visa_booking";
     anchor_city?: string;
+    visa_type?: string;
+    maximize_compliance?: boolean;
   }) {
     return post<TravelPlanResponse>("/plan-trip", payload);
   },

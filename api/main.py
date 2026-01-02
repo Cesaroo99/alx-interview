@@ -162,6 +162,7 @@ def plan_trip(payload: dict[str, Any]) -> dict[str, Any]:
         mode=str(payload.get("mode", "simulation") or "simulation"),
         anchor_city=payload.get("anchor_city"),
         visa_type=payload.get("visa_type"),
+        maximize_compliance=bool(payload.get("maximize_compliance", False)),
     )
     return travel_plan_to_dict(result)
 

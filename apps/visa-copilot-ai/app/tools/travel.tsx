@@ -31,6 +31,7 @@ export default function TravelIntelligenceScreen() {
   const [anchorCity, setAnchorCity] = useState("");
   const [mode, setMode] = useState<"simulation" | "post_visa_booking">("simulation");
   const [alertFilter, setAlertFilter] = useState<"all" | "high">("all");
+  const [maximizeCompliance, setMaximizeCompliance] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +158,7 @@ export default function TravelIntelligenceScreen() {
                 mode,
                 anchor_city: anchorCity.trim() || undefined,
                 visa_type: visaType,
+                maximize_compliance: maximizeCompliance,
               });
               setResult(res);
             } catch (e: any) {
@@ -309,8 +311,7 @@ export default function TravelIntelligenceScreen() {
                 variant="ghost"
                 onPress={() => {
                   setMode("simulation");
-                  // Basic compliance tweak: shorten if extremely long
-                  // (user stays in control by regenerating)
+                  setMaximizeCompliance(true);
                 }}
                 style={{ flex: 1 }}
               />
