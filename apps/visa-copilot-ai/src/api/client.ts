@@ -324,6 +324,37 @@ export type OcrExtractResponse = {
   extracted: Record<string, unknown>;
 };
 
+export type ProcedureTimelineResponse = {
+  ok: boolean;
+  A_timeline_view: Array<{
+    id: string;
+    name: string;
+    category: string;
+    status: "Not started" | "In progress" | "Completed" | "Blocked" | string;
+    instruction_now: string;
+    blocked_until: string[];
+    blocked_reason?: string | null;
+    estimated_duration?: string | null;
+    priority?: "Low" | "Medium" | "High" | string;
+    action_key?: string | null;
+    substeps?: Array<{
+      id: string;
+      name: string;
+      category: string;
+      status: string;
+      instruction_now: string;
+      blocked_until: string[];
+      blocked_reason?: string | null;
+      estimated_duration?: string | null;
+      priority?: string;
+      action_key?: string | null;
+    }>;
+  }>;
+  B_next_action_summary: string[];
+  C_dependencies: Array<{ step_id: string; step_name: string; blocked_until: string[]; blocked_reason?: string | null }>;
+  final_user_prompt: string;
+};
+
 export const Api = {
   diagnose(profile: UserProfile) {
     return post<DiagnosticResponse>("/diagnose", { profile });
@@ -489,6 +520,16 @@ export const Api = {
   },
   ocrExtract(payload: { content_base64: string; mime_type: string }) {
     return post<OcrExtractResponse>("/ocr/extract", payload);
+  },
+  procedureTimeline(payload: {
+    profile: UserProfile;
+    destination_region: string;
+    visa_type: string;
+    documents?: Array<{ doc_id: string; doc_type: string; extracted?: Record<string, unknown> }>;
+    signals?: Record<string, unknown>;
+    manual_completed_step_ids?: string[];
+  }) {
+    return post<ProcedureTimelineResponse>("/procedure/timeline", payload);
   },
 };
 

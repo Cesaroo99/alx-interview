@@ -73,6 +73,7 @@ export type TimelineState = {
   visas: VisaCase[];
   events: VisaEvent[];
   pending: PendingDetection[];
+  procedure?: Record<string, { completedStepIds: string[]; updatedAt: number }>;
   settings?: {
     silentMode: boolean; // true = notifications UI minimal; validations in dashboard
   };
@@ -104,6 +105,8 @@ type Ctx = {
   editEventDate: (eventId: string, edited: { dateIso?: string; startDateIso?: string; endDateIso?: string }) => Promise<void>;
   markEventCompleted: (eventId: string) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
+
+  toggleProcedureStep: (visaId: string, stepId: string) => Promise<void>;
 
   setSilentMode: (enabled: boolean) => Promise<void>;
 };
@@ -202,7 +205,7 @@ async function cancelEventReminders(reminders: VisaEvent["reminders"]) {
 }
 
 export function VisaTimelineProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<TimelineState>({ visas: [], events: [], pending: [], settings: { silentMode: true } });
+  const [state, setState] = useState<TimelineState>({ visas: [], events: [], pending: [], procedure: {}, settings: { silentMode: true } });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -225,10 +228,11 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
             visas: Array.isArray(parsed?.visas) ? parsed.visas : [],
             events: Array.isArray(parsed?.events) ? parsed.events : [],
             pending: Array.isArray(parsed?.pending) ? parsed.pending : [],
+            procedure: typeof parsed?.procedure === "object" && parsed?.procedure ? parsed.procedure : {},
             settings: { silentMode: parsed?.settings?.silentMode !== false },
           });
         } else {
-          setState({ visas: [], events: [], pending: [], settings: { silentMode: true } });
+          setState({ visas: [], events: [], pending: [], procedure: {}, settings: { silentMode: true } });
         }
       } finally {
         setLoaded(true);
@@ -454,6 +458,27 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
     [persist, state]
   );
 
+  const toggleProcedureStep = useCallback(
+    async (visaId: string, stepId: string) => {
+      const vid = String(visaId || "").trim();
+      const sid = String(stepId || "").trim();
+      if (!vid || !sid) return;
+      const current = (state.procedure || {})[vid] || { completedStepIds: [], updatedAt: Date.now() };
+      const set = new Set((current.completedStepIds || []).map((x) => String(x)));
+      if (set.has(sid)) set.delete(sid);
+      else set.add(sid);
+      const next: TimelineState = {
+        ...state,
+        procedure: {
+          ...(state.procedure || {}),
+          [vid]: { completedStepIds: Array.from(set), updatedAt: Date.now() },
+        },
+      };
+      await persist(next);
+    },
+    [persist, state]
+  );
+
   const value = useMemo(
     () => ({
       state,
@@ -465,9 +490,10 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       editEventDate,
       markEventCompleted,
       deleteEvent,
+      toggleProcedureStep,
       setSilentMode,
     }),
-    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent, setSilentMode]
+    [state, loaded, upsertVisa, addManualEvent, addPendingDetection, resolvePendingDetection, editEventDate, markEventCompleted, deleteEvent, toggleProcedureStep, setSilentMode]
   );
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;

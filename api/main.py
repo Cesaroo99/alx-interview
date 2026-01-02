@@ -26,6 +26,7 @@ from visa_copilot_ai.security import security_verdict_to_dict, verify_official_u
 from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_travel_plan
 from visa_copilot_ai.catalogs import get_form_template, list_portals, load_catalog, validate_form_draft
 from visa_copilot_ai.ocr import extract_from_base64
+from visa_copilot_ai.procedure_timeline import generate_procedure_timeline, procedure_timeline_to_dict
 
 from .rules_admin import delete_override_rules, load_rules, save_override_rules, validate_rules
 from .content_admin import (
@@ -248,6 +249,49 @@ def ocr_extract(payload: dict[str, Any]) -> dict[str, Any]:
         "text": res.text,
         "extracted": dict(res.extracted),
     }
+
+
+@app.post("/procedure/timeline")
+def procedure_timeline(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Génère une timeline de procédure visa dynamique, basée sur:
+    - profil + destination + visa_type
+    - signaux de progression provenant des modules (docs, costs, appointments, etc.)
+    """
+    profile_raw = payload.get("profile")
+    if not isinstance(profile_raw, dict):
+        raise HTTPException(status_code=400, detail="profile requis (objet).")
+    profile = _parse_profile(profile_raw)
+
+    destination_region = str(payload.get("destination_region", "") or payload.get("destination", "") or profile.destination_region_hint or "")
+    visa_type = str(payload.get("visa_type", "") or "")
+
+    doc_types_present: list[str] = []
+    docs = payload.get("documents")
+    if isinstance(docs, list):
+        for d in docs:
+            if not isinstance(d, dict):
+                continue
+            doc_types_present.append(str(d.get("doc_type") or d.get("type") or "other"))
+
+    signals = payload.get("signals") if isinstance(payload.get("signals"), dict) else {}
+    manual_completed = payload.get("manual_completed_step_ids") if isinstance(payload.get("manual_completed_step_ids"), list) else []
+
+    out = generate_procedure_timeline(
+        profile=profile,
+        destination_region=destination_region,
+        visa_type=visa_type,
+        document_types_present=doc_types_present,
+        dossier_ready=bool(signals.get("dossier_ready", False)),
+        travel_plan_ready=bool(signals.get("travel_plan_ready", False)),
+        costs_ready=bool(signals.get("costs_ready", False)),
+        appointment_ready=bool(signals.get("appointment_ready", False)),
+        submission_started=bool(signals.get("submission_started", False)),
+        manual_completed_step_ids=[str(x) for x in manual_completed],
+    )
+    resp = procedure_timeline_to_dict(out)
+    resp["ok"] = True
+    return resp
 
 @app.post("/diagnose")
 def diagnose(payload: dict[str, Any]) -> dict[str, Any]:
