@@ -161,6 +161,7 @@ def plan_trip(payload: dict[str, Any]) -> dict[str, Any]:
         estimated_budget_usd=float(payload.get("estimated_budget_usd", 0) or 0),
         mode=str(payload.get("mode", "simulation") or "simulation"),
         anchor_city=payload.get("anchor_city"),
+        visa_type=payload.get("visa_type"),
     )
     return travel_plan_to_dict(result)
 

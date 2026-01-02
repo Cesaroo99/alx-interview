@@ -87,19 +87,25 @@ export type AiRespondResponse = {
 export type TravelPlanResponse = {
   mode: "simulation" | "post_visa_booking" | string;
   destination: string;
+  visa_type?: string;
+  purpose?: string;
   start_date: string;
   end_date: string;
   duration_days: number;
   estimated_budget_usd: number;
   budget_level: "low" | "medium" | "high" | string;
   coherence_warnings: string[];
+  alerts?: Array<{ alert_type: string; description: string; risk_level: "Low" | "Medium" | "High" | string; suggested_action: string }>;
+  timeline_overview?: { total_trip_duration_days: number; visa_compliance_status: "✔" | "⚠" | "✖" | string; next_recommended_steps: string[] };
   why: string[];
   itinerary: Array<{
     day: number;
     date: string;
-    city: string;
+    country_or_city: string;
+    activity_type?: string;
     activities: string[];
     accommodation_note: string;
+    notes?: string[];
   }>;
   booking_policy: string[];
   disclaimers: string[];

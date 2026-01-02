@@ -9,6 +9,8 @@ import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 import { useProfile } from "@/src/state/profile";
+import { useInsights } from "@/src/state/insights";
+import { useVisaTimeline } from "@/src/state/visa_timeline";
 
 function parseNumberOrNull(s: string): number | null {
   const raw = s.trim().replace(",", ".");
@@ -19,6 +21,8 @@ function parseNumberOrNull(s: string): number | null {
 
 export default function TravelIntelligenceScreen() {
   const { profile } = useProfile();
+  const { insights } = useInsights();
+  const { upsertVisa, addManualEvent } = useVisaTimeline();
 
   const [destination, setDestination] = useState(profile?.destination_region_hint || "Paris, France");
   const [startDate, setStartDate] = useState("2026-02-10");
@@ -26,6 +30,7 @@ export default function TravelIntelligenceScreen() {
   const [budgetUsd, setBudgetUsd] = useState("1400");
   const [anchorCity, setAnchorCity] = useState("");
   const [mode, setMode] = useState<"simulation" | "post_visa_booking">("simulation");
+  const [alertFilter, setAlertFilter] = useState<"all" | "high">("all");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +147,7 @@ export default function TravelIntelligenceScreen() {
             setLoading(true);
             setError(null);
             try {
+              const visaType = insights?.lastDossier?.visa_type || "unknown";
               const res = await Api.planTrip({
                 profile,
                 destination,
@@ -150,6 +156,7 @@ export default function TravelIntelligenceScreen() {
                 estimated_budget_usd: budget,
                 mode,
                 anchor_city: anchorCity.trim() || undefined,
+                visa_type: visaType,
               });
               setResult(res);
             } catch (e: any) {
@@ -192,9 +199,41 @@ export default function TravelIntelligenceScreen() {
               <Text style={styles.k}>Mode</Text>
               <Text style={styles.v}>{result.mode}</Text>
             </View>
+            {result.timeline_overview?.visa_compliance_status ? (
+              <View style={styles.kv}>
+                <Text style={styles.k}>Conformité</Text>
+                <Text style={styles.v}>{result.timeline_overview.visa_compliance_status}</Text>
+              </View>
+            ) : null}
           </GlassCard>
 
-          {result.coherence_warnings?.length ? (
+          {result.alerts?.length ? (
+            <GlassCard>
+              <Text style={styles.cardTitle}>B. Alerts summary</Text>
+              <View style={{ height: Tokens.space.sm }} />
+              <View style={styles.row2}>
+                <PrimaryButton title="Toutes" variant={alertFilter === "all" ? "brand" : "ghost"} onPress={() => setAlertFilter("all")} style={{ flex: 1 }} />
+                <PrimaryButton title="Risques élevés" variant={alertFilter === "high" ? "brand" : "ghost"} onPress={() => setAlertFilter("high")} style={{ flex: 1 }} />
+              </View>
+              {(result.alerts || [])
+                .filter((a) => (alertFilter === "high" ? String(a.risk_level).toLowerCase() === "high" : true))
+                .map((a, idx) => {
+                  const rl = String(a.risk_level || "").toLowerCase();
+                  const dot = rl === "high" ? Colors.danger : rl === "medium" ? Colors.warning : Colors.brandB;
+                  return (
+                    <View key={`${a.alert_type}_${idx}`} style={{ marginTop: Tokens.space.md }}>
+                      <View style={styles.bulletRow}>
+                        <View style={[styles.dot, { backgroundColor: dot }]} />
+                        <Text style={styles.text}>
+                          {a.alert_type}: {a.description}
+                        </Text>
+                      </View>
+                      <Text style={styles.note}>Action: {a.suggested_action} · Risque: {a.risk_level}</Text>
+                    </View>
+                  );
+                })}
+            </GlassCard>
+          ) : result.coherence_warnings?.length ? (
             <GlassCard>
               <Text style={styles.cardTitle}>Alertes de cohérence</Text>
               <View style={{ height: Tokens.space.sm }} />
@@ -221,12 +260,12 @@ export default function TravelIntelligenceScreen() {
           ) : null}
 
           <GlassCard>
-            <Text style={styles.cardTitle}>Itinéraire</Text>
+            <Text style={styles.cardTitle}>A. Travel plan</Text>
             <View style={{ height: Tokens.space.sm }} />
             {result.itinerary.slice(0, 12).map((d) => (
-              <View key={`${d.day}-${d.date}-${d.city}`} style={styles.dayRow}>
+              <View key={`${d.day}-${d.date}-${d.country_or_city}`} style={styles.dayRow}>
                 <Text style={styles.dayTitle}>
-                  Jour {d.day} — {d.city} ({d.date})
+                  Étape {d.day} — {d.country_or_city} ({d.date}) · {d.activity_type || "—"}
                 </Text>
                 {d.activities.map((a) => (
                   <View key={a} style={styles.bulletRow}>
@@ -235,10 +274,60 @@ export default function TravelIntelligenceScreen() {
                   </View>
                 ))}
                 <Text style={styles.note}>{d.accommodation_note}</Text>
+                {(d.notes || []).length ? <Text style={styles.note}>Notes: {(d.notes || []).join(" · ")}</Text> : null}
                 <View style={{ height: Tokens.space.sm }} />
               </View>
             ))}
             {result.itinerary.length > 12 ? <Text style={styles.body}>…itinéraire tronqué (12 premiers jours).</Text> : null}
+          </GlassCard>
+
+          {result.timeline_overview ? (
+            <GlassCard>
+              <Text style={styles.cardTitle}>C. Timeline overview</Text>
+              <Text style={styles.body}>
+                Durée totale: {result.timeline_overview.total_trip_duration_days} jours · Conformité: {result.timeline_overview.visa_compliance_status}
+              </Text>
+              <View style={{ height: Tokens.space.sm }} />
+              {(result.timeline_overview.next_recommended_steps || []).map((s) => (
+                <View key={s} style={styles.bulletRow}>
+                  <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
+                  <Text style={styles.text}>{s}</Text>
+                </View>
+              ))}
+            </GlassCard>
+          ) : null}
+
+          <GlassCard>
+            <Text style={styles.cardTitle}>Actions</Text>
+            <Text style={styles.body}>
+              “Would you like me to: 1) Adjust for maximum visa compliance 2) Highlight high-risk steps 3) Export a timeline and reminder checklist?”
+            </Text>
+            <View style={{ height: Tokens.space.md }} />
+            <View style={styles.row2}>
+              <PrimaryButton
+                title="1) Max compliance"
+                variant="ghost"
+                onPress={() => {
+                  setMode("simulation");
+                  // Basic compliance tweak: shorten if extremely long
+                  // (user stays in control by regenerating)
+                }}
+                style={{ flex: 1 }}
+              />
+              <PrimaryButton title="2) High-risk steps" variant="ghost" onPress={() => setAlertFilter("high")} style={{ flex: 1 }} />
+            </View>
+            <View style={{ height: Tokens.space.sm }} />
+            <PrimaryButton
+              title="3) Export timeline & checklist"
+              onPress={async () => {
+                if (!profile || !result) return;
+                const visaType = insights?.lastDossier?.visa_type || result.visa_type || "unknown";
+                const visaId = await upsertVisa({ country: String(result.destination || destination), visaType: String(visaType), objective: String(profile.travel_purpose || "travel"), stage: "application" });
+                // Add key itinerary events: departure and return
+                await addManualEvent({ visaId, title: "Départ (itinéraire)", type: "other" as any, dateIso: result.start_date });
+                await addManualEvent({ visaId, title: "Retour (itinéraire)", type: "other" as any, dateIso: result.end_date });
+              }}
+            />
           </GlassCard>
 
           <GlassCard>
