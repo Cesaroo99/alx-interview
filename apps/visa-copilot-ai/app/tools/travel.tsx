@@ -20,10 +20,11 @@ function parseNumberOrNull(s: string): number | null {
 }
 
 export default function TravelIntelligenceScreen() {
-  const { profile } = useProfile();
+  const { profile, setProfile } = useProfile();
   const { insights } = useInsights();
   const { state: timelineState, upsertVisa, addManualEvent } = useVisaTimeline();
 
+  const [residence, setResidence] = useState(String(profile?.country_of_residence || ""));
   const [destination, setDestination] = useState(profile?.destination_region_hint || "Paris, France");
   const [startDate, setStartDate] = useState("2026-02-10");
   const [endDate, setEndDate] = useState("2026-02-18");
@@ -81,6 +82,34 @@ export default function TravelIntelligenceScreen() {
           </Text>
           <View style={{ height: Tokens.space.md }} />
           <PrimaryButton title="Faire l’onboarding" onPress={() => router.push("/onboarding")} />
+        </GlassCard>
+      ) : null}
+
+      {profile && !residence.trim() ? (
+        <GlassCard>
+          <Text style={styles.cardTitle}>Pays de résidence requis</Text>
+          <Text style={styles.body}>
+            Pour un itinéraire “visa‑compliant”, on a besoin de votre pays de résidence (utilisé pour la cohérence départ/retour).
+          </Text>
+          <View style={{ height: Tokens.space.md }} />
+          <Text style={styles.label}>Pays de résidence</Text>
+          <TextInput
+            value={residence}
+            onChangeText={setResidence}
+            placeholder="Ex: Maroc"
+            placeholderTextColor="rgba(16,22,47,0.35)"
+            style={styles.input}
+          />
+          <View style={{ height: Tokens.space.md }} />
+          <PrimaryButton
+            title="Enregistrer"
+            onPress={async () => {
+              if (!profile) return;
+              if (residence.trim().length < 2) return;
+              await setProfile({ ...profile, country_of_residence: residence.trim() });
+            }}
+            style={{ opacity: residence.trim().length >= 2 ? 1 : 0.6 }}
+          />
         </GlassCard>
       ) : null}
 
@@ -160,6 +189,10 @@ export default function TravelIntelligenceScreen() {
           title={loading ? "Génération…" : "Générer un itinéraire"}
           onPress={async () => {
             if (!profile) return;
+            if (!String(profile.country_of_residence || residence || "").trim()) {
+              setError("Pays de résidence manquant (à renseigner une fois).");
+              return;
+            }
             const budget = parseNumberOrNull(budgetUsd);
             if (!budget || budget <= 0) {
               setError("Budget invalide (ex: 1400).");
@@ -169,6 +202,9 @@ export default function TravelIntelligenceScreen() {
             setError(null);
             try {
               const visaType = insights?.lastDossier?.visa_type || "unknown";
+              if (!profile.country_of_residence && residence.trim().length >= 2) {
+                await setProfile({ ...profile, country_of_residence: residence.trim() });
+              }
               const res = await Api.planTrip({
                 profile,
                 destination,
@@ -188,7 +224,7 @@ export default function TravelIntelligenceScreen() {
               setLoading(false);
             }
           }}
-          style={{ opacity: profile ? 1 : 0.6 }}
+          style={{ opacity: profile && (profile.country_of_residence || residence.trim()) ? 1 : 0.6 }}
         />
       </GlassCard>
 
