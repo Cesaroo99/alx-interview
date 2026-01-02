@@ -1,0 +1,60 @@
+{
+  "disclaimer": "Templates d'aide au remplissage: la source de vérité est toujours l'aide officielle du champ sur le portail.",
+  "forms": [
+    {
+      "form_type": "schengen_visa",
+      "label": "Schengen (générique)",
+      "sections": ["Identité", "Passeport", "Voyage", "Financement", "Coordonnées"],
+      "fields": [
+        { "name": "full_name", "label": "Nom complet (passeport)", "required": true },
+        { "name": "nationality", "label": "Nationalité", "required": true },
+        { "name": "passport_number", "label": "Numéro de passeport", "required": true },
+        { "name": "purpose_of_trip", "label": "Motif principal", "required": true },
+        { "name": "arrival_date", "label": "Date d'arrivée", "required": true },
+        { "name": "departure_date", "label": "Date de départ", "required": true },
+        { "name": "home_address", "label": "Adresse de résidence", "required": true },
+        { "name": "bank_balance", "label": "Solde / fonds disponibles", "required": false }
+      ]
+    },
+    {
+      "form_type": "uk_visit_visa",
+      "label": "UK Visit Visa (générique)",
+      "sections": ["Identité", "Voyage", "Travail/Études", "Finances"],
+      "fields": [
+        { "name": "full_name", "label": "Nom complet", "required": true },
+        { "name": "nationality", "label": "Citizenship", "required": true },
+        { "name": "occupation", "label": "Occupation", "required": true },
+        { "name": "purpose_of_trip", "label": "Reason for visit", "required": true },
+        { "name": "arrival_date", "label": "Intended date of arrival", "required": true },
+        { "name": "departure_date", "label": "Intended date of departure", "required": true },
+        { "name": "funds", "label": "Funds available", "required": false }
+      ]
+    },
+    {
+      "form_type": "ds160_basic",
+      "label": "US DS-160 (basique)",
+      "sections": ["Personal", "Travel", "Passport", "Work/Education"],
+      "fields": [
+        { "name": "surname", "label": "Surname", "required": true },
+        { "name": "given_name", "label": "Given Name", "required": true },
+        { "name": "nationality", "label": "Nationality", "required": true },
+        { "name": "passport_number", "label": "Passport Number", "required": true },
+        { "name": "purpose_of_trip", "label": "Purpose of Trip", "required": true },
+        { "name": "travel_dates", "label": "Travel Dates", "required": false }
+      ]
+    },
+    {
+      "form_type": "school_admission_basic",
+      "label": "Admission école/université (basique)",
+      "sections": ["Identité", "Programme", "Financement", "Documents"],
+      "fields": [
+        { "name": "full_name", "label": "Nom complet", "required": true },
+        { "name": "nationality", "label": "Nationalité", "required": true },
+        { "name": "profession", "label": "Statut actuel (études/travail)", "required": true },
+        { "name": "purpose_of_trip", "label": "Objectif (études)", "required": true },
+        { "name": "bank_balance", "label": "Capacité financière", "required": false }
+      ]
+    }
+  ]
+}
+

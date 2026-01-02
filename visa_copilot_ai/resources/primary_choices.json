@@ -1,0 +1,32 @@
+{
+  "updated_at": "2026-01-02",
+  "disclaimer": "Listes d'aide UX (non exhaustives). Les catégories officielles peuvent varier selon le portail.",
+  "purposes": [
+    { "key": "tourism", "label": "Tourisme" },
+    { "key": "business", "label": "Affaires" },
+    { "key": "study", "label": "Études" },
+    { "key": "family", "label": "Famille" },
+    { "key": "medical", "label": "Médical" },
+    { "key": "transit", "label": "Transit" }
+  ],
+  "visa_types": [
+    { "key": "visitor", "label": "Visa visiteur / tourisme" },
+    { "key": "business_visitor", "label": "Visa visiteur affaires" },
+    { "key": "student", "label": "Visa étudiant" },
+    { "key": "family", "label": "Visa famille" }
+  ],
+  "provider_types": [
+    { "key": "government", "label": "Gouvernement / ambassade" },
+    { "key": "visa_center", "label": "Centre agréé (TLS/VFS)" },
+    { "key": "school", "label": "École / admission" },
+    { "key": "admin_service", "label": "Service administratif" }
+  ],
+  "countries_min": [
+    { "key": "france", "label": "France" },
+    { "key": "germany", "label": "Allemagne" },
+    { "key": "uk", "label": "Royaume-Uni" },
+    { "key": "usa", "label": "États-Unis" },
+    { "key": "multi", "label": "Multi-pays" }
+  ]
+}
+

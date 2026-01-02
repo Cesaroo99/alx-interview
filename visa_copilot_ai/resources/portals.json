@@ -1,0 +1,97 @@
+{
+  "disclaimer": "Catalogue indicatif. La source de vérité reste l'ambassade/gouvernement/centre agréé officiel. Vérifiez toujours le domaine avant paiement.",
+  "items": [
+    {
+      "id": "france_visas",
+      "country": "france",
+      "provider_type": "government",
+      "name": "France-Visas (portail officiel)",
+      "official_url": "https://france-visas.gouv.fr/",
+      "login_required": true,
+      "known_forms": ["schengen_visa"],
+      "payment_supported": false,
+      "appointment_supported": true,
+      "tags": ["schengen", "visa", "application"],
+      "sources": ["https://france-visas.gouv.fr/"]
+    },
+    {
+      "id": "germany_videx",
+      "country": "germany",
+      "provider_type": "government",
+      "name": "VIDEX Allemagne (formulaire officiel)",
+      "official_url": "https://videx.diplo.de/",
+      "login_required": false,
+      "known_forms": ["schengen_visa"],
+      "payment_supported": false,
+      "appointment_supported": false,
+      "tags": ["schengen", "form"],
+      "sources": ["https://videx.diplo.de/"]
+    },
+    {
+      "id": "uk_visa",
+      "country": "uk",
+      "provider_type": "government",
+      "name": "UK Visas & Immigration (UKVI)",
+      "official_url": "https://www.gov.uk/browse/visas-immigration",
+      "login_required": true,
+      "known_forms": ["uk_visit_visa"],
+      "payment_supported": true,
+      "appointment_supported": true,
+      "tags": ["uk", "visa", "payment"],
+      "sources": ["https://www.gov.uk/browse/visas-immigration"]
+    },
+    {
+      "id": "us_ds160",
+      "country": "usa",
+      "provider_type": "government",
+      "name": "DS-160 (US Visa Application)",
+      "official_url": "https://ceac.state.gov/GenNIV/",
+      "login_required": false,
+      "known_forms": ["ds160_basic"],
+      "payment_supported": false,
+      "appointment_supported": true,
+      "tags": ["usa", "ds-160", "form"],
+      "sources": ["https://ceac.state.gov/GenNIV/"]
+    },
+    {
+      "id": "vfs_global",
+      "country": "multi",
+      "provider_type": "visa_center",
+      "name": "VFS Global (centres agréés)",
+      "official_url": "https://www.vfsglobal.com/",
+      "login_required": true,
+      "known_forms": [],
+      "payment_supported": true,
+      "appointment_supported": true,
+      "tags": ["vfs", "appointment", "visa_center"],
+      "sources": ["https://www.vfsglobal.com/"]
+    },
+    {
+      "id": "tlscontact",
+      "country": "multi",
+      "provider_type": "visa_center",
+      "name": "TLScontact (centres agréés)",
+      "official_url": "https://www.tlscontact.com/",
+      "login_required": true,
+      "known_forms": [],
+      "payment_supported": true,
+      "appointment_supported": true,
+      "tags": ["tls", "appointment", "visa_center"],
+      "sources": ["https://www.tlscontact.com/"]
+    },
+    {
+      "id": "school_admission_generic",
+      "country": "multi",
+      "provider_type": "school",
+      "name": "Admissions école / université (générique)",
+      "official_url": "https://",
+      "login_required": true,
+      "known_forms": ["school_admission_basic"],
+      "payment_supported": false,
+      "appointment_supported": false,
+      "tags": ["admission", "school", "study"],
+      "sources": []
+    }
+  ]
+}
+

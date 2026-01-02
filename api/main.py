@@ -24,6 +24,7 @@ from visa_copilot_ai.models import EmploymentStatus, FinancialProfile, TravelPur
 from visa_copilot_ai.refusal import analyze_refusal, explain_refusal, refusal_decision_support_to_dict, refusal_to_dict
 from visa_copilot_ai.security import security_verdict_to_dict, verify_official_url
 from visa_copilot_ai.travel_intelligence import travel_plan_to_dict, generate_travel_plan
+from visa_copilot_ai.catalogs import get_form_template, list_portals, load_catalog, validate_form_draft
 
 from .rules_admin import delete_override_rules, load_rules, save_override_rules, validate_rules
 from .content_admin import (
@@ -120,6 +121,86 @@ def _parse_documents(data: Any) -> list[Document]:
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
+@app.get("/primary/choices")
+def primary_choices() -> dict[str, Any]:
+    pack = load_catalog("primary_choices.json")
+    return {"source": {"type": "content_pack", "source": pack.source, "path": pack.path}, **pack.data}
+
+
+@app.get("/portals")
+def portals(country: Optional[str] = None, provider_type: Optional[str] = None, q: Optional[str] = None) -> dict[str, Any]:
+    pack = load_catalog("portals.json")
+    items = list_portals(data=pack.data, country=country, provider_type=provider_type, q=q)
+    return {
+        "source": {"type": "content_pack", "source": pack.source, "path": pack.path},
+        "disclaimer": str(pack.data.get("disclaimer") or "Catalogue indicatif. Vérifiez la source officielle."),
+        "items": items,
+    }
+
+
+@app.get("/forms/catalog")
+def forms_catalog(form_type: Optional[str] = None) -> dict[str, Any]:
+    pack = load_catalog("forms_catalog.json")
+    if form_type:
+        tpl = get_form_template(data=pack.data, form_type=str(form_type))
+        if not tpl:
+            raise HTTPException(status_code=404, detail="form_type inconnu.")
+        return {
+            "source": {"type": "content_pack", "source": pack.source, "path": pack.path},
+            "disclaimer": str(pack.data.get("disclaimer") or ""),
+            "form": tpl,
+        }
+    return {
+        "source": {"type": "content_pack", "source": pack.source, "path": pack.path},
+        "disclaimer": str(pack.data.get("disclaimer") or ""),
+        "forms": list(pack.data.get("forms") or []),
+    }
+
+
+@app.post("/forms/validate")
+def forms_validate(payload: dict[str, Any]) -> dict[str, Any]:
+    form_type = str(payload.get("form_type", "") or "").strip()
+    draft = payload.get("draft_values") if isinstance(payload.get("draft_values"), dict) else {}
+    if not form_type:
+        raise HTTPException(status_code=400, detail="form_type requis.")
+    pack = load_catalog("forms_catalog.json")
+    tpl = get_form_template(data=pack.data, form_type=form_type)
+    if not tpl:
+        raise HTTPException(status_code=404, detail="form_type inconnu.")
+    out = validate_form_draft(template=tpl, draft_values=draft)
+    return {"ok": bool(out.get("ok")), "errors": list(out.get("errors") or []), "warnings": list(out.get("warnings") or [])}
+
+
+@app.post("/forms/suggest")
+def forms_suggest(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Suggestions multi-champs pour aide au remplissage.
+    IMPORTANT: ne soumet rien; renvoie uniquement guidance + valeurs proposées.
+    """
+    form_type = str(payload.get("form_type", "") or "").strip()
+    if not form_type:
+        raise HTTPException(status_code=400, detail="form_type requis.")
+    profile_raw = payload.get("profile")
+    if not isinstance(profile_raw, dict):
+        raise HTTPException(status_code=400, detail="profile requis (objet).")
+    profile = _parse_profile(profile_raw)
+    fields = payload.get("fields")
+    if not isinstance(fields, list) or not fields:
+        raise HTTPException(status_code=400, detail="fields requis (liste).")
+
+    ctx = payload.get("context") if isinstance(payload.get("context"), dict) else None
+    from visa_copilot_ai.form_guidance import field_guidance_to_dict, get_field_guidance
+
+    out: list[dict[str, Any]] = []
+    for f in fields:
+        name = str(f or "").strip()
+        if not name:
+            continue
+        g = get_field_guidance(form_type=form_type, field_name=name, profile=profile, context=ctx)
+        out.append(field_guidance_to_dict(g))
+
+    return {"ok": True, "form_type": form_type, "suggestions": out}
 
 @app.post("/diagnose")
 def diagnose(payload: dict[str, Any]) -> dict[str, Any]:
