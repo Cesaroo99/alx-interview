@@ -124,6 +124,38 @@ export type EstimateCostsResponse = {
   disclaimers: string[];
 };
 
+export type CostEngineFee = {
+  category: string;
+  label: string;
+  amount: number | null;
+  currency: string;
+  official: boolean;
+  optional: boolean;
+  notes: string[];
+};
+
+export type CostEngineResponse = {
+  destination_region: string;
+  visa_type: string;
+  currency: string;
+  items: CostEngineFee[];
+  totals: {
+    total_estimated: number;
+    total_official: number;
+    total_optional: number;
+    unknown_count: number;
+  };
+  suspicious_fees_alerts: Array<{
+    fee_flagged: string;
+    reason_for_suspicion: string;
+    suggested_action: string;
+    risk_level: "Low" | "Medium" | "High" | string;
+  }>;
+  guidance: string[];
+  disclaimer?: string;
+  final_user_prompt?: string;
+};
+
 export type RefusalResponse = {
   refusal_reasons: string[];
   plain_explanation: string[];
@@ -235,6 +267,21 @@ export const Api = {
     courier_cost?: number | null;
   }) {
     return post<EstimateCostsResponse>("/estimate-costs", payload);
+  },
+  estimateCostsEngine(payload: {
+    destination_region: string;
+    visa_type: string;
+    currency: string;
+    fees: Array<{
+      category: string;
+      label: string;
+      amount: number | null;
+      official?: boolean;
+      optional?: boolean;
+      notes?: string[];
+    }>;
+  }) {
+    return post<CostEngineResponse>("/estimate-costs/engine", payload);
   },
   explainRefusal(payload: { refusal_reasons: string[]; refusal_letter_text?: string | null }) {
     return post<RefusalResponse>("/explain-refusal", payload);

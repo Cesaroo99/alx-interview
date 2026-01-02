@@ -40,6 +40,8 @@ export type VisaEvent = {
   visaId: string;
   type: VisaEventType;
   title: string;
+  notes?: string;
+  meta?: any;
   dateIso?: string; // YYYY-MM-DD (single date)
   startDateIso?: string; // for ranges
   endDateIso?: string;
@@ -93,6 +95,7 @@ type Ctx = {
     endDateIso?: string;
     priority?: "low" | "medium" | "high";
     notes?: string;
+    meta?: any;
   }) => Promise<void>;
 
   addPendingDetection: (d: Omit<PendingDetection, "id" | "detectedAt">) => Promise<string>;
@@ -264,6 +267,8 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       visaId: string;
       type: VisaEventType;
       title: string;
+      notes?: string;
+      meta?: any;
       dateIso?: string;
       startDateIso?: string;
       endDateIso?: string;
@@ -284,6 +289,8 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
         visaId: args.visaId,
         type: args.type,
         title: args.title,
+        notes: args.notes,
+        meta: args.meta,
         dateIso: args.dateIso,
         startDateIso: args.startDateIso,
         endDateIso: args.endDateIso,
@@ -316,11 +323,14 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       endDateIso?: string;
       priority?: "low" | "medium" | "high";
       notes?: string;
+      meta?: any;
     }) => {
       await addEventInternal({
         visaId: args.visaId,
         type: args.type,
         title: args.title,
+        notes: args.notes,
+        meta: args.meta,
         dateIso: args.dateIso,
         startDateIso: args.startDateIso,
         endDateIso: args.endDateIso,

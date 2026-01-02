@@ -8,6 +8,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from visa_copilot_ai.appointments import appointment_cost_to_dict, estimate_costs
+from visa_copilot_ai.cost_engine import FeeInput, compute_cost_engine, cost_engine_to_dict
 from visa_copilot_ai.diagnostic import diagnostic_to_dict, run_visa_diagnostic
 from visa_copilot_ai.dossier import dossier_to_dict, verify_dossier
 from visa_copilot_ai.documents import Document, DocumentType, required_documents_template
@@ -194,6 +195,88 @@ def estimate_costs_endpoint(payload: dict[str, Any]) -> dict[str, Any]:
         courier_cost=payload.get("courier_cost"),
     )
     return appointment_cost_to_dict(result)
+
+
+@app.post("/estimate-costs/engine")
+def estimate_costs_engine_endpoint(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Cost Engine (frais visa):
+    - accepte une saisie partielle (montants inconnus => total provisoire)
+    - calcule un total + un détail par catégories
+    - détecte les anomalies (doublons, catégories suspectes, montants atypiques)
+    """
+    fees_raw = payload.get("fees")
+    fees: list[FeeInput] = []
+
+    def _add_fee(*, category: str, label: str, amount: Any, official: bool, optional: bool, notes: list[str] | None = None) -> None:
+        if amount is None:
+            return
+        fees.append(
+            FeeInput(
+                category=category,
+                label=label,
+                amount=float(amount) if isinstance(amount, (int, float)) else amount,  # validated in engine
+                currency=str(payload.get("currency", "USD") or "USD"),
+                official=official,
+                optional=optional,
+                notes=list(notes or []),
+            )
+        )
+
+    if isinstance(fees_raw, list):
+        for i, f in enumerate(fees_raw):
+            if not isinstance(f, dict):
+                raise ValueError(f"fees[{i}] doit être un objet.")
+            fees.append(
+                FeeInput(
+                    category=str(f.get("category") or "other"),
+                    label=str(f.get("label") or f.get("name") or f"Frais #{i + 1}"),
+                    amount=f.get("amount"),
+                    currency=str(payload.get("currency", "USD") or "USD"),
+                    official=bool(f.get("official", False)),
+                    optional=bool(f.get("optional", False)),
+                    notes=list(f.get("notes") or []),
+                )
+            )
+    else:
+        # compat: si la UI n'envoie pas fees[], on reconstruit depuis les champs historiques
+        _add_fee(category="visa_fee", label="Frais de visa (officiel)", amount=payload.get("visa_fee"), official=True, optional=False)
+        _add_fee(category="service", label="Frais de service (centre agréé) — si applicable", amount=payload.get("service_fee"), official=True, optional=False)
+        _add_fee(category="biometrics", label="Biométrie — si applicable", amount=payload.get("biometrics_fee"), official=True, optional=False)
+        _add_fee(category="government", label="Charges gouvernementales obligatoires — si applicable", amount=payload.get("government_charges"), official=True, optional=False)
+        _add_fee(category="translation", label="Traductions certifiées (estimation)", amount=payload.get("translation_cost"), official=False, optional=True)
+        _add_fee(category="insurance", label="Assurance voyage (estimation) — si requise", amount=payload.get("insurance_cost"), official=False, optional=True)
+        _add_fee(category="courier", label="Courrier / retour passeport (estimation)", amount=payload.get("courier_cost"), official=False, optional=True)
+
+        extras = payload.get("extra_fees")
+        if isinstance(extras, list):
+            for i, x in enumerate(extras):
+                if not isinstance(x, dict):
+                    continue
+                _add_fee(
+                    category=str(x.get("category") or "other"),
+                    label=str(x.get("label") or f"Autre frais #{i + 1}"),
+                    amount=x.get("amount"),
+                    official=bool(x.get("official", False)),
+                    optional=bool(x.get("optional", True)),
+                    notes=list(x.get("notes") or []),
+                )
+
+    result = compute_cost_engine(
+        destination_region=str(payload.get("destination_region", "") or ""),
+        visa_type=str(payload.get("visa_type", "") or ""),
+        currency=str(payload.get("currency", "USD") or "USD"),
+        fees=fees,
+    )
+    out = cost_engine_to_dict(result)
+    out["disclaimer"] = "Estimation: les frais évoluent. Vérifiez toujours la source officielle avant paiement."
+    out["final_user_prompt"] = (
+        "Souhaitez-vous que je :\n"
+        "1) Sauvegarde cette estimation de coûts dans votre timeline visa ?\n"
+        "2) Configure des rappels pour les paiements à venir ?\n"
+        "3) Ajoute un rappel pour vérifier les mises à jour des frais officiels ?"
+    )
+    return out
 
 
 @app.post("/guide-field")
