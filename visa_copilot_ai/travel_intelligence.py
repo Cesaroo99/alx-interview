@@ -263,11 +263,12 @@ def generate_travel_plan(
 
     itinerary: list[DayPlan] = []
     # Step 1: Departure (placeholder)
+    dep = _norm(getattr(profile, "country_of_residence", None) or "") or "pays de résidence"
     itinerary.append(
         DayPlan(
             day=1,
             date=sd.isoformat(),
-            country_or_city="Départ (pays de résidence) → Transit/Aéroport",
+            country_or_city=f"Départ ({dep}) → Transit/Aéroport",
             activity_type="transit",
             activities=["Check‑in (simulation)", "Contrôle documents (passeport, visa, assurance si requise)", "Transit / correspondance (si applicable)"],
             accommodation_note="Aucun hébergement (jour de voyage).",
@@ -329,7 +330,7 @@ def generate_travel_plan(
             DayPlan(
                 day=duration,
                 date=ed.isoformat(),
-                country_or_city="Départ destination → Transit/Aéroport → Retour",
+                country_or_city=f"Départ destination → Transit/Aéroport → Retour ({dep})",
                 activity_type="transit",
                 activities=["Check‑out (simulation)", "Transit / correspondance (si applicable)", "Retour (ou onward travel)"],
                 accommodation_note="Aucun hébergement (jour de voyage).",
@@ -349,6 +350,36 @@ def generate_travel_plan(
             "Aligner budget ↔ durée ↔ motif et préparer des preuves cohérentes.",
             "Préparer un dossier 'propre': dates, noms, documents cohérents (aucune falsification).",
         ]
+    )
+
+    # Tailoring by travel history / risk profile (heuristic)
+    if int(getattr(profile, "prior_visa_refusals", 0) or 0) >= 1:
+        alerts.append(
+            Alert(
+                alert_type="prior_refusals",
+                description="Historique: refus de visa antérieur(s) — la cohérence de l’itinéraire et des preuves sera scrutée davantage.",
+                risk_level="Medium",
+                suggested_action="Ajouter des preuves solides (attaches, finances, motif) et éviter les incohérences de dates/budget.",
+            )
+        )
+    if int(getattr(profile, "travel_history_trips_last_5y", 0) or 0) == 0 and profile.travel_purpose in {TravelPurpose.TOURISM, TravelPurpose.BUSINESS}:
+        alerts.append(
+            Alert(
+                alert_type="limited_travel_history",
+                description="Historique de voyage faible: un itinéraire simple et très cohérent est recommandé.",
+                risk_level="Medium",
+                suggested_action="Préférer un séjour court, mono‑destination, budget réaliste et preuves d’attaches.",
+            )
+        )
+
+    # Generic restrictions check (non-blocking, avoids false claims)
+    alerts.append(
+        Alert(
+            alert_type="country_restrictions_check",
+            description="Restrictions d’entrée/vaccinations/embargo peuvent exister selon pays et profil; elles changent fréquemment.",
+            risk_level="Low",
+            suggested_action="Vérifier l’avis officiel du pays de destination + exigences sanitaires avant de finaliser le plan.",
+        )
     )
 
     disclaimers = [

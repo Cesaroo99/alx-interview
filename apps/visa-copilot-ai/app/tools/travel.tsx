@@ -22,7 +22,7 @@ function parseNumberOrNull(s: string): number | null {
 export default function TravelIntelligenceScreen() {
   const { profile } = useProfile();
   const { insights } = useInsights();
-  const { upsertVisa, addManualEvent } = useVisaTimeline();
+  const { state: timelineState, upsertVisa, addManualEvent } = useVisaTimeline();
 
   const [destination, setDestination] = useState(profile?.destination_region_hint || "Paris, France");
   const [startDate, setStartDate] = useState("2026-02-10");
@@ -32,6 +32,7 @@ export default function TravelIntelligenceScreen() {
   const [mode, setMode] = useState<"simulation" | "post_visa_booking">("simulation");
   const [alertFilter, setAlertFilter] = useState<"all" | "high">("all");
   const [maximizeCompliance, setMaximizeCompliance] = useState(false);
+  const [hideLowAlerts, setHideLowAlerts] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,25 @@ export default function TravelIntelligenceScreen() {
     if (endDate.trim() < startDate.trim()) return "La date de fin doit être >= début.";
     return null;
   }, [startDate, endDate]);
+
+  const localOverlapAlerts = useMemo(() => {
+    const s = startDate.trim();
+    const e = endDate.trim();
+    if (!s || !e || e < s) return [];
+    const events = (timelineState.events || [])
+      .map((ev) => ({ ev, d: ev.dateIso || ev.startDateIso }))
+      .filter((x) => !!x.d)
+      .filter((x) => String(x.d) >= s && String(x.d) <= e);
+    if (!events.length) return [];
+    return [
+      {
+        alert_type: "overlap_with_existing_obligation",
+        description: `Chevauchement détecté avec ${events.length} événement(s) déjà dans votre timeline.`,
+        risk_level: "Medium",
+        suggested_action: "Ajuster les dates ou marquer l’évènement comme résolu si ce n’est plus applicable.",
+      },
+    ];
+  }, [endDate, startDate, timelineState.events]);
 
   return (
     <Screen>
@@ -217,8 +237,16 @@ export default function TravelIntelligenceScreen() {
                 <PrimaryButton title="Toutes" variant={alertFilter === "all" ? "brand" : "ghost"} onPress={() => setAlertFilter("all")} style={{ flex: 1 }} />
                 <PrimaryButton title="Risques élevés" variant={alertFilter === "high" ? "brand" : "ghost"} onPress={() => setAlertFilter("high")} style={{ flex: 1 }} />
               </View>
+              <View style={{ height: Tokens.space.sm }} />
+              <PrimaryButton
+                title={hideLowAlerts ? "Afficher alertes Low" : "Masquer alertes Low"}
+                variant="ghost"
+                onPress={() => setHideLowAlerts((v) => !v)}
+              />
               {(result.alerts || [])
+                .concat(localOverlapAlerts as any)
                 .filter((a) => (alertFilter === "high" ? String(a.risk_level).toLowerCase() === "high" : true))
+                .filter((a) => (hideLowAlerts ? String(a.risk_level).toLowerCase() !== "low" : true))
                 .map((a, idx) => {
                   const rl = String(a.risk_level || "").toLowerCase();
                   const dot = rl === "high" ? Colors.danger : rl === "medium" ? Colors.warning : Colors.brandB;

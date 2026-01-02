@@ -87,6 +87,7 @@ def _parse_profile(data: dict[str, Any]) -> UserProfile:
         destination_region_hint=data.get("destination_region_hint"),
         financial_profile=fp,
         notes=str(data.get("notes", "") or ""),
+        country_of_residence=(str(data.get("country_of_residence") or data.get("residence_country") or "") or None),
     )
 
 

@@ -58,6 +58,9 @@ class UserProfile:
     # Notes non sensibles fournies par l'utilisateur (optionnel).
     notes: str = ""
 
+    # Pays de résidence (optionnel, utile pour travel/timeline & cohérence).
+    country_of_residence: Optional[str] = None
+
 
 @dataclass(frozen=True)
 class Recommendation:
