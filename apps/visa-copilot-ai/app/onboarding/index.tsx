@@ -1,16 +1,18 @@
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
 import { useOnboardingDraft } from "@/src/state/onboardingDraft";
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AppText } from "@/src/ui/AppText";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { ProgressBar } from "@/src/ui/ProgressBar";
 import { Screen } from "@/src/ui/Screen";
 
 export default function Onboarding() {
+  const colors = useColors();
   const { draft, setDraft } = useOnboardingDraft();
   const [nationality, setNationality] = useState(draft.nationality || "");
   const [residence, setResidence] = useState(draft.country_of_residence || "");
@@ -25,52 +27,62 @@ export default function Onboarding() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <Text style={styles.kicker}>Onboarding intelligent</Text>
-        <Text style={styles.title}>Construisons votre profil</Text>
-        <Text style={styles.subtitle}>
+        <AppText variant="caption" tone="brand" style={styles.kicker}>
+          Onboarding intelligent
+        </AppText>
+        <AppText variant="h1">Construisons votre profil</AppText>
+        <AppText tone="muted">
           On vous pose le minimum pour personnaliser les recommandations et détecter les risques avant toute soumission.
-        </Text>
+        </AppText>
         <ProgressBar step={1} total={7} />
       </View>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Profil de base</Text>
+        <AppText variant="h3">Profil de base</AppText>
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Nationalité (passeport)</Text>
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Nationalité (passeport)
+        </AppText>
         <TextInput
           value={nationality}
           onChangeText={setNationality}
           placeholder="Ex: Maroc"
-          placeholderTextColor="rgba(245,247,255,0.35)"
-          style={styles.input}
+          placeholderTextColor={colors.faint}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
         />
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Pays de résidence</Text>
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Pays de résidence
+        </AppText>
         <TextInput
           value={residence}
           onChangeText={setResidence}
           placeholder="Ex: Maroc"
-          placeholderTextColor="rgba(245,247,255,0.35)"
-          style={styles.input}
+          placeholderTextColor={colors.faint}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
         />
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Âge</Text>
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Âge
+        </AppText>
         <TextInput
           value={age}
           onChangeText={setAge}
           placeholder="Ex: 28"
           keyboardType="number-pad"
-          placeholderTextColor="rgba(245,247,255,0.35)"
-          style={styles.input}
+          placeholderTextColor={colors.faint}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
         />
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Profession</Text>
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Profession
+        </AppText>
         <TextInput
           value={profession}
           onChangeText={setProfession}
           placeholder="Ex: Développeur logiciel"
-          placeholderTextColor="rgba(245,247,255,0.35)"
-          style={styles.input}
+          placeholderTextColor={colors.faint}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
         />
 
         <View style={{ height: Tokens.space.lg }} />
@@ -91,11 +103,11 @@ export default function Onboarding() {
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Rappel</Text>
-        <Text style={styles.body}>
+        <AppText variant="h3">Rappel</AppText>
+        <AppText tone="muted" style={styles.body}>
           GlobalVisa ne remplit pas et ne soumet pas à votre place. Il vous guide et vous protège, tout en restant sur
           les plateformes officielles.
-        </Text>
+        </AppText>
       </GlassCard>
     </Screen>
   );
@@ -104,27 +116,20 @@ export default function Onboarding() {
 const styles = StyleSheet.create({
   hero: { gap: 10 },
   kicker: {
-    color: Colors.brandB,
-    fontWeight: Tokens.font.weight.semibold,
     letterSpacing: 1,
     textTransform: "uppercase",
-    fontSize: Tokens.font.size.xs,
   },
-  title: { color: Colors.text, fontSize: Tokens.font.size.hero, fontWeight: Tokens.font.weight.black, lineHeight: 38 },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  label: { color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.medium },
+  title: {},
+  subtitle: {},
+  cardTitle: {},
+  label: {},
   input: {
     marginTop: 8,
     borderRadius: Tokens.radius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card2,
     paddingHorizontal: Tokens.space.md,
     paddingVertical: Tokens.space.md,
-    color: Colors.text,
-    fontSize: Tokens.font.size.md,
   },
-  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  body: { marginTop: Tokens.space.sm },
 });
 
