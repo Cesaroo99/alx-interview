@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { router, usePathname } from "expo-router";
@@ -33,7 +33,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const compact = width < 960;
+  const isMobile = width < 720;
   const showRight = width >= 1180;
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const { profile } = useProfile();
   const { docs } = useDocuments();
@@ -105,39 +107,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (hideChrome) return <>{children}</>;
 
+  const bottomNavH = isMobile ? 64 : 0;
+  const fabBottom = (isMobile ? bottomNavH + 14 : 18) as number;
+
   return (
     <View style={styles.shell}>
-      {/* LEFT SIDEBAR */}
-      <View style={[styles.sidebar, compact ? styles.sidebarCompact : null]}>
-        <Text style={[styles.brand, compact ? styles.brandCompact : null]}>Visa Copilot AI</Text>
-        <View style={{ height: Tokens.space.md }} />
-        {navItems.map((it) => {
-          const active = isActive(pathname, it.href);
-          return (
-            <Pressable
-              key={it.key}
-              onPress={() => router.push(it.href as any)}
-              style={[styles.navItem, active ? styles.navItemActive : null]}>
-              <View style={styles.iconWrap}>
-                <FontAwesome name={it.icon} size={18} color={active ? Colors.brandB : "rgba(245,247,255,0.72)"} />
-                {it.showBadge ? <View style={styles.badgeDot} /> : null}
-              </View>
-              {!compact ? <Text style={[styles.navLabel, active ? styles.navLabelActive : null]}>{it.label}</Text> : null}
-            </Pressable>
-          );
-        })}
+      {/* LEFT SIDEBAR (desktop/tablette) */}
+      {!isMobile ? (
+        <View style={[styles.sidebar, compact ? styles.sidebarCompact : null]}>
+          <Text style={[styles.brand, compact ? styles.brandCompact : null]}>Visa Copilot AI</Text>
+          <View style={{ height: Tokens.space.md }} />
+          {navItems.map((it) => {
+            const active = isActive(pathname, it.href);
+            return (
+              <Pressable
+                key={it.key}
+                onPress={() => router.push(it.href as any)}
+                style={[styles.navItem, active ? styles.navItemActive : null]}>
+                <View style={styles.iconWrap}>
+                  <FontAwesome name={it.icon} size={18} color={active ? Colors.brandB : "rgba(245,247,255,0.72)"} />
+                  {it.showBadge ? <View style={styles.badgeDot} /> : null}
+                </View>
+                {!compact ? <Text style={[styles.navLabel, active ? styles.navLabelActive : null]}>{it.label}</Text> : null}
+              </Pressable>
+            );
+          })}
 
-        <View style={{ flex: 1 }} />
-        {!compact ? (
-          <View style={{ paddingTop: Tokens.space.md }}>
-            <Text style={styles.smallMuted}>Official‑only · No submission</Text>
-          </View>
-        ) : null}
-      </View>
+          <View style={{ flex: 1 }} />
+          {!compact ? (
+            <View style={{ paddingTop: Tokens.space.md }}>
+              <Text style={styles.smallMuted}>Official‑only · No submission</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* MAIN CONTENT */}
       <View style={styles.main}>
-        <View style={styles.mainInner}>{children}</View>
+        <View style={[styles.mainInner, isMobile ? { paddingBottom: bottomNavH } : null]}>{children}</View>
       </View>
 
       {/* RIGHT CONTEXT PANEL */}
@@ -159,12 +166,65 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </View>
       ) : null}
 
+      {/* MOBILE: Bottom nav + drawer */}
+      {isMobile ? (
+        <>
+          <View style={styles.mobileNav}>
+            <Pressable
+              onPress={() => setMenuOpen(true)}
+              style={[styles.mobileItem, menuOpen ? { opacity: 0.85 } : null]}>
+              <FontAwesome name="bars" size={18} color={Colors.text} />
+              <Text style={styles.mobileLabel}>Menu</Text>
+            </Pressable>
+
+            {["dashboard", "journey", "documents", "copilot"].map((k) => {
+              const it = navItems.find((x) => x.key === k)!;
+              const active = isActive(pathname, it.href);
+              return (
+                <Pressable
+                  key={it.key}
+                  onPress={() => router.push(it.href as any)}
+                  style={[styles.mobileItem, active ? styles.mobileItemActive : null]}>
+                  <FontAwesome name={it.icon} size={18} color={active ? Colors.brandA : Colors.text} />
+                  <Text style={[styles.mobileLabel, active ? styles.mobileLabelActive : null]}>{it.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {menuOpen ? (
+            <Pressable style={styles.drawerOverlay} onPress={() => setMenuOpen(false)}>
+              <Pressable style={styles.drawerCard} onPress={() => void 0}>
+                <Text style={styles.drawerTitle}>Navigation</Text>
+                <View style={{ height: Tokens.space.sm }} />
+                {navItems.map((it) => {
+                  const active = isActive(pathname, it.href);
+                  return (
+                    <Pressable
+                      key={it.key}
+                      onPress={() => {
+                        setMenuOpen(false);
+                        router.push(it.href as any);
+                      }}
+                      style={[styles.drawerItem, active ? styles.drawerItemActive : null]}>
+                      <FontAwesome name={it.icon} size={18} color={active ? Colors.brandA : Colors.text} />
+                      <Text style={[styles.drawerLabel, active ? styles.drawerLabelActive : null]}>{it.label}</Text>
+                      {it.showBadge ? <View style={styles.drawerBadgeDot} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </Pressable>
+            </Pressable>
+          ) : null}
+        </>
+      ) : null}
+
       {/* Floating Copilot */}
       <Pressable
         onPress={() => router.push("/(tabs)/copilot")}
-        style={[styles.fab, Platform.OS === "web" ? styles.fabWeb : null]}>
+        style={[styles.fab, { bottom: fabBottom }, Platform.OS === "web" ? styles.fabWeb : null]}>
         <FontAwesome name="comments" size={18} color={Colors.text} />
-        {!compact ? <Text style={styles.fabText}>Copilot</Text> : null}
+        {!compact && !isMobile ? <Text style={styles.fabText}>Copilot</Text> : null}
       </Pressable>
     </View>
   );
@@ -203,10 +263,57 @@ const styles = StyleSheet.create({
   right: { width: 320, padding: Tokens.space.lg, borderLeftWidth: 1, borderLeftColor: "rgba(255,255,255,0.08)" },
   rightTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   rightText: { color: Colors.muted, fontSize: Tokens.font.size.sm, lineHeight: 20, marginTop: 6 },
+  mobileNav: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingHorizontal: Tokens.space.sm,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  mobileItem: { alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 8, paddingHorizontal: 6, minWidth: 64 },
+  mobileItemActive: { backgroundColor: "rgba(124,92,255,0.10)", borderRadius: Tokens.radius.md },
+  mobileLabel: { color: Colors.faint, fontSize: 11, fontWeight: Tokens.font.weight.semibold },
+  mobileLabelActive: { color: Colors.text },
+  drawerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    padding: Tokens.space.lg,
+    justifyContent: "flex-end",
+  },
+  drawerCard: {
+    backgroundColor: Colors.card,
+    borderRadius: Tokens.radius.xl,
+    padding: Tokens.space.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  drawerTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.black },
+  drawerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: Tokens.radius.lg,
+  },
+  drawerItemActive: { backgroundColor: "rgba(124,92,255,0.12)" },
+  drawerLabel: { flex: 1, color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
+  drawerLabelActive: { color: Colors.text },
+  drawerBadgeDot: { width: 10, height: 10, borderRadius: 99, backgroundColor: Colors.warning },
   fab: {
     position: "absolute",
     right: 18,
-    bottom: 18,
     flexDirection: "row",
     gap: 8,
     alignItems: "center",

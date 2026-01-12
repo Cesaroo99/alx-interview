@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Api, type ProcedureTimelineResponse } from "@/src/api/client";
@@ -38,6 +38,8 @@ function actionToRoute(actionKey?: string | null) {
 export default function VisaJourneyScreen() {
   const params = useLocalSearchParams<{ procedureId?: string }>();
   const procedureId = String(params?.procedureId || "").trim();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 900;
 
   const { profile } = useProfile();
   const { docs } = useDocuments();
@@ -177,9 +179,9 @@ export default function VisaJourneyScreen() {
           <Text style={styles.error}>{error}</Text>
         </GlassCard>
       ) : data ? (
-        <View style={styles.twoCol}>
+        <View style={[styles.twoCol, isMobile ? styles.twoColMobile : null]}>
           {/* LEFT 30%: timeline */}
-          <View style={styles.leftCol}>
+          <View style={[styles.leftCol, isMobile ? styles.colMobile : null]}>
             <GlassCard>
               <Text style={styles.cardTitle}>Timeline</Text>
               <View style={{ height: Tokens.space.sm }} />
@@ -207,7 +209,7 @@ export default function VisaJourneyScreen() {
           </View>
 
           {/* RIGHT 70%: active step content */}
-          <View style={styles.rightCol}>
+          <View style={[styles.rightCol, isMobile ? styles.colMobile : null]}>
             <GlassCard>
               <Text style={styles.cardTitle}>{activeStep?.name || "Étape"}</Text>
               <View style={{ height: Tokens.space.sm }} />
@@ -267,8 +269,10 @@ const styles = StyleSheet.create({
   title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
   subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   twoCol: { flex: 1, flexDirection: "row", gap: Tokens.space.lg, paddingHorizontal: Tokens.space.xl, paddingBottom: Tokens.space.xl },
+  twoColMobile: { flexDirection: "column", paddingHorizontal: Tokens.space.lg },
   leftCol: { width: "30%" },
   rightCol: { width: "70%" },
+  colMobile: { width: "100%" },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   hint: { marginTop: Tokens.space.sm, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },

@@ -22,7 +22,7 @@ export function Screen({
 
   return (
     <GradientBackground>
-      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
         {scroll ? (
           <ScrollView
             contentContainerStyle={styles.scroll}

@@ -380,6 +380,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  ctaRow: { flexDirection: "row", gap: 10 },
+  ctaRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   warn: { color: Colors.warning, fontSize: Tokens.font.size.sm, lineHeight: 20 },
 });
