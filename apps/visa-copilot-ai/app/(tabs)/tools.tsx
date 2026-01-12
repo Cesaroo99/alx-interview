@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 
 import { Colors } from "@/src/theme/colors";
@@ -10,6 +10,15 @@ import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
 
 export default function ToolsScreen() {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 720;
+
+  const btnCellStyle = useMemo(() => {
+    // Sur mobile: évite les boutons trop petits (texte coupé) en forçant des largeurs lisibles.
+    if (isMobile) return { width: "100%" as const };
+    return styles.btnCell;
+  }, [isMobile]);
+
   return (
     <Screen>
       <HeroBanner
@@ -23,12 +32,12 @@ export default function ToolsScreen() {
         <Text style={styles.body}>Les 3 actions qui améliorent le plus vite la cohérence: itinéraire, budget, corrections.</Text>
         <View style={{ height: Tokens.space.md }} />
         <View style={styles.rowButtons}>
-          <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={{ flex: 1 }} />
-          <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={{ flex: 1 }} />
-          <PrimaryButton title="Portails" variant="ghost" onPress={() => router.push("/tools/portals")} style={{ flex: 1 }} />
-          <PrimaryButton title="Formulaires" variant="ghost" onPress={() => router.push("/tools/forms")} style={{ flex: 1 }} />
-          <PrimaryButton title="Procédure (timeline)" variant="ghost" onPress={() => router.push("/tools/procedure_timeline")} style={{ flex: 1 }} />
-          <PrimaryButton title="Vérif finale" variant="ghost" onPress={() => router.push("/tools/final_check")} style={{ flex: 1 }} />
+          <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={btnCellStyle} />
+          <PrimaryButton title="Coûts" variant="ghost" onPress={() => router.push("/tools/costs")} style={btnCellStyle} />
+          <PrimaryButton title="Portails" variant="ghost" onPress={() => router.push("/tools/portals")} style={btnCellStyle} />
+          <PrimaryButton title="Formulaires" variant="ghost" onPress={() => router.push("/tools/forms")} style={btnCellStyle} />
+          <PrimaryButton title="Procédure" variant="ghost" onPress={() => router.push("/tools/procedure_timeline")} style={btnCellStyle} />
+          <PrimaryButton title="Vérif finale" variant="ghost" onPress={() => router.push("/tools/final_check")} style={btnCellStyle} />
         </View>
       </GlassCard>
 
@@ -97,6 +106,7 @@ const styles = StyleSheet.create({
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   rowButtons: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  btnCell: { flexGrow: 1, flexBasis: 160 },
   row: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   dot: { width: 10, height: 10, borderRadius: 99, marginTop: 6 },
   text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },

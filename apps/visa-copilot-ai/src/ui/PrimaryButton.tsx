@@ -67,6 +67,8 @@ const styles = StyleSheet.create({
     fontSize: Tokens.font.size.md,
     fontWeight: Tokens.font.weight.semibold,
     letterSpacing: 0.2,
+    textAlign: "center",
+    flexShrink: 1,
   },
 });
 

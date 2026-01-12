@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 
 import { Api, type FinalCheckResponse } from "@/src/api/client";
@@ -35,6 +35,9 @@ function actionToRoute(actionKey?: string | null) {
 }
 
 export default function FinalCheckScreen() {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 720;
+
   const { profile } = useProfile();
   const { insights } = useInsights();
   const { docs } = useDocuments();
@@ -162,9 +165,9 @@ export default function FinalCheckScreen() {
             </Text>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>
-              <PrimaryButton title="Corriger High" variant={filter === "high" ? "brand" : "ghost"} onPress={() => setFilter("high")} style={{ flex: 1 }} />
-              <PrimaryButton title="Voir tout" variant={filter === "all" ? "brand" : "ghost"} onPress={() => setFilter("all")} style={{ flex: 1 }} />
-              <PrimaryButton title="Relancer" variant="ghost" onPress={run} style={{ flex: 1 }} />
+              <PrimaryButton title="Corriger High" variant={filter === "high" ? "brand" : "ghost"} onPress={() => setFilter("high")} style={isMobile ? styles.btnFull : styles.btnCell} />
+              <PrimaryButton title="Voir tout" variant={filter === "all" ? "brand" : "ghost"} onPress={() => setFilter("all")} style={isMobile ? styles.btnFull : styles.btnCell} />
+              <PrimaryButton title="Relancer" variant="ghost" onPress={run} style={isMobile ? styles.btnFull : styles.btnCell} />
             </View>
           </GlassCard>
 
@@ -210,14 +213,14 @@ export default function FinalCheckScreen() {
                         await toggleFinalCheckFinding(visaId, f.id);
                         await run();
                       }}
-                      style={{ flex: 1 }}
+                      style={isMobile ? styles.btnFull : styles.btnCell}
                     />
-                    {route ? <PrimaryButton title="Ouvrir" onPress={() => router.push(route as any)} style={{ flex: 1 }} /> : null}
+                    {route ? <PrimaryButton title="Ouvrir" onPress={() => router.push(route as any)} style={isMobile ? styles.btnFull : styles.btnCell} /> : null}
                     {actionKey === "open_document_edit" ? (
-                      <PrimaryButton title="Doc" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: f.action?.params } as any)} style={{ flex: 1 }} />
+                      <PrimaryButton title="Doc" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: f.action?.params } as any)} style={isMobile ? styles.btnFull : styles.btnCell} />
                     ) : null}
                     {actionKey === "open_document_add" ? (
-                      <PrimaryButton title="Ajouter" variant="ghost" onPress={() => router.push({ pathname: "/documents/add", params: f.action?.params } as any)} style={{ flex: 1 }} />
+                      <PrimaryButton title="Ajouter" variant="ghost" onPress={() => router.push({ pathname: "/documents/add", params: f.action?.params } as any)} style={isMobile ? styles.btnFull : styles.btnCell} />
                     ) : null}
                   </View>
                   <View style={[styles.dot, { backgroundColor: dot, marginTop: 10 }]} />
@@ -231,9 +234,9 @@ export default function FinalCheckScreen() {
             <Text style={styles.body}>{data.final_user_prompt}</Text>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>
-              <PrimaryButton title="1) Corriger High" onPress={() => setFilter("high")} style={{ flex: 1 }} />
-              <PrimaryButton title="2) Medium/Low" variant="ghost" onPress={() => setFilter("all")} style={{ flex: 1 }} />
-              <PrimaryButton title="3) Rapport readiness" variant="ghost" onPress={() => router.push("/tools/forms")} style={{ flex: 1 }} />
+              <PrimaryButton title="1) Corriger High" onPress={() => setFilter("high")} style={isMobile ? styles.btnFull : styles.btnCell} />
+              <PrimaryButton title="2) Medium/Low" variant="ghost" onPress={() => setFilter("all")} style={isMobile ? styles.btnFull : styles.btnCell} />
+              <PrimaryButton title="3) Rapport readiness" variant="ghost" onPress={() => router.push("/tools/forms")} style={isMobile ? styles.btnFull : styles.btnCell} />
             </View>
           </GlassCard>
         </>
@@ -252,6 +255,8 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
   error: { color: Colors.warning, fontSize: Tokens.font.size.md, lineHeight: 22 },
   row2: { flexDirection: "row", gap: 10, marginTop: 8, flexWrap: "wrap" },
+  btnCell: { flexGrow: 1, flexBasis: 170 },
+  btnFull: { width: "100%" },
   bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   dot: { width: 10, height: 10, borderRadius: 99 },
   text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
