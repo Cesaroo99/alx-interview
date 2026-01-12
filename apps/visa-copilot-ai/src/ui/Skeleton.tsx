@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 
 export function SkeletonLine({
@@ -20,6 +20,7 @@ export function SkeletonLine({
   height?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const colors = useColors();
   const p = useSharedValue(0.4);
 
   useEffect(() => {
@@ -28,12 +29,13 @@ export function SkeletonLine({
 
   const aStyle = useAnimatedStyle(() => ({ opacity: p.value }));
 
-  return <Animated.View style={[styles.line, { width, height }, aStyle, style]} />;
+  return <Animated.View style={[styles.line, { width, height, backgroundColor: colors.skeleton }, aStyle, style]} />;
 }
 
 export function SkeletonCard() {
+  const colors = useColors();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.card }]}>
       <SkeletonLine width="55%" />
       <View style={{ height: Tokens.space.md }} />
       <SkeletonLine />
@@ -48,13 +50,10 @@ export function SkeletonCard() {
 const styles = StyleSheet.create({
   line: {
     borderRadius: 999,
-    backgroundColor: Colors.skeleton,
   },
   card: {
     borderRadius: Tokens.radius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card,
     padding: Tokens.space.lg,
   },
 });

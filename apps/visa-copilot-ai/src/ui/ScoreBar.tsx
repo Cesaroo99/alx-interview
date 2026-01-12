@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 
 export function ScoreBar({
   value01,
@@ -10,16 +10,17 @@ export function ScoreBar({
   value01: number; // 0..1
   kind?: "readiness" | "risk";
 }) {
+  const colors = useColors();
   const tint = useMemo(() => {
     if (kind === "risk") {
-      if (value01 >= 0.65) return Colors.danger;
-      if (value01 >= 0.4) return Colors.warning;
-      return Colors.success;
+      if (value01 >= 0.65) return colors.danger;
+      if (value01 >= 0.4) return colors.warning;
+      return colors.success;
     }
-    if (value01 >= 0.75) return Colors.success;
-    if (value01 >= 0.55) return Colors.warning;
-    return Colors.danger;
-  }, [kind, value01]);
+    if (value01 >= 0.75) return colors.success;
+    if (value01 >= 0.55) return colors.warning;
+    return colors.danger;
+  }, [colors.danger, colors.success, colors.warning, kind, value01]);
 
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -37,7 +38,7 @@ export function ScoreBar({
   });
 
   return (
-    <View style={styles.track}>
+    <View style={[styles.track, { borderColor: colors.border, backgroundColor: "rgba(127,127,127,0.14)" }]}>
       <Animated.View style={[styles.fill, { backgroundColor: tint, width }]} />
     </View>
   );
@@ -47,10 +48,8 @@ const styles = StyleSheet.create({
   track: {
     height: 10,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   fill: {
     height: "100%",

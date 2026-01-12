@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, StyleSheet, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 
 import { Api, type FinalCheckResponse } from "@/src/api/client";
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { useTypeScale } from "@/src/theme/typography";
+import { AppText } from "@/src/ui/AppText";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
@@ -12,13 +14,6 @@ import { useDocuments } from "@/src/state/documents";
 import { useInsights } from "@/src/state/insights";
 import { useProfile } from "@/src/state/profile";
 import { useVisaTimeline } from "@/src/state/visa_timeline";
-
-function riskDot(r: string) {
-  const x = String(r || "").toLowerCase();
-  if (x === "high") return Colors.danger;
-  if (x === "medium") return Colors.warning;
-  return Colors.faint;
-}
 
 function actionToRoute(actionKey?: string | null) {
   const k = String(actionKey || "");
@@ -37,6 +32,8 @@ function actionToRoute(actionKey?: string | null) {
 export default function FinalCheckScreen() {
   const { width } = useWindowDimensions();
   const isMobile = width < 720;
+  const colors = useColors();
+  const type = useTypeScale();
 
   const { profile } = useProfile();
   const { insights } = useInsights();
@@ -138,31 +135,31 @@ export default function FinalCheckScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Vérification finale</Text>
-        <Text style={styles.subtitle}>Dernier contrôle avant soumission: cohérence, pièces, itinéraire, coûts, RDV.</Text>
+        <AppText variant="h1">Vérification finale</AppText>
+        <AppText tone="muted">Dernier contrôle avant soumission: cohérence, pièces, itinéraire, coûts, RDV.</AppText>
       </View>
 
       {loading ? (
         <GlassCard>
           <View style={styles.loadingRow}>
             <ActivityIndicator />
-            <Text style={styles.loadingText}>Analyse finale…</Text>
+            <AppText tone="muted">Analyse finale…</AppText>
           </View>
         </GlassCard>
       ) : error ? (
         <GlassCard>
-          <Text style={styles.error}>{error}</Text>
+          <AppText tone="warning">{error}</AppText>
         </GlassCard>
       ) : data ? (
         <>
           <GlassCard>
-            <Text style={styles.cardTitle}>A. Résumé du dossier</Text>
+            <AppText variant="h3">A. Résumé du dossier</AppText>
             <View style={{ height: Tokens.space.sm }} />
-            <Text style={styles.body}>Statut: {data.A_dossier_summary.readiness_status}</Text>
-            <Text style={styles.body}>
+            <AppText tone="muted">Statut: {data.A_dossier_summary.readiness_status}</AppText>
+            <AppText tone="muted">
               Checks: {data.A_dossier_summary.total_checks} · High: {data.A_dossier_summary.high_risks} · Medium: {data.A_dossier_summary.medium_risks} · Low:{" "}
               {data.A_dossier_summary.low_risks}
-            </Text>
+            </AppText>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>
               <PrimaryButton title="Corriger High" variant={filter === "high" ? "brand" : "ghost"} onPress={() => setFilter("high")} style={isMobile ? styles.btnFull : styles.btnCell} />
@@ -172,37 +169,52 @@ export default function FinalCheckScreen() {
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>C. Prochaines étapes</Text>
+            <AppText variant="h3">C. Prochaines étapes</AppText>
             {(data.C_next_steps_summary.what_to_do_now || []).slice(0, 6).map((x) => (
               <View key={x} style={styles.bulletRow}>
-                <View style={[styles.dot, { backgroundColor: Colors.brandB }]} />
-                <Text style={styles.text}>{x}</Text>
+                <View style={[styles.dot, { backgroundColor: colors.brandB, marginTop: 6 }]} />
+                <AppText tone="muted" style={styles.text}>
+                  {x}
+                </AppText>
               </View>
             ))}
             {(data.C_next_steps_summary.what_is_blocked || []).slice(0, 6).map((x) => (
               <View key={x} style={styles.bulletRow}>
-                <View style={[styles.dot, { backgroundColor: Colors.faint }]} />
-                <Text style={styles.text}>{x}</Text>
+                <View style={[styles.dot, { backgroundColor: colors.faint, marginTop: 6 }]} />
+                <AppText tone="muted" style={styles.text}>
+                  {x}
+                </AppText>
               </View>
             ))}
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>B. Constats détaillés</Text>
+            <AppText variant="h3">B. Constats détaillés</AppText>
             <View style={{ height: Tokens.space.sm }} />
             {findings.map((f) => {
-              const dot = riskDot(f.risk_level);
+              const r = String(f.risk_level || "").toLowerCase();
+              const dot = r === "high" ? colors.danger : r === "medium" ? colors.warning : colors.faint;
               const actionKey = f.action?.action_key;
               const route = actionToRoute(actionKey);
               return (
-                <View key={f.id} style={styles.findingCard}>
+                <View key={f.id} style={[styles.findingCard, { borderColor: colors.border, backgroundColor: colors.card2 }]}>
                   <View style={styles.rowBetween}>
-                    <Text style={styles.findingTitle}>{f.issue}</Text>
-                    <Text style={styles.pill}>{f.risk_level}</Text>
+                    <AppText variant="bodyStrong" style={[styles.findingTitle, { color: colors.text }]}>
+                      {f.issue}
+                    </AppText>
+                    <AppText variant="caption" tone="muted">
+                      {f.risk_level}
+                    </AppText>
                   </View>
-                  <Text style={styles.note}>{f.description}</Text>
-                  <Text style={styles.note}>Action: {f.suggested_action}</Text>
-                  <Text style={styles.hint}>Statut: {f.status} · Priorité: {f.priority}</Text>
+                  <AppText variant="caption" tone="faint" style={styles.note}>
+                    {f.description}
+                  </AppText>
+                  <AppText variant="caption" tone="faint" style={styles.note}>
+                    Action: {f.suggested_action}
+                  </AppText>
+                  <AppText variant="caption" tone="faint" style={styles.hint}>
+                    Statut: {f.status} · Priorité: {f.priority}
+                  </AppText>
                   <View style={{ height: Tokens.space.sm }} />
                   <View style={styles.row2}>
                     <PrimaryButton
@@ -230,8 +242,8 @@ export default function FinalCheckScreen() {
           </GlassCard>
 
           <GlassCard>
-            <Text style={styles.cardTitle}>Votre choix</Text>
-            <Text style={styles.body}>{data.final_user_prompt}</Text>
+            <AppText variant="h3">Votre choix</AppText>
+            <AppText tone="muted">{data.final_user_prompt}</AppText>
             <View style={{ height: Tokens.space.md }} />
             <View style={styles.row2}>
               <PrimaryButton title="1) Corriger High" onPress={() => setFilter("high")} style={isMobile ? styles.btnFull : styles.btnCell} />
@@ -247,24 +259,17 @@ export default function FinalCheckScreen() {
 
 const styles = StyleSheet.create({
   header: { gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   loadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
-  error: { color: Colors.warning, fontSize: Tokens.font.size.md, lineHeight: 22 },
   row2: { flexDirection: "row", gap: 10, marginTop: 8, flexWrap: "wrap" },
   btnCell: { flexGrow: 1, flexBasis: 170 },
   btnFull: { width: "100%" },
   bulletRow: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   dot: { width: 10, height: 10, borderRadius: 99 },
-  text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  findingCard: { marginTop: Tokens.space.md, padding: Tokens.space.md, borderRadius: Tokens.radius.lg, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card2 },
+  text: { flex: 1 },
+  findingCard: { marginTop: Tokens.space.md, padding: Tokens.space.md, borderRadius: Tokens.radius.lg, borderWidth: 1 },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  findingTitle: { flex: 1, color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold, lineHeight: 22 },
-  note: { marginTop: 6, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
-  hint: { marginTop: 6, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
-  pill: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
+  findingTitle: { flex: 1 },
+  note: { marginTop: 6 },
+  hint: { marginTop: 6 },
 });
 

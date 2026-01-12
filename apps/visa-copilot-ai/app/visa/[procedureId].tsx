@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Api, type ProcedureTimelineResponse } from "@/src/api/client";
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AppText } from "@/src/ui/AppText";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
@@ -13,12 +14,12 @@ import { useInsights } from "@/src/state/insights";
 import { useProfile } from "@/src/state/profile";
 import { useVisaTimeline } from "@/src/state/visa_timeline";
 
-function statusTone(s: string) {
+function statusTone(colors: ReturnType<typeof useColors>, s: string) {
   const x = String(s || "").toLowerCase();
-  if (x.includes("blocked")) return Colors.danger;
-  if (x.includes("in progress")) return Colors.warning;
-  if (x.includes("completed")) return Colors.success;
-  return Colors.faint;
+  if (x.includes("blocked")) return colors.danger;
+  if (x.includes("in progress")) return colors.warning;
+  if (x.includes("completed")) return colors.success;
+  return colors.faint;
 }
 
 function actionToRoute(actionKey?: string | null) {
@@ -40,6 +41,7 @@ export default function VisaJourneyScreen() {
   const procedureId = String(params?.procedureId || "").trim();
   const { width } = useWindowDimensions();
   const isMobile = width < 900;
+  const colors = useColors();
 
   const { profile } = useProfile();
   const { docs } = useDocuments();
@@ -155,39 +157,39 @@ export default function VisaJourneyScreen() {
   return (
     <Screen scroll={false}>
       <View style={styles.header}>
-        <Text style={styles.title}>Parcours visa</Text>
-        <Text style={styles.subtitle}>
+        <AppText variant="h1">Parcours visa</AppText>
+        <AppText tone="muted">
           Procédure: {ctx.destination_region} · {ctx.visa_type} · Progression {progress.done}/{progress.total}
-        </Text>
+        </AppText>
       </View>
 
       {loading ? (
         <GlassCard>
           <View style={styles.loadingRow}>
             <ActivityIndicator />
-            <Text style={styles.loadingText}>Chargement de la timeline…</Text>
+            <AppText tone="muted">Chargement de la timeline…</AppText>
           </View>
         </GlassCard>
       ) : !profile ? (
         <GlassCard>
-          <Text style={styles.body}>Pour ouvrir cette procédure, vous devez d’abord compléter votre profil.</Text>
+          <AppText tone="muted">Pour ouvrir cette procédure, vous devez d’abord compléter votre profil.</AppText>
           <View style={{ height: Tokens.space.md }} />
           <PrimaryButton title="Compléter mon profil" onPress={() => router.push("/profile")} />
         </GlassCard>
       ) : error ? (
         <GlassCard>
-          <Text style={styles.error}>{error}</Text>
+          <AppText tone="warning">{error}</AppText>
         </GlassCard>
       ) : data ? (
         <View style={[styles.twoCol, isMobile ? styles.twoColMobile : null]}>
           {/* LEFT 30%: timeline */}
           <View style={[styles.leftCol, isMobile ? styles.colMobile : null]}>
             <GlassCard>
-              <Text style={styles.cardTitle}>Timeline</Text>
+              <AppText variant="h3">Timeline</AppText>
               <View style={{ height: Tokens.space.sm }} />
               {(steps || []).map((s) => {
                 const active = String(s.id) === String(activeStep?.id);
-                const tone = statusTone(String(s.status));
+                const tone = statusTone(colors, String(s.status));
                 const blocked = String(s.status || "").toLowerCase().includes("blocked");
                 return (
                   <Pressable
@@ -199,8 +201,10 @@ export default function VisaJourneyScreen() {
                     style={[styles.stepBtn, active ? styles.stepBtnActive : null, blocked ? { opacity: 0.55 } : null]}>
                     <View style={[styles.dot, { backgroundColor: tone }]} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.stepName}>{s.name}</Text>
-                      <Text style={styles.stepMeta}>{s.status}</Text>
+                      <AppText variant="bodyStrong">{s.name}</AppText>
+                      <AppText variant="caption" tone="faint">
+                        {s.status}
+                      </AppText>
                     </View>
                   </Pressable>
                 );
@@ -211,16 +215,16 @@ export default function VisaJourneyScreen() {
           {/* RIGHT 70%: active step content */}
           <View style={[styles.rightCol, isMobile ? styles.colMobile : null]}>
             <GlassCard>
-              <Text style={styles.cardTitle}>{activeStep?.name || "Étape"}</Text>
+              <AppText variant="h3">{activeStep?.name || "Étape"}</AppText>
               <View style={{ height: Tokens.space.sm }} />
-              <Text style={styles.body}>{activeStep?.instruction_now || "—"}</Text>
-              {blockedReason ? <Text style={styles.blocked}>{blockedReason}</Text> : null}
+              <AppText tone="muted">{activeStep?.instruction_now || "—"}</AppText>
+              {blockedReason ? <AppText tone="danger">{blockedReason}</AppText> : null}
               {(activeStep?.estimated_duration || activeStep?.priority) ? (
-                <Text style={styles.hint}>
+                <AppText variant="caption" tone="faint" style={styles.hint}>
                   {activeStep?.estimated_duration ? `Durée estimée: ${activeStep.estimated_duration}` : ""}
                   {activeStep?.estimated_duration && activeStep?.priority ? " · " : ""}
                   {activeStep?.priority ? `Priorité: ${activeStep.priority}` : ""}
-                </Text>
+                </AppText>
               ) : null}
 
               <View style={{ height: Tokens.space.md }} />
@@ -255,7 +259,11 @@ export default function VisaJourneyScreen() {
                   style={{ flex: 1, opacity: blockedReason ? 0.6 : 1 }}
                 />
               </View>
-              {blockedReason ? <Text style={styles.hint}>Bloqué: {blockedReason}</Text> : null}
+              {blockedReason ? (
+                <AppText variant="caption" tone="faint" style={styles.hint}>
+                  Bloqué: {blockedReason}
+                </AppText>
+              ) : null}
             </GlassCard>
           </View>
         </View>
@@ -266,24 +274,15 @@ export default function VisaJourneyScreen() {
 
 const styles = StyleSheet.create({
   header: { padding: Tokens.space.xl, gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   twoCol: { flex: 1, flexDirection: "row", gap: Tokens.space.lg, paddingHorizontal: Tokens.space.xl, paddingBottom: Tokens.space.xl },
   twoColMobile: { flexDirection: "column", paddingHorizontal: Tokens.space.lg },
   leftCol: { width: "30%" },
   rightCol: { width: "70%" },
   colMobile: { width: "100%" },
-  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  body: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  hint: { marginTop: Tokens.space.sm, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
-  blocked: { marginTop: Tokens.space.sm, color: Colors.danger, fontSize: Tokens.font.size.sm, lineHeight: 20 },
+  hint: { marginTop: Tokens.space.sm },
   loadingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  loadingText: { color: Colors.muted, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.medium },
-  error: { color: Colors.warning, fontSize: Tokens.font.size.md, lineHeight: 22 },
   stepBtn: { flexDirection: "row", gap: 10, paddingVertical: 10, paddingHorizontal: 10, borderRadius: Tokens.radius.lg, alignItems: "center" },
   stepBtnActive: { backgroundColor: "rgba(124,92,255,0.14)", borderWidth: 1, borderColor: "rgba(124,92,255,0.22)" },
-  stepName: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold, lineHeight: 22 },
-  stepMeta: { color: Colors.faint, fontSize: Tokens.font.size.xs, marginTop: 2 },
   dot: { width: 10, height: 10, borderRadius: 99, marginTop: 2 },
   row2: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   footerCtas: { flexDirection: "row", gap: 10, flexWrap: "wrap" },

@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AppText } from "@/src/ui/AppText";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { HeroBanner } from "@/src/ui/HeroBanner";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
@@ -12,6 +13,7 @@ import { Screen } from "@/src/ui/Screen";
 export default function ToolsScreen() {
   const { width } = useWindowDimensions();
   const isMobile = width < 720;
+  const colors = useColors();
 
   const btnCellStyle = useMemo(() => {
     // Sur mobile: évite les boutons trop petits (texte coupé) en forçant des largeurs lisibles.
@@ -28,8 +30,10 @@ export default function ToolsScreen() {
       />
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Préparer le dossier (priorité)</Text>
-        <Text style={styles.body}>Les 3 actions qui améliorent le plus vite la cohérence: itinéraire, budget, corrections.</Text>
+        <AppText variant="h3">Préparer le dossier (priorité)</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Les 3 actions qui améliorent le plus vite la cohérence: itinéraire, budget, corrections.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <View style={styles.rowButtons}>
           <PrimaryButton title="Itinéraire" variant="ghost" onPress={() => router.push("/tools/travel")} style={btnCellStyle} />
@@ -42,58 +46,74 @@ export default function ToolsScreen() {
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Propositions de visa</Text>
-        <Text style={styles.body}>Voir les visas potentiellement accessibles + score et pistes d’amélioration.</Text>
+        <AppText variant="h3">Propositions de visa</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Voir les visas potentiellement accessibles + score et pistes d’amélioration.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/eligibility")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Ambassades & consulats</Text>
-        <Text style={styles.body}>Trouver une ambassade/consulat/TLS/VFS (liste + filtres) et ouvrir l’itinéraire.</Text>
+        <AppText variant="h3">Ambassades & consulats</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Trouver une ambassade/consulat/TLS/VFS (liste + filtres) et ouvrir l’itinéraire.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/offices")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Actualités visa & lois</Text>
-        <Text style={styles.body}>Flux par pays, catégories et tags (avec sources et avertissements).</Text>
+        <AppText variant="h3">Actualités visa & lois</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Flux par pays, catégories et tags (avec sources et avertissements).
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/news")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Rendez-vous & rappels</Text>
-        <Text style={styles.body}>Créer des rappels et suivre les délais.</Text>
+        <AppText variant="h3">Rendez-vous & rappels</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Créer des rappels et suivre les délais.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/(tabs)/appointments")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Travel Intelligence (simulation)</Text>
-        <Text style={styles.body}>Générer un itinéraire “visa‑compliant” (sans réservation) + alertes de cohérence.</Text>
+        <AppText variant="h3">Travel Intelligence (simulation)</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Générer un itinéraire “visa‑compliant” (sans réservation) + alertes de cohérence.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/travel")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Estimation des coûts</Text>
-        <Text style={styles.body}>Calcule un total à partir des montants officiels + détecte des frais suspects.</Text>
+        <AppText variant="h3">Estimation des coûts</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Calcule un total à partir des montants officiels + détecte des frais suspects.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir" variant="ghost" onPress={() => router.push("/tools/costs")} />
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Abonnements & paiement</Text>
-        <Text style={styles.body}>Choisir un plan et payer via checkout (MVP).</Text>
+        <AppText variant="h3">Abonnements & paiement</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Choisir un plan et payer via checkout (MVP).
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Voir les plans" variant="ghost" onPress={() => router.push("/(tabs)/billing")} />
       </GlassCard>
 
       {process.env.EXPO_PUBLIC_ADMIN_MODE === "1" ? (
         <GlassCard>
-          <Text style={styles.cardTitle}>Admin</Text>
-          <Text style={styles.body}>Éditer les règles d’éligibilité (mode admin).</Text>
+          <AppText variant="h3">Admin</AppText>
+          <AppText tone="muted" style={styles.body}>
+            Éditer les règles d’éligibilité (mode admin).
+          </AppText>
           <View style={{ height: Tokens.space.md }} />
           <PrimaryButton title="Règles éligibilité" variant="ghost" onPress={() => router.push("/(tabs)/admin_rules")} />
         </GlassCard>
@@ -103,12 +123,12 @@ export default function ToolsScreen() {
 }
 
 const styles = StyleSheet.create({
-  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  cardTitle: {},
+  body: { marginTop: Tokens.space.sm },
   rowButtons: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   btnCell: { flexGrow: 1, flexBasis: 160 },
   row: { flexDirection: "row", gap: 10, marginTop: Tokens.space.sm, alignItems: "flex-start" },
   dot: { width: 10, height: 10, borderRadius: 99, marginTop: 6 },
-  text: { flex: 1, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  text: { flex: 1 },
 });
 
