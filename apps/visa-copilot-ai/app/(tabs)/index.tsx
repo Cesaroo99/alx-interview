@@ -3,8 +3,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { Api, type ProcedureTimelineResponse } from "@/src/api/client";
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { useTypeScale } from "@/src/theme/typography";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
@@ -20,6 +21,8 @@ import { useProfile } from "@/src/state/profile";
 import { useVisaTimeline } from "@/src/state/visa_timeline";
 
 export default function HomeScreen() {
+  const colors = useColors();
+  const type = useTypeScale();
   const { profile, clearProfile } = useProfile();
   const { docs } = useDocuments();
   const { insights, setLastDiagnostic } = useInsights();
@@ -158,7 +161,7 @@ export default function HomeScreen() {
       <AnimatedIn delayMs={0}>
         <GlassCard>
           <View style={styles.rowTop}>
-            <Text style={styles.cardTitle}>Progression</Text>
+            <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Progression</Text>
             <Badge
               label={`${completion.done}/${completion.total}`}
               tone={completion.done === completion.total ? "success" : completion.done >= 3 ? "warning" : "danger"}
@@ -166,7 +169,7 @@ export default function HomeScreen() {
           </View>
           <View style={{ height: Tokens.space.sm }} />
           <ProgressBar step={completion.done} total={completion.total} />
-          <Text style={styles.body}>
+          <Text style={[styles.body, type.body, { color: colors.muted }]}>
             {profile ? `${profile.nationality} · ${profile.age} ans · ${profile.profession}` : "Aucun profil"}
           </Text>
           <View style={{ height: Tokens.space.md }} />
@@ -196,23 +199,25 @@ export default function HomeScreen() {
             />
             <PrimaryButton title="Documents" variant="ghost" onPress={() => router.push("/(tabs)/documents")} style={{ flex: 1 }} />
           </View>
-          {activeProcedureId && nextActionLabel ? <Text style={styles.body}>Prochaine action recommandée: {nextActionLabel}</Text> : null}
+          {activeProcedureId && nextActionLabel ? (
+            <Text style={[styles.body, type.body, { color: colors.muted }]}>Prochaine action recommandée: {nextActionLabel}</Text>
+          ) : null}
         </GlassCard>
       </AnimatedIn>
 
       <AnimatedIn delayMs={90}>
         <GlassCard>
-          <Text style={styles.cardTitle}>Alertes critiques</Text>
+          <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Alertes critiques</Text>
           <View style={{ height: Tokens.space.sm }} />
           {criticalAlerts.length ? (
             criticalAlerts.map((a) => (
               <View key={a} style={styles.bulletRow}>
-                <View style={[styles.bulletDot, { backgroundColor: Colors.danger }]} />
-                <Text style={styles.bulletText}>{a}</Text>
+                <View style={[styles.bulletDot, { backgroundColor: colors.danger }]} />
+                <Text style={[styles.bulletText, type.body, { color: colors.muted }]}>{a}</Text>
               </View>
             ))
           ) : (
-            <Text style={styles.body}>Aucune alerte critique détectée.</Text>
+            <Text style={[styles.body, type.body, { color: colors.muted }]}>Aucune alerte critique détectée.</Text>
           )}
         </GlassCard>
       </AnimatedIn>
@@ -220,14 +225,14 @@ export default function HomeScreen() {
       <AnimatedIn delayMs={130}>
         <GlassCard>
           <View style={styles.rowTop}>
-            <Text style={styles.cardTitle}>Procédure visa</Text>
+            <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Procédure visa</Text>
             {journeyLoading ? <ActivityIndicator /> : null}
           </View>
-          <Text style={styles.body}>Suivi par étapes, avec raisons de blocage et prochaines actions.</Text>
+          <Text style={[styles.body, type.body, { color: colors.muted }]}>Suivi par étapes, avec raisons de blocage et prochaines actions.</Text>
           <View style={{ height: Tokens.space.md }} />
           {activeProcedureId ? (
             <>
-              <Text style={styles.body}>
+              <Text style={[styles.body, type.body, { color: colors.muted }]}>
                 Avancement: {procedureProgress.done}/{procedureProgress.total} · Bloqués: {procedureProgress.blocked.length} · En cours: {procedureProgress.warnings.length}
               </Text>
               <View style={{ height: Tokens.space.md }} />
@@ -245,7 +250,9 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.body}>Aucune procédure active. Démarrez pour obtenir une timeline et des actions guidées.</Text>
+              <Text style={[styles.body, type.body, { color: colors.muted }]}>
+                Aucune procédure active. Démarrez pour obtenir une timeline et des actions guidées.
+              </Text>
               <View style={{ height: Tokens.space.md }} />
               <PrimaryButton
                 title="Démarrer une procédure"
@@ -272,12 +279,12 @@ export default function HomeScreen() {
       <AnimatedIn delayMs={160}>
         <GlassCard>
           <View style={styles.rowTop}>
-            <Text style={styles.cardTitle}>Dernier diagnostic</Text>
+            <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Dernier diagnostic</Text>
             {loading ? <ActivityIndicator /> : null}
           </View>
           <View style={{ height: Tokens.space.md }} />
           {error ? (
-            <Text style={styles.warn}>API indisponible (affichage des derniers résultats si disponibles).</Text>
+            <Text style={[styles.warn, { color: colors.warning }]}>API indisponible (affichage des derniers résultats si disponibles).</Text>
           ) : null}
           {loading && !insights.lastDiagnostic ? (
             <SkeletonCard />
@@ -290,20 +297,20 @@ export default function HomeScreen() {
               <PrimaryButton title="Ouvrir le diagnostic" onPress={() => router.push("/(tabs)/diagnostic")} />
             </>
           ) : (
-            <Text style={styles.body}>Lancez un diagnostic pour voir vos scores.</Text>
+            <Text style={[styles.body, type.body, { color: colors.muted }]}>Lancez un diagnostic pour voir vos scores.</Text>
           )}
         </GlassCard>
       </AnimatedIn>
 
       <AnimatedIn delayMs={220}>
         <GlassCard>
-          <Text style={styles.cardTitle}>Dernier score dossier</Text>
+          <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Dernier score dossier</Text>
           <View style={{ height: Tokens.space.md }} />
           {insights.lastDossier ? (
             <>
               <ScorePill label="Readiness dossier" value={insights.lastDossier.readiness_score} />
               <View style={{ height: Tokens.space.sm }} />
-              <Text style={styles.body}>
+              <Text style={[styles.body, type.body, { color: colors.muted }]}>
                 Cohérence: {Math.round(insights.lastDossier.coherence_score)}/100 · Niveau: {insights.lastDossier.readiness_level}
               </Text>
               <View style={{ height: Tokens.space.md }} />
@@ -311,7 +318,9 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.body}>Pas encore vérifié. Ajoutez des documents et lancez l’analyse dossier.</Text>
+              <Text style={[styles.body, type.body, { color: colors.muted }]}>
+                Pas encore vérifié. Ajoutez des documents et lancez l’analyse dossier.
+              </Text>
               <View style={{ height: Tokens.space.md }} />
               <PrimaryButton title="Vérifier maintenant" onPress={() => router.push("/(tabs)/dossier")} />
             </>
@@ -320,8 +329,8 @@ export default function HomeScreen() {
       </AnimatedIn>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Principe “official-only”</Text>
-        <Text style={styles.body}>
+        <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Principe “official-only”</Text>
+        <Text style={[styles.body, type.body, { color: colors.muted }]}>
           L’app ne soumet rien à votre place. Elle guide et vérifie. Les formulaires et paiements restent sur les portails
           officiels.
         </Text>
@@ -330,8 +339,8 @@ export default function HomeScreen() {
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Profil</Text>
-        <Text style={styles.body}>
+        <Text style={[styles.cardTitle, type.h3, { color: colors.text }]}>Profil</Text>
+        <Text style={[styles.body, type.body, { color: colors.muted }]}>
           {profile ? `${profile.nationality} · ${profile.age} ans · ${profile.profession}` : "Aucun profil"}
         </Text>
         <View style={{ height: Tokens.space.md }} />
@@ -349,17 +358,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  cardTitle: {
-    color: Colors.text,
-    fontSize: Tokens.font.size.lg,
-    fontWeight: Tokens.font.weight.bold,
-  },
-  body: {
-    marginTop: Tokens.space.sm,
-    color: Colors.muted,
-    fontSize: Tokens.font.size.md,
-    lineHeight: 22,
-  },
+  cardTitle: {},
+  body: { marginTop: Tokens.space.sm },
   bulletRow: {
     flexDirection: "row",
     gap: 10,
@@ -371,15 +371,11 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 99,
     marginTop: 6,
-    backgroundColor: Colors.brandA,
   },
   bulletText: {
     flex: 1,
-    color: Colors.muted,
-    fontSize: Tokens.font.size.md,
-    lineHeight: 22,
   },
   rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   ctaRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  warn: { color: Colors.warning, fontSize: Tokens.font.size.sm, lineHeight: 20 },
+  warn: { fontSize: Tokens.font.size.sm, lineHeight: 20 },
 });

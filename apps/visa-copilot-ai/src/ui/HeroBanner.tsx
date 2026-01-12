@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useColors } from "@/src/theme/colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { Tokens } from "@/src/theme/tokens";
+import { useTypeScale } from "@/src/theme/typography";
 
 export function HeroBanner({
   kicker,
@@ -19,6 +20,7 @@ export function HeroBanner({
 }) {
   const colors = useColors();
   const scheme = useColorScheme();
+  const type = useTypeScale();
   return (
     <View style={[styles.root, style]}>
       <LinearGradient
@@ -32,9 +34,9 @@ export function HeroBanner({
         style={[styles.banner, { borderColor: colors.border }]}
       >
         <View style={styles.left}>
-          <Text style={[styles.kicker, { color: colors.brandB }]}>{kicker}</Text>
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</Text>
+          <Text style={[styles.kicker, type.caption, { color: colors.brandB }]}>{kicker}</Text>
+          <Text style={[styles.title, type.h1, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.subtitle, type.body, { color: colors.muted }]}>{subtitle}</Text>
         </View>
         <View style={styles.right}>
           <View style={[styles.logoWrap, { borderColor: colors.border, backgroundColor: scheme === "dark" ? "rgba(12,16,38,0.55)" : "rgba(255,255,255,0.55)" }]}>
@@ -68,20 +70,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: { width: 56, height: 56, resizeMode: "contain" },
-  kicker: {
-    fontWeight: Tokens.font.weight.semibold,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    fontSize: Tokens.font.size.xs,
-  },
-  title: {
-    fontSize: Tokens.font.size.hero,
-    fontWeight: Tokens.font.weight.black,
-    lineHeight: 38,
-  },
-  subtitle: {
-    fontSize: Tokens.font.size.md,
-    lineHeight: 22,
-  },
+  kicker: { letterSpacing: 1, textTransform: "uppercase" },
+  title: {},
+  subtitle: {},
 });
 

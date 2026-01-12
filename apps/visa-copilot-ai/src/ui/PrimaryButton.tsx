@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useColors } from "@/src/theme/colors";
+import { useTypeScale } from "@/src/theme/typography";
 import { Tokens } from "@/src/theme/tokens";
 
 export function PrimaryButton({
@@ -18,6 +19,7 @@ export function PrimaryButton({
   variant?: "brand" | "danger" | "ghost";
 }) {
   const colors = useColors();
+  const type = useTypeScale();
   const bg = useMemo(() => {
     if (variant === "danger") return colors.danger;
     if (variant === "ghost") return "rgba(127,127,127,0.12)";
@@ -50,7 +52,7 @@ export function PrimaryButton({
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      <Text style={[styles.text, { color: fg }]}>{title}</Text>
+      <Text style={[styles.text, type.bodyStrong, { color: fg }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -68,8 +70,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   text: {
-    fontSize: Tokens.font.size.md,
-    fontWeight: Tokens.font.weight.semibold,
     letterSpacing: 0.2,
     textAlign: "center",
     flexShrink: 1,

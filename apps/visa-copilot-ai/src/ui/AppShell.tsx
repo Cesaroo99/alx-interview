@@ -4,6 +4,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { router, usePathname } from "expo-router";
 
 import { useColors } from "@/src/theme/colors";
+import { useTypeScale } from "@/src/theme/typography";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const showRight = width >= 1180;
   const [menuOpen, setMenuOpen] = useState(false);
   const colors = useColors();
+  const type = useTypeScale();
 
   const { profile } = useProfile();
   const { docs } = useDocuments();
@@ -133,7 +135,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {it.showBadge ? <View style={[styles.badgeDot, { backgroundColor: colors.warning }]} /> : null}
                 </View>
                 {!compact ? (
-                  <Text style={[styles.navLabel, { color: colors.navLabelInactive }, active ? [styles.navLabelActive, { color: colors.text }] : null]}>{it.label}</Text>
+                  <Text
+                    style={[
+                      styles.navLabel,
+                      type.bodyStrong,
+                      { color: colors.navLabelInactive },
+                      active ? [styles.navLabelActive, { color: colors.text }] : null,
+                    ]}>
+                    {it.label}
+                  </Text>
                 ) : null}
               </Pressable>
             );
@@ -142,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <View style={{ flex: 1 }} />
           {!compact ? (
             <View style={{ paddingTop: Tokens.space.md }}>
-              <Text style={[styles.smallMuted, { color: colors.faint }]}>Official‑only · No submission</Text>
+              <Text style={[styles.smallMuted, type.caption, { color: colors.faint }]}>Official‑only · No submission</Text>
             </View>
           ) : null}
         </View>
@@ -157,10 +167,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {showRight && Platform.OS === "web" ? (
         <View style={[styles.right, { borderLeftColor: colors.border }]}>
           <GlassCard>
-            <Text style={[styles.rightTitle, { color: colors.text }]}>Contexte</Text>
+            <Text style={[styles.rightTitle, type.h3, { color: colors.text }]}>Contexte</Text>
             <View style={{ height: Tokens.space.sm }} />
             {contextLines.map((l) => (
-              <Text key={l} style={[styles.rightText, { color: colors.muted }]}>
+              <Text key={l} style={[styles.rightText, type.body, { color: colors.muted }]}>
                 - {l}
               </Text>
             ))}
@@ -180,7 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onPress={() => setMenuOpen(true)}
               style={[styles.mobileItem, menuOpen ? { opacity: 0.85 } : null]}>
               <FontAwesome name="bars" size={18} color={colors.text} />
-              <Text style={[styles.mobileLabel, { color: colors.faint }]}>Menu</Text>
+              <Text style={[styles.mobileLabel, type.caption, { color: colors.faint }]}>Menu</Text>
             </Pressable>
 
             {["dashboard", "journey", "documents", "copilot"].map((k) => {
@@ -192,7 +202,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   onPress={() => router.push(it.href as any)}
                   style={[styles.mobileItem, active ? styles.mobileItemActive : null]}>
                   <FontAwesome name={it.icon} size={18} color={active ? colors.brandA : colors.text} />
-                  <Text style={[styles.mobileLabel, { color: colors.faint }, active ? [styles.mobileLabelActive, { color: colors.text }] : null]}>{it.label}</Text>
+                  <Text
+                    style={[
+                      styles.mobileLabel,
+                      type.caption,
+                      { color: colors.faint },
+                      active ? [styles.mobileLabelActive, { color: colors.text }] : null,
+                    ]}>
+                    {it.label}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -201,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {menuOpen ? (
             <Pressable style={styles.drawerOverlay} onPress={() => setMenuOpen(false)}>
               <Pressable style={[styles.drawerCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => void 0}>
-                <Text style={[styles.drawerTitle, { color: colors.text }]}>Navigation</Text>
+                <Text style={[styles.drawerTitle, type.h2, { color: colors.text }]}>Navigation</Text>
                 <View style={{ height: Tokens.space.sm }} />
                 {navItems.map((it) => {
                   const active = isActive(pathname, it.href);
@@ -214,7 +232,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       }}
                       style={[styles.drawerItem, active ? styles.drawerItemActive : null]}>
                       <FontAwesome name={it.icon} size={18} color={active ? colors.brandA : colors.text} />
-                      <Text style={[styles.drawerLabel, { color: colors.text }]}>{it.label}</Text>
+                      <Text style={[styles.drawerLabel, type.bodyStrong, { color: colors.text }]}>{it.label}</Text>
                       {it.showBadge ? <View style={[styles.drawerBadgeDot, { backgroundColor: colors.warning }]} /> : null}
                     </Pressable>
                   );
@@ -257,16 +275,16 @@ const styles = StyleSheet.create({
     borderRadius: Tokens.radius.lg,
   },
   navItemActive: { borderWidth: 1 },
-  navLabel: { fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
+  navLabel: {},
   navLabelActive: {},
   iconWrap: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
   badgeDot: { position: "absolute", top: 1, right: 1, width: 8, height: 8, borderRadius: 99 },
-  smallMuted: { fontSize: Tokens.font.size.xs },
+  smallMuted: {},
   main: { flex: 1 },
   mainInner: { flex: 1 },
   right: { width: 320, padding: Tokens.space.lg, borderLeftWidth: 1 },
-  rightTitle: { fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  rightText: { fontSize: Tokens.font.size.sm, lineHeight: 20, marginTop: 6 },
+  rightTitle: {},
+  rightText: { marginTop: 6 },
   mobileNav: {
     position: "absolute",
     left: 0,
@@ -281,7 +299,7 @@ const styles = StyleSheet.create({
   },
   mobileItem: { alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 8, paddingHorizontal: 6, minWidth: 64 },
   mobileItemActive: { backgroundColor: "rgba(124,92,255,0.10)", borderRadius: Tokens.radius.md },
-  mobileLabel: { fontSize: 11, fontWeight: Tokens.font.weight.semibold },
+  mobileLabel: {},
   mobileLabelActive: {},
   drawerOverlay: {
     position: "absolute",
@@ -298,7 +316,7 @@ const styles = StyleSheet.create({
     padding: Tokens.space.lg,
     borderWidth: 1,
   },
-  drawerTitle: { fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.black },
+  drawerTitle: {},
   drawerItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,7 +326,7 @@ const styles = StyleSheet.create({
     borderRadius: Tokens.radius.lg,
   },
   drawerItemActive: { backgroundColor: "rgba(124,92,255,0.12)" },
-  drawerLabel: { flex: 1, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
+  drawerLabel: { flex: 1 },
   drawerLabelActive: {},
   drawerBadgeDot: { width: 10, height: 10, borderRadius: 99 },
   fab: {
