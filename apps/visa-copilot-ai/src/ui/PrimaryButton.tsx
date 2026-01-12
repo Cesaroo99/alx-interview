@@ -3,7 +3,7 @@ import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native"
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 
 export function PrimaryButton({
@@ -17,11 +17,17 @@ export function PrimaryButton({
   style?: StyleProp<ViewStyle>;
   variant?: "brand" | "danger" | "ghost";
 }) {
+  const colors = useColors();
   const bg = useMemo(() => {
-    if (variant === "danger") return Colors.danger;
-    if (variant === "ghost") return "rgba(16,22,47,0.06)";
-    return Colors.brandA;
-  }, [variant]);
+    if (variant === "danger") return colors.danger;
+    if (variant === "ghost") return "rgba(127,127,127,0.12)";
+    return colors.brandA;
+  }, [colors.brandA, colors.danger, variant]);
+
+  const fg = useMemo(() => {
+    if (variant === "brand") return colors.onBrand;
+    return colors.text;
+  }, [colors.onBrand, colors.text, variant]);
 
   return (
     <Pressable
@@ -32,19 +38,19 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.btn,
         { backgroundColor: variant === "brand" ? "transparent" : bg, opacity: pressed ? 0.85 : 1 },
-        variant === "ghost" ? styles.ghost : null,
+        variant === "ghost" ? [styles.ghost, { borderColor: colors.border }] : null,
         style,
       ]}
     >
       {variant === "brand" ? (
         <LinearGradient
-          colors={[Colors.brandA, Colors.brandB]}
+          colors={[colors.brandA, colors.brandB]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      <Text style={styles.text}>{title}</Text>
+      <Text style={[styles.text, { color: fg }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -60,10 +66,8 @@ const styles = StyleSheet.create({
   },
   ghost: {
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   text: {
-    color: Colors.text,
     fontSize: Tokens.font.size.md,
     fontWeight: Tokens.font.weight.semibold,
     letterSpacing: 0.2,

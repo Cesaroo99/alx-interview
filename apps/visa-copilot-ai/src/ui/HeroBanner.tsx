@@ -2,7 +2,8 @@ import React from "react";
 import { Image, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
+import { useColorScheme } from "@/components/useColorScheme";
 import { Tokens } from "@/src/theme/tokens";
 
 export function HeroBanner({
@@ -16,21 +17,27 @@ export function HeroBanner({
   subtitle: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const colors = useColors();
+  const scheme = useColorScheme();
   return (
     <View style={[styles.root, style]}>
       <LinearGradient
-        colors={["rgba(124,92,255,0.22)", "rgba(53,230,255,0.18)", "rgba(255,77,255,0.14)"]}
+        colors={
+          scheme === "dark"
+            ? ["rgba(124,92,255,0.26)", "rgba(53,230,255,0.18)", "rgba(255,77,255,0.14)"]
+            : ["rgba(124,92,255,0.22)", "rgba(53,230,255,0.18)", "rgba(255,77,255,0.14)"]
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.banner}
+        style={[styles.banner, { borderColor: colors.border }]}
       >
         <View style={styles.left}>
-          <Text style={styles.kicker}>{kicker}</Text>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={[styles.kicker, { color: colors.brandB }]}>{kicker}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</Text>
         </View>
         <View style={styles.right}>
-          <View style={styles.logoWrap}>
+          <View style={[styles.logoWrap, { borderColor: colors.border, backgroundColor: scheme === "dark" ? "rgba(12,16,38,0.55)" : "rgba(255,255,255,0.55)" }]}>
             <Image source={require("../../assets/images/icon.png")} style={styles.logo} />
           </View>
         </View>
@@ -45,7 +52,6 @@ const styles = StyleSheet.create({
     borderRadius: Tokens.radius.xl,
     padding: Tokens.space.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
     overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
@@ -57,28 +63,23 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.55)",
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
   logo: { width: 56, height: 56, resizeMode: "contain" },
   kicker: {
-    color: Colors.brandB,
     fontWeight: Tokens.font.weight.semibold,
     letterSpacing: 1,
     textTransform: "uppercase",
     fontSize: Tokens.font.size.xs,
   },
   title: {
-    color: Colors.text,
     fontSize: Tokens.font.size.hero,
     fontWeight: Tokens.font.weight.black,
     lineHeight: 38,
   },
   subtitle: {
-    color: Colors.muted,
     fontSize: Tokens.font.size.md,
     lineHeight: 22,
   },

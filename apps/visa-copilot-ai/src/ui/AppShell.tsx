@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { router, usePathname } from "expo-router";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
@@ -36,6 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isMobile = width < 720;
   const showRight = width >= 1180;
   const [menuOpen, setMenuOpen] = useState(false);
+  const colors = useColors();
 
   const { profile } = useProfile();
   const { docs } = useDocuments();
@@ -111,10 +112,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const fabBottom = (isMobile ? bottomNavH + 14 : 18) as number;
 
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, { backgroundColor: colors.bg }]}>
       {/* LEFT SIDEBAR (desktop/tablette) */}
       {!isMobile ? (
-        <View style={[styles.sidebar, compact ? styles.sidebarCompact : null]}>
+        <View style={[styles.sidebar, { backgroundColor: colors.navBg, borderRightColor: colors.navBorder }, compact ? styles.sidebarCompact : null]}>
           <Text style={[styles.brand, compact ? styles.brandCompact : null]}>Visa Copilot AI</Text>
           <View style={{ height: Tokens.space.md }} />
           {navItems.map((it) => {
@@ -123,12 +124,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Pressable
                 key={it.key}
                 onPress={() => router.push(it.href as any)}
-                style={[styles.navItem, active ? styles.navItemActive : null]}>
+                style={[
+                  styles.navItem,
+                  active ? [styles.navItemActive, { backgroundColor: colors.navItemBgActive, borderColor: colors.navItemBorderActive }] : null,
+                ]}>
                 <View style={styles.iconWrap}>
-                  <FontAwesome name={it.icon} size={18} color={active ? Colors.brandB : "rgba(245,247,255,0.72)"} />
-                  {it.showBadge ? <View style={styles.badgeDot} /> : null}
+                  <FontAwesome name={it.icon} size={18} color={active ? colors.navItemIconActive : colors.navItemIconInactive} />
+                  {it.showBadge ? <View style={[styles.badgeDot, { backgroundColor: colors.warning }]} /> : null}
                 </View>
-                {!compact ? <Text style={[styles.navLabel, active ? styles.navLabelActive : null]}>{it.label}</Text> : null}
+                {!compact ? (
+                  <Text style={[styles.navLabel, { color: colors.navLabelInactive }, active ? [styles.navLabelActive, { color: colors.text }] : null]}>{it.label}</Text>
+                ) : null}
               </Pressable>
             );
           })}
@@ -136,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <View style={{ flex: 1 }} />
           {!compact ? (
             <View style={{ paddingTop: Tokens.space.md }}>
-              <Text style={styles.smallMuted}>Official‑only · No submission</Text>
+              <Text style={[styles.smallMuted, { color: colors.faint }]}>Official‑only · No submission</Text>
             </View>
           ) : null}
         </View>
@@ -149,12 +155,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* RIGHT CONTEXT PANEL */}
       {showRight && Platform.OS === "web" ? (
-        <View style={styles.right}>
+        <View style={[styles.right, { borderLeftColor: colors.border }]}>
           <GlassCard>
-            <Text style={styles.rightTitle}>Contexte</Text>
+            <Text style={[styles.rightTitle, { color: colors.text }]}>Contexte</Text>
             <View style={{ height: Tokens.space.sm }} />
             {contextLines.map((l) => (
-              <Text key={l} style={styles.rightText}>
+              <Text key={l} style={[styles.rightText, { color: colors.muted }]}>
                 - {l}
               </Text>
             ))}
@@ -169,12 +175,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* MOBILE: Bottom nav + drawer */}
       {isMobile ? (
         <>
-          <View style={styles.mobileNav}>
+          <View style={[styles.mobileNav, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
             <Pressable
               onPress={() => setMenuOpen(true)}
               style={[styles.mobileItem, menuOpen ? { opacity: 0.85 } : null]}>
-              <FontAwesome name="bars" size={18} color={Colors.text} />
-              <Text style={styles.mobileLabel}>Menu</Text>
+              <FontAwesome name="bars" size={18} color={colors.text} />
+              <Text style={[styles.mobileLabel, { color: colors.faint }]}>Menu</Text>
             </Pressable>
 
             {["dashboard", "journey", "documents", "copilot"].map((k) => {
@@ -185,8 +191,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={it.key}
                   onPress={() => router.push(it.href as any)}
                   style={[styles.mobileItem, active ? styles.mobileItemActive : null]}>
-                  <FontAwesome name={it.icon} size={18} color={active ? Colors.brandA : Colors.text} />
-                  <Text style={[styles.mobileLabel, active ? styles.mobileLabelActive : null]}>{it.label}</Text>
+                  <FontAwesome name={it.icon} size={18} color={active ? colors.brandA : colors.text} />
+                  <Text style={[styles.mobileLabel, { color: colors.faint }, active ? [styles.mobileLabelActive, { color: colors.text }] : null]}>{it.label}</Text>
                 </Pressable>
               );
             })}
@@ -194,8 +200,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {menuOpen ? (
             <Pressable style={styles.drawerOverlay} onPress={() => setMenuOpen(false)}>
-              <Pressable style={styles.drawerCard} onPress={() => void 0}>
-                <Text style={styles.drawerTitle}>Navigation</Text>
+              <Pressable style={[styles.drawerCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => void 0}>
+                <Text style={[styles.drawerTitle, { color: colors.text }]}>Navigation</Text>
                 <View style={{ height: Tokens.space.sm }} />
                 {navItems.map((it) => {
                   const active = isActive(pathname, it.href);
@@ -207,9 +213,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         router.push(it.href as any);
                       }}
                       style={[styles.drawerItem, active ? styles.drawerItemActive : null]}>
-                      <FontAwesome name={it.icon} size={18} color={active ? Colors.brandA : Colors.text} />
-                      <Text style={[styles.drawerLabel, active ? styles.drawerLabelActive : null]}>{it.label}</Text>
-                      {it.showBadge ? <View style={styles.drawerBadgeDot} /> : null}
+                      <FontAwesome name={it.icon} size={18} color={active ? colors.brandA : colors.text} />
+                      <Text style={[styles.drawerLabel, { color: colors.text }]}>{it.label}</Text>
+                      {it.showBadge ? <View style={[styles.drawerBadgeDot, { backgroundColor: colors.warning }]} /> : null}
                     </Pressable>
                   );
                 })}
@@ -223,7 +229,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Pressable
         onPress={() => router.push("/(tabs)/copilot")}
         style={[styles.fab, { bottom: fabBottom }, Platform.OS === "web" ? styles.fabWeb : null]}>
-        <FontAwesome name="comments" size={18} color={Colors.text} />
+        <FontAwesome name="comments" size={18} color={colors.onBrand} />
         {!compact && !isMobile ? <Text style={styles.fabText}>Copilot</Text> : null}
       </Pressable>
     </View>
@@ -231,18 +237,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  shell: { flex: 1, flexDirection: "row", backgroundColor: Colors.bg },
+  shell: { flex: 1, flexDirection: "row" },
   sidebar: {
     width: 240,
     paddingTop: Tokens.space.xl,
     paddingHorizontal: Tokens.space.md,
     paddingBottom: Tokens.space.lg,
     borderRightWidth: 1,
-    borderRightColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(6,8,20,0.92)",
   },
   sidebarCompact: { width: 72, paddingHorizontal: 10 },
-  brand: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.black },
+  brand: { color: "#F3F6FF", fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.black },
   brandCompact: { fontSize: Tokens.font.size.sm, lineHeight: 16 },
   navItem: {
     flexDirection: "row",
@@ -252,17 +256,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: Tokens.radius.lg,
   },
-  navItemActive: { backgroundColor: "rgba(124,92,255,0.16)", borderWidth: 1, borderColor: "rgba(124,92,255,0.26)" },
-  navLabel: { color: "rgba(245,247,255,0.78)", fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
-  navLabelActive: { color: Colors.text },
+  navItemActive: { borderWidth: 1 },
+  navLabel: { fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
+  navLabelActive: {},
   iconWrap: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
-  badgeDot: { position: "absolute", top: 1, right: 1, width: 8, height: 8, borderRadius: 99, backgroundColor: Colors.warning },
-  smallMuted: { color: Colors.faint, fontSize: Tokens.font.size.xs },
+  badgeDot: { position: "absolute", top: 1, right: 1, width: 8, height: 8, borderRadius: 99 },
+  smallMuted: { fontSize: Tokens.font.size.xs },
   main: { flex: 1 },
   mainInner: { flex: 1 },
-  right: { width: 320, padding: Tokens.space.lg, borderLeftWidth: 1, borderLeftColor: "rgba(255,255,255,0.08)" },
-  rightTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  rightText: { color: Colors.muted, fontSize: Tokens.font.size.sm, lineHeight: 20, marginTop: 6 },
+  right: { width: 320, padding: Tokens.space.lg, borderLeftWidth: 1 },
+  rightTitle: { fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
+  rightText: { fontSize: Tokens.font.size.sm, lineHeight: 20, marginTop: 6 },
   mobileNav: {
     position: "absolute",
     left: 0,
@@ -273,14 +277,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
     paddingHorizontal: Tokens.space.sm,
-    backgroundColor: "rgba(255,255,255,0.96)",
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   mobileItem: { alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 8, paddingHorizontal: 6, minWidth: 64 },
   mobileItemActive: { backgroundColor: "rgba(124,92,255,0.10)", borderRadius: Tokens.radius.md },
-  mobileLabel: { color: Colors.faint, fontSize: 11, fontWeight: Tokens.font.weight.semibold },
-  mobileLabelActive: { color: Colors.text },
+  mobileLabel: { fontSize: 11, fontWeight: Tokens.font.weight.semibold },
+  mobileLabelActive: {},
   drawerOverlay: {
     position: "absolute",
     top: 0,
@@ -292,13 +294,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   drawerCard: {
-    backgroundColor: Colors.card,
     borderRadius: Tokens.radius.xl,
     padding: Tokens.space.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
-  drawerTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.black },
+  drawerTitle: { fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.black },
   drawerItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,9 +308,9 @@ const styles = StyleSheet.create({
     borderRadius: Tokens.radius.lg,
   },
   drawerItemActive: { backgroundColor: "rgba(124,92,255,0.12)" },
-  drawerLabel: { flex: 1, color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
-  drawerLabelActive: { color: Colors.text },
-  drawerBadgeDot: { width: 10, height: 10, borderRadius: 99, backgroundColor: Colors.warning },
+  drawerLabel: { flex: 1, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.semibold },
+  drawerLabelActive: {},
+  drawerBadgeDot: { width: 10, height: 10, borderRadius: 99 },
   fab: {
     position: "absolute",
     right: 18,
@@ -325,6 +325,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.22)",
   },
   fabWeb: { boxShadow: "0px 10px 24px rgba(0,0,0,0.28)" as any },
-  fabText: { color: Colors.text, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
+  fabText: { color: "#FFFFFF", fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
 });
 

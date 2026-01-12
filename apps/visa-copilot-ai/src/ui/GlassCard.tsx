@@ -2,7 +2,7 @@ import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 
 export function GlassCard({
@@ -12,14 +12,15 @@ export function GlassCard({
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
+  const colors = useColors();
   return (
     <LinearGradient
-      colors={[Colors.card, Colors.card2]}
+      colors={[colors.card, colors.card2]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[styles.card, style]}
+      style={[styles.card, { borderColor: colors.border }, style]}
     >
-      <View style={styles.innerGlow} />
+      <View style={[styles.innerGlow, { backgroundColor: "rgba(53,230,255,0.12)" }]} />
       {children}
     </LinearGradient>
   );
@@ -27,7 +28,6 @@ export function GlassCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderColor: Colors.border,
     borderWidth: 1,
     borderRadius: Tokens.radius.lg,
     padding: Tokens.space.lg,
@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 999,
-    backgroundColor: "rgba(53,230,255,0.12)",
   },
 });
 

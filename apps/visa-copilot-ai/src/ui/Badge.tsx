@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 
 export function Badge({
@@ -11,11 +11,12 @@ export function Badge({
   label: string;
   tone?: "neutral" | "success" | "warning" | "danger";
 }) {
+  const colors = useColors();
   const tint =
-    tone === "success" ? Colors.success : tone === "warning" ? Colors.warning : tone === "danger" ? Colors.danger : Colors.faint;
+    tone === "success" ? colors.success : tone === "warning" ? colors.warning : tone === "danger" ? colors.danger : colors.faint;
   return (
     <View style={[styles.badge, { borderColor: `${tint}55`, backgroundColor: `${tint}14` }]}>
-      <Text style={styles.text}>{label}</Text>
+      <Text style={[styles.text, { color: colors.text }]}>{label}</Text>
     </View>
   );
 }
@@ -28,7 +29,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   text: {
-    color: Colors.text,
     fontSize: Tokens.font.size.xs,
     fontWeight: Tokens.font.weight.semibold,
   },

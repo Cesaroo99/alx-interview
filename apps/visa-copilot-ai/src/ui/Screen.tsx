@@ -2,7 +2,7 @@ import React from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
 import { GradientBackground } from "@/src/ui/GradientBackground";
 
@@ -13,6 +13,7 @@ export function Screen({
   children: React.ReactNode;
   scroll?: boolean;
 }) {
+  const colors = useColors();
   const content = (
     <View style={styles.content}>
       {children}
@@ -22,7 +23,7 @@ export function Screen({
 
   return (
     <GradientBackground>
-      <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top", "left", "right", "bottom"]}>
         {scroll ? (
           <ScrollView
             contentContainerStyle={styles.scroll}
@@ -41,7 +42,6 @@ export function Screen({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.bg,
   },
   scroll: {
     padding: Tokens.space.xl,
