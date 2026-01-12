@@ -73,6 +73,11 @@ export type TimelineState = {
   visas: VisaCase[];
   events: VisaEvent[];
   pending: PendingDetection[];
+  /**
+   * Procédure "active" (source de vérité pour navigation Dashboard/Sidebar).
+   * Peut être un id local (ex: visa_...) ou un id externe (ex: UUID).
+   */
+  activeProcedureId?: string;
   procedure?: Record<string, { completedStepIds: string[]; autoCreatedStepIds?: string[]; updatedAt: number }>;
   finalCheck?: Record<string, { completedFindingIds: string[]; updatedAt: number }>;
   settings?: {
@@ -87,6 +92,7 @@ type Ctx = {
   loaded: boolean;
 
   upsertVisa: (v: { country: string; visaType: string; objective?: string; stage?: VisaStage }) => Promise<string>;
+  setActiveProcedureId: (id: string | null) => Promise<void>;
 
   addManualEvent: (args: {
     visaId: string;
@@ -208,7 +214,14 @@ async function cancelEventReminders(reminders: VisaEvent["reminders"]) {
 }
 
 export function VisaTimelineProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<TimelineState>({ visas: [], events: [], pending: [], procedure: {}, settings: { silentMode: true } });
+  const [state, setState] = useState<TimelineState>({
+    visas: [],
+    events: [],
+    pending: [],
+    activeProcedureId: undefined,
+    procedure: {},
+    settings: { silentMode: true },
+  });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -234,12 +247,13 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
             visas: Array.isArray(parsed?.visas) ? parsed.visas : [],
             events: Array.isArray(parsed?.events) ? parsed.events : [],
             pending: Array.isArray(parsed?.pending) ? parsed.pending : [],
+            activeProcedureId: typeof parsed?.activeProcedureId === "string" ? parsed.activeProcedureId : undefined,
             procedure: typeof parsed?.procedure === "object" && parsed?.procedure ? parsed.procedure : {},
             finalCheck: typeof parsed?.finalCheck === "object" && parsed?.finalCheck ? parsed.finalCheck : {},
             settings: { silentMode: parsed?.settings?.silentMode !== false },
           });
         } else {
-          setState({ visas: [], events: [], pending: [], procedure: {}, finalCheck: {}, settings: { silentMode: true } });
+          setState({ visas: [], events: [], pending: [], activeProcedureId: undefined, procedure: {}, finalCheck: {}, settings: { silentMode: true } });
         }
       } finally {
         setLoaded(true);
@@ -261,14 +275,24 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       const now = Date.now();
       if (existing) {
         const updated: VisaCase = { ...existing, objective: objective ?? existing.objective, stage: stage ?? existing.stage, updatedAt: now };
-        const next = { ...state, visas: state.visas.map((x) => (x.id === existing.id ? updated : x)) };
+        const next = { ...state, visas: state.visas.map((x) => (x.id === existing.id ? updated : x)), activeProcedureId: existing.id };
         await persist(next);
         return existing.id;
       }
       const id = uid("visa");
       const nextVisa: VisaCase = { id, country: c || "unknown", visaType: v || "unknown", objective, stage, createdAt: now, updatedAt: now };
-      await persist({ ...state, visas: [nextVisa, ...state.visas] });
+      await persist({ ...state, visas: [nextVisa, ...state.visas], activeProcedureId: id });
       return id;
+    },
+    [persist, state]
+  );
+
+  const setActiveProcedureId = useCallback(
+    async (id: string | null) => {
+      const nextId = String(id || "").trim() || undefined;
+      if (nextId === state.activeProcedureId) return;
+      const next: TimelineState = { ...state, activeProcedureId: nextId };
+      await persist(next);
     },
     [persist, state]
   );
@@ -532,6 +556,7 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       state,
       loaded,
       upsertVisa,
+      setActiveProcedureId,
       addManualEvent,
       addPendingDetection,
       resolvePendingDetection,
@@ -547,6 +572,7 @@ export function VisaTimelineProvider({ children }: { children: React.ReactNode }
       state,
       loaded,
       upsertVisa,
+      setActiveProcedureId,
       addManualEvent,
       addPendingDetection,
       resolvePendingDetection,

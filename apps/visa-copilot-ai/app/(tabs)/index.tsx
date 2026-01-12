@@ -23,7 +23,7 @@ export default function HomeScreen() {
   const { profile, clearProfile } = useProfile();
   const { docs } = useDocuments();
   const { insights, setLastDiagnostic } = useInsights();
-  const { state: timelineState, upsertVisa } = useVisaTimeline();
+  const { state: timelineState, upsertVisa, setActiveProcedureId } = useVisaTimeline();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [journeyLoading, setJourneyLoading] = useState(false);
@@ -55,14 +55,20 @@ export default function HomeScreen() {
     return visas.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0] || null;
   }, [timelineState.visas]);
 
+  const activeProcedureId = useMemo(() => {
+    const fromState = String(timelineState.activeProcedureId || "").trim();
+    if (fromState) return fromState;
+    return activeVisa?.id || null;
+  }, [activeVisa?.id, timelineState.activeProcedureId]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!profile || !activeVisa) return;
+      if (!profile || !activeProcedureId) return;
       setJourneyLoading(true);
       try {
         const payloadDocs = (docs || []).map((d) => ({ doc_id: d.id, doc_type: d.doc_type, filename: d.filename, extracted: d.extracted || {} }));
-        const manualCompleted = (timelineState.procedure || {})[activeVisa.id]?.completedStepIds || [];
+        const manualCompleted = (timelineState.procedure || {})[activeProcedureId]?.completedStepIds || [];
         const events = timelineState.events || [];
         const hasCost = events.some((e) => e.meta?.cost_engine || String(e.title || "").toLowerCase().includes("estimation des coûts"));
         const hasTravel =
@@ -71,8 +77,8 @@ export default function HomeScreen() {
         const hasAppointment = events.some((e) => e.type === "appointment" || e.type === "biometrics");
         const res = await Api.procedureTimeline({
           profile,
-          destination_region: String(insights?.lastDossier?.destination_region || profile.destination_region_hint || activeVisa.country || "Zone Schengen"),
-          visa_type: String(insights?.lastDossier?.visa_type || activeVisa.visaType || "Visa visiteur / tourisme"),
+          destination_region: String(insights?.lastDossier?.destination_region || profile.destination_region_hint || activeVisa?.country || "Zone Schengen"),
+          visa_type: String(insights?.lastDossier?.visa_type || activeVisa?.visaType || "Visa visiteur / tourisme"),
           documents: payloadDocs,
           signals: { travel_plan_ready: hasTravel, costs_ready: hasCost, appointment_ready: hasAppointment, manual_completed_step_ids: manualCompleted },
         });
@@ -86,7 +92,17 @@ export default function HomeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [activeVisa?.country, activeVisa?.id, activeVisa?.visaType, docs, insights?.lastDossier?.destination_region, insights?.lastDossier?.visa_type, profile, timelineState.events, timelineState.procedure]);
+  }, [
+    activeProcedureId,
+    activeVisa?.country,
+    activeVisa?.visaType,
+    docs,
+    insights?.lastDossier?.destination_region,
+    insights?.lastDossier?.visa_type,
+    profile,
+    timelineState.events,
+    timelineState.procedure,
+  ]);
 
   const procedureProgress = useMemo(() => {
     const steps = journey?.A_timeline_view || [];
@@ -156,29 +172,31 @@ export default function HomeScreen() {
           <View style={{ height: Tokens.space.md }} />
           <View style={styles.ctaRow}>
             <PrimaryButton
-              title={activeVisa ? "Continuer le Visa Journey" : "Démarrer une procédure"}
+              title={activeProcedureId ? "Continuer le Visa Journey" : "Démarrer une procédure"}
               onPress={async () => {
                 if (!profile) {
                   router.push("/profile");
                   return;
                 }
-                if (!activeVisa) {
+                if (!activeProcedureId) {
                   const visaId = await upsertVisa({
                     country: String(profile.destination_region_hint || "Zone Schengen"),
                     visaType: "Visa visiteur / tourisme",
                     objective: "visa",
                     stage: "application",
                   });
+                  await setActiveProcedureId(visaId);
                   router.push(`/visa/${visaId}` as any);
                   return;
                 }
-                router.push(`/visa/${activeVisa.id}` as any);
+                await setActiveProcedureId(activeProcedureId);
+                router.push(`/visa/${activeProcedureId}` as any);
               }}
               style={{ flex: 1 }}
             />
             <PrimaryButton title="Documents" variant="ghost" onPress={() => router.push("/(tabs)/documents")} style={{ flex: 1 }} />
           </View>
-          {activeVisa && nextActionLabel ? <Text style={styles.body}>Prochaine action recommandée: {nextActionLabel}</Text> : null}
+          {activeProcedureId && nextActionLabel ? <Text style={styles.body}>Prochaine action recommandée: {nextActionLabel}</Text> : null}
         </GlassCard>
       </AnimatedIn>
 
@@ -207,14 +225,21 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.body}>Suivi par étapes, avec raisons de blocage et prochaines actions.</Text>
           <View style={{ height: Tokens.space.md }} />
-          {activeVisa ? (
+          {activeProcedureId ? (
             <>
               <Text style={styles.body}>
                 Avancement: {procedureProgress.done}/{procedureProgress.total} · Bloqués: {procedureProgress.blocked.length} · En cours: {procedureProgress.warnings.length}
               </Text>
               <View style={{ height: Tokens.space.md }} />
               <View style={styles.ctaRow}>
-                <PrimaryButton title="Ouvrir Visa Journey" onPress={() => router.push(`/visa/${activeVisa.id}` as any)} style={{ flex: 1 }} />
+                <PrimaryButton
+                  title="Ouvrir Visa Journey"
+                  onPress={async () => {
+                    await setActiveProcedureId(activeProcedureId);
+                    router.push(`/visa/${activeProcedureId}` as any);
+                  }}
+                  style={{ flex: 1 }}
+                />
                 <PrimaryButton title="Vérif finale" variant="ghost" onPress={() => router.push("/tools/final_check")} style={{ flex: 1 }} />
               </View>
             </>
@@ -235,6 +260,7 @@ export default function HomeScreen() {
                     objective: "visa",
                     stage: "application",
                   });
+                  await setActiveProcedureId(visaId);
                   router.push(`/visa/${visaId}` as any);
                 }}
               />

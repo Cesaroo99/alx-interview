@@ -66,23 +66,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return visas.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0] || null;
   }, [timelineState.visas]);
 
+  const activeProcedureId = useMemo(() => {
+    const fromState = String(timelineState.activeProcedureId || "").trim();
+    if (fromState) return fromState;
+    return activeVisa?.id || null;
+  }, [activeVisa?.id, timelineState.activeProcedureId]);
+
   const navItems: NavItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: "home", href: "/(tabs)" },
       { key: "profile", label: "Profil", icon: "user", href: "/profile", showBadge: profileIncomplete },
-      { key: "journey", label: "Visa Journey", icon: "road", href: activeVisa ? `/visa/${activeVisa.id}` : "/(tabs)/parcours" },
+      { key: "journey", label: "Visa Journey", icon: "road", href: activeProcedureId ? `/visa/${activeProcedureId}` : "/(tabs)/parcours" },
       { key: "dossier", label: "Dossier", icon: "folder", href: "/(tabs)/dossier" },
       { key: "documents", label: "Documents", icon: "file-text", href: "/(tabs)/documents" },
       { key: "copilot", label: "Copilot", icon: "comments", href: "/(tabs)/copilot" },
       { key: "tools", label: "Tools", icon: "wrench", href: "/(tabs)/tools" },
     ],
-    [activeVisa?.id, profileIncomplete]
+    [activeProcedureId, profileIncomplete]
   );
 
   const contextLines = useMemo(() => {
     const lines: string[] = [];
     if (activeVisa) {
       lines.push(`Procédure active: ${activeVisa.country} · ${activeVisa.visaType}`);
+    } else if (activeProcedureId) {
+      const dr = insights?.lastDossier?.destination_region || profile?.destination_region_hint;
+      const vt = insights?.lastDossier?.visa_type;
+      lines.push(`Procédure active: ${dr ? String(dr) : activeProcedureId}${vt ? ` · ${vt}` : ""}`);
     } else {
       lines.push("Aucune procédure active.");
     }
@@ -91,7 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     if (!docs.some((d) => d.doc_type === "passport")) lines.push("Bloquant probable: passeport manquant.");
     return lines.slice(0, 4);
-  }, [activeVisa, docs, insights?.lastDossier?.readiness_level, insights?.lastDossier?.readiness_score]);
+  }, [activeProcedureId, activeVisa, docs, insights?.lastDossier?.destination_region, insights?.lastDossier?.readiness_level, insights?.lastDossier?.readiness_score, insights?.lastDossier?.visa_type, profile?.destination_region_hint]);
 
   if (hideChrome) return <>{children}</>;
 

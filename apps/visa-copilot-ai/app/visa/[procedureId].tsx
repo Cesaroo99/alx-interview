@@ -42,7 +42,7 @@ export default function VisaJourneyScreen() {
   const { profile } = useProfile();
   const { docs } = useDocuments();
   const { insights } = useInsights();
-  const { state: timelineState, toggleProcedureStep } = useVisaTimeline();
+  const { state: timelineState, toggleProcedureStep, setActiveProcedureId } = useVisaTimeline();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +50,10 @@ export default function VisaJourneyScreen() {
   const [activeStepId, setActiveStepId] = useState<string>("");
 
   const visaCase = useMemo(() => (timelineState.visas || []).find((v) => v.id === procedureId) || null, [procedureId, timelineState.visas]);
+
+  useEffect(() => {
+    if (procedureId) void setActiveProcedureId(procedureId);
+  }, [procedureId, setActiveProcedureId]);
 
   const ctx = useMemo(() => {
     const d = insights?.lastDossier;
@@ -88,6 +92,10 @@ export default function VisaJourneyScreen() {
   }, [timelineState.events]);
 
   async function run() {
+    if (!procedureId) {
+      setError("ID de procédure manquant.");
+      return;
+    }
     if (!profile) {
       setError("Profil requis.");
       return;
@@ -157,6 +165,12 @@ export default function VisaJourneyScreen() {
             <ActivityIndicator />
             <Text style={styles.loadingText}>Chargement de la timeline…</Text>
           </View>
+        </GlassCard>
+      ) : !profile ? (
+        <GlassCard>
+          <Text style={styles.body}>Pour ouvrir cette procédure, vous devez d’abord compléter votre profil.</Text>
+          <View style={{ height: Tokens.space.md }} />
+          <PrimaryButton title="Compléter mon profil" onPress={() => router.push("/profile")} />
         </GlassCard>
       ) : error ? (
         <GlassCard>
