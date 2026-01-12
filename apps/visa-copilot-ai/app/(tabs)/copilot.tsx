@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
 import { Api } from "@/src/api/client";
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AppText } from "@/src/ui/AppText";
 import { AnimatedIn } from "@/src/ui/AnimatedIn";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
@@ -14,6 +15,7 @@ import { useProfile } from "@/src/state/profile";
 type Msg = { id: string; role: "user" | "assistant"; text: string };
 
 export default function CopilotScreen() {
+  const colors = useColors();
   const { profile } = useProfile();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,10 +43,10 @@ export default function CopilotScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Copilot IA</Text>
-              <Text style={styles.subtitle}>Chat contextuel + actions rapides (visa‑first, official‑only).</Text>
+              <AppText variant="h1">Copilot IA</AppText>
+              <AppText tone="muted">Chat contextuel + actions rapides (visa‑first, official‑only).</AppText>
             </View>
-            <View style={styles.headerIconWrap}>
+            <View style={[styles.headerIconWrap, { borderColor: colors.border, backgroundColor: colors.card2 }]}>
               <Image source={require("../../assets/images/adaptive-icon.png")} style={styles.headerIcon} />
             </View>
           </View>
@@ -57,8 +59,15 @@ export default function CopilotScreen() {
             contentContainerStyle={{ paddingBottom: Tokens.space.md }}
             renderItem={({ item }) => (
               <AnimatedIn delayMs={0} direction="up">
-                <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
-                  <Text style={styles.bubbleText}>{item.text}</Text>
+                <View
+                  style={[
+                    styles.bubble,
+                    { borderColor: colors.border },
+                    item.role === "user"
+                      ? [styles.userBubble, { borderColor: "rgba(124,92,255,0.35)" }]
+                      : [styles.aiBubble, { backgroundColor: colors.card2 }],
+                  ]}>
+                  <AppText>{item.text}</AppText>
                 </View>
               </AnimatedIn>
             )}
@@ -84,8 +93,8 @@ export default function CopilotScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Écrivez votre question…"
-            placeholderTextColor="rgba(245,247,255,0.35)"
-            style={styles.input}
+            placeholderTextColor={colors.faint}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
           />
           <PrimaryButton
             title={loading ? "…" : "Envoyer"}
@@ -122,9 +131,9 @@ export default function CopilotScreen() {
 
         <View style={styles.footerRow}>
           {loading ? <ActivityIndicator /> : null}
-          <Text style={styles.footer}>
+          <AppText variant="caption" tone="faint" style={styles.footer}>
             {profile ? `Profil chargé: ${profile.nationality} · ${profile.profession}` : "Profil non chargé"}
-          </Text>
+          </AppText>
         </View>
       </View>
     </Screen>
@@ -140,14 +149,10 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    backgroundColor: "rgba(6,8,20,0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
   headerIcon: { width: 30, height: 30, resizeMode: "contain" },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   bubble: {
     maxWidth: "92%",
     paddingVertical: Tokens.space.sm,
@@ -155,26 +160,20 @@ const styles = StyleSheet.create({
     borderRadius: Tokens.radius.lg,
     marginTop: Tokens.space.sm,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.06)" },
+  aiBubble: { alignSelf: "flex-start" },
   userBubble: { alignSelf: "flex-end", backgroundColor: "rgba(124,92,255,0.18)", borderColor: "rgba(124,92,255,0.35)" },
-  bubbleText: { color: Colors.text, fontSize: Tokens.font.size.md, lineHeight: 22 },
   composer: { flexDirection: "row", gap: Tokens.space.sm, alignItems: "center" },
   input: {
     flex: 1,
     borderRadius: Tokens.radius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card2,
     paddingHorizontal: Tokens.space.md,
     paddingVertical: Tokens.space.md,
-    color: Colors.text,
-    fontSize: Tokens.font.size.md,
   },
   quickRow: { flexDirection: "row", gap: Tokens.space.sm },
   quickBtn: { flex: 1, paddingHorizontal: 12 },
-  footer: { color: Colors.faint, fontSize: Tokens.font.size.sm, textAlign: "center" },
+  footer: { textAlign: "center" },
   footerRow: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" },
 });
 
