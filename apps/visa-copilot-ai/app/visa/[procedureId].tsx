@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Api, type ProcedureTimelineResponse } from "@/src/api/client";
@@ -38,11 +38,13 @@ function actionToRoute(actionKey?: string | null) {
 export default function VisaJourneyScreen() {
   const params = useLocalSearchParams<{ procedureId?: string }>();
   const procedureId = String(params?.procedureId || "").trim();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 900;
 
   const { profile } = useProfile();
   const { docs } = useDocuments();
   const { insights } = useInsights();
-  const { state: timelineState, toggleProcedureStep } = useVisaTimeline();
+  const { state: timelineState, toggleProcedureStep, setActiveProcedureId } = useVisaTimeline();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,10 @@ export default function VisaJourneyScreen() {
   const [activeStepId, setActiveStepId] = useState<string>("");
 
   const visaCase = useMemo(() => (timelineState.visas || []).find((v) => v.id === procedureId) || null, [procedureId, timelineState.visas]);
+
+  useEffect(() => {
+    if (procedureId) void setActiveProcedureId(procedureId);
+  }, [procedureId, setActiveProcedureId]);
 
   const ctx = useMemo(() => {
     const d = insights?.lastDossier;
@@ -88,6 +94,10 @@ export default function VisaJourneyScreen() {
   }, [timelineState.events]);
 
   async function run() {
+    if (!procedureId) {
+      setError("ID de procédure manquant.");
+      return;
+    }
     if (!profile) {
       setError("Profil requis.");
       return;
@@ -145,7 +155,7 @@ export default function VisaJourneyScreen() {
   return (
     <Screen scroll={false}>
       <View style={styles.header}>
-        <Text style={styles.title}>Visa Journey</Text>
+        <Text style={styles.title}>Parcours visa</Text>
         <Text style={styles.subtitle}>
           Procédure: {ctx.destination_region} · {ctx.visa_type} · Progression {progress.done}/{progress.total}
         </Text>
@@ -158,14 +168,20 @@ export default function VisaJourneyScreen() {
             <Text style={styles.loadingText}>Chargement de la timeline…</Text>
           </View>
         </GlassCard>
+      ) : !profile ? (
+        <GlassCard>
+          <Text style={styles.body}>Pour ouvrir cette procédure, vous devez d’abord compléter votre profil.</Text>
+          <View style={{ height: Tokens.space.md }} />
+          <PrimaryButton title="Compléter mon profil" onPress={() => router.push("/profile")} />
+        </GlassCard>
       ) : error ? (
         <GlassCard>
           <Text style={styles.error}>{error}</Text>
         </GlassCard>
       ) : data ? (
-        <View style={styles.twoCol}>
+        <View style={[styles.twoCol, isMobile ? styles.twoColMobile : null]}>
           {/* LEFT 30%: timeline */}
-          <View style={styles.leftCol}>
+          <View style={[styles.leftCol, isMobile ? styles.colMobile : null]}>
             <GlassCard>
               <Text style={styles.cardTitle}>Timeline</Text>
               <View style={{ height: Tokens.space.sm }} />
@@ -193,7 +209,7 @@ export default function VisaJourneyScreen() {
           </View>
 
           {/* RIGHT 70%: active step content */}
-          <View style={styles.rightCol}>
+          <View style={[styles.rightCol, isMobile ? styles.colMobile : null]}>
             <GlassCard>
               <Text style={styles.cardTitle}>{activeStep?.name || "Étape"}</Text>
               <View style={{ height: Tokens.space.sm }} />
@@ -225,9 +241,9 @@ export default function VisaJourneyScreen() {
 
               <View style={{ height: Tokens.space.lg }} />
               <View style={styles.footerCtas}>
-                <PrimaryButton title="Save & exit" variant="ghost" onPress={() => router.push("/(tabs)")} style={{ flex: 1 }} />
+                <PrimaryButton title="Enregistrer et quitter" variant="ghost" onPress={() => router.push("/(tabs)")} style={{ flex: 1 }} />
                 <PrimaryButton
-                  title={blockedReason ? "Blocked" : "Save & continue"}
+                  title={blockedReason ? "Bloqué" : "Enregistrer et continuer"}
                   onPress={async () => {
                     if (!activeStep) return;
                     if (blockedReason) return;
@@ -253,8 +269,10 @@ const styles = StyleSheet.create({
   title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
   subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   twoCol: { flex: 1, flexDirection: "row", gap: Tokens.space.lg, paddingHorizontal: Tokens.space.xl, paddingBottom: Tokens.space.xl },
+  twoColMobile: { flexDirection: "column", paddingHorizontal: Tokens.space.lg },
   leftCol: { width: "30%" },
   rightCol: { width: "70%" },
+  colMobile: { width: "100%" },
   cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
   body: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
   hint: { marginTop: Tokens.space.sm, color: Colors.faint, fontSize: Tokens.font.size.sm, lineHeight: 20 },
