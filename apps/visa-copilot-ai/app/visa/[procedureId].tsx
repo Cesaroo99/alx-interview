@@ -153,7 +153,7 @@ export default function VisaJourneyScreen() {
   return (
     <Screen scroll={false}>
       <View style={styles.header}>
-        <Text style={styles.title}>Visa Journey</Text>
+        <Text style={styles.title}>Parcours visa</Text>
         <Text style={styles.subtitle}>
           Procédure: {ctx.destination_region} · {ctx.visa_type} · Progression {progress.done}/{progress.total}
         </Text>
@@ -239,9 +239,9 @@ export default function VisaJourneyScreen() {
 
               <View style={{ height: Tokens.space.lg }} />
               <View style={styles.footerCtas}>
-                <PrimaryButton title="Save & exit" variant="ghost" onPress={() => router.push("/(tabs)")} style={{ flex: 1 }} />
+                <PrimaryButton title="Enregistrer et quitter" variant="ghost" onPress={() => router.push("/(tabs)")} style={{ flex: 1 }} />
                 <PrimaryButton
-                  title={blockedReason ? "Blocked" : "Save & continue"}
+                  title={blockedReason ? "Bloqué" : "Enregistrer et continuer"}
                   onPress={async () => {
                     if (!activeStep) return;
                     if (blockedReason) return;

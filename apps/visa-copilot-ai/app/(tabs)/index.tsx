@@ -172,7 +172,7 @@ export default function HomeScreen() {
           <View style={{ height: Tokens.space.md }} />
           <View style={styles.ctaRow}>
             <PrimaryButton
-              title={activeProcedureId ? "Continuer le Visa Journey" : "Démarrer une procédure"}
+              title={activeProcedureId ? "Continuer le parcours visa" : "Démarrer une procédure"}
               onPress={async () => {
                 if (!profile) {
                   router.push("/profile");
@@ -220,7 +220,7 @@ export default function HomeScreen() {
       <AnimatedIn delayMs={130}>
         <GlassCard>
           <View style={styles.rowTop}>
-            <Text style={styles.cardTitle}>Visa procedure</Text>
+            <Text style={styles.cardTitle}>Procédure visa</Text>
             {journeyLoading ? <ActivityIndicator /> : null}
           </View>
           <Text style={styles.body}>Suivi par étapes, avec raisons de blocage et prochaines actions.</Text>
@@ -233,7 +233,7 @@ export default function HomeScreen() {
               <View style={{ height: Tokens.space.md }} />
               <View style={styles.ctaRow}>
                 <PrimaryButton
-                  title="Ouvrir Visa Journey"
+                  title="Ouvrir le parcours visa"
                   onPress={async () => {
                     await setActiveProcedureId(activeProcedureId);
                     router.push(`/visa/${activeProcedureId}` as any);
@@ -248,7 +248,7 @@ export default function HomeScreen() {
               <Text style={styles.body}>Aucune procédure active. Démarrez pour obtenir une timeline et des actions guidées.</Text>
               <View style={{ height: Tokens.space.md }} />
               <PrimaryButton
-                title="Start a visa procedure"
+                title="Démarrer une procédure"
                 onPress={async () => {
                   if (!profile) {
                     router.push("/profile");
