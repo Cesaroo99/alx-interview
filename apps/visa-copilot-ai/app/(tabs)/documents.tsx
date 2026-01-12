@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AppText } from "@/src/ui/AppText";
 import { Badge } from "@/src/ui/Badge";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
@@ -51,6 +52,7 @@ function docStatus(doc: any): { tone: "success" | "warning" | "danger" | "neutra
 }
 
 export default function DocumentsScreen() {
+  const colors = useColors();
   const { docs, removeDoc, clearAll } = useDocuments();
 
   const sorted = useMemo(() => (docs || []).slice().sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)), [docs]);
@@ -59,16 +61,16 @@ export default function DocumentsScreen() {
     <Screen>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Documents</Text>
-          <Text style={styles.subtitle}>Bibliothèque de pièces. Chaque document impacte automatiquement le Visa Journey et la vérification.</Text>
+          <AppText variant="h1">Documents</AppText>
+          <AppText tone="muted">Bibliothèque de pièces. Chaque document impacte automatiquement le Visa Journey et la vérification.</AppText>
         </View>
-        <PrimaryButton title="Add document" onPress={() => router.push("/documents/add")} />
+        <PrimaryButton title="Ajouter un document" onPress={() => router.push("/documents/add")} />
       </View>
 
       {sorted.length ? (
         <GlassCard>
           <View style={styles.rowTop}>
-            <Text style={styles.cardTitle}>Votre bibliothèque</Text>
+            <AppText variant="h3">Votre bibliothèque</AppText>
             <PrimaryButton
               title="Tout supprimer"
               variant="ghost"
@@ -82,34 +84,36 @@ export default function DocumentsScreen() {
           </View>
 
           {sorted.map((d) => (
-            <View key={d.id} style={styles.docCard}>
+            <View key={d.id} style={[styles.docCard, { borderColor: colors.border, backgroundColor: colors.card2 }]}>
               <View style={styles.docTop}>
                 <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={styles.docName}>
+                  <AppText numberOfLines={1} variant="bodyStrong">
                     {d.filename || "Document"}
-                  </Text>
-                  <Text style={styles.docMeta}>
+                  </AppText>
+                  <AppText variant="caption" tone="faint" style={styles.docMeta}>
                     {d.doc_type} · {d.size ? `${Math.round(d.size / 1024)} KB` : "—"}
-                  </Text>
+                  </AppText>
                 </View>
                 <Badge {...docStatus(d)} />
               </View>
 
               <View style={{ height: Tokens.space.sm }} />
               <View style={styles.actionsRow}>
-                <PrimaryButton title="View" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })} style={{ flex: 1 }} />
-                <PrimaryButton title="Replace" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })} style={{ flex: 1 }} />
-                <PrimaryButton title="Delete" variant="ghost" onPress={() => removeDoc(d.id)} style={{ flex: 1 }} />
+                <PrimaryButton title="Voir" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })} style={{ flex: 1 }} />
+                <PrimaryButton title="Remplacer" variant="ghost" onPress={() => router.push({ pathname: "/documents/edit", params: { id: d.id } })} style={{ flex: 1 }} />
+                <PrimaryButton title="Supprimer" variant="ghost" onPress={() => removeDoc(d.id)} style={{ flex: 1 }} />
               </View>
             </View>
           ))}
         </GlassCard>
       ) : (
         <GlassCard>
-          <Text style={styles.cardTitle}>Aucun document</Text>
-          <Text style={styles.body}>Commencez par ajouter votre passeport, puis vos relevés/attestations.</Text>
+          <AppText variant="h3">Aucun document</AppText>
+          <AppText tone="muted" style={styles.body}>
+            Commencez par ajouter votre passeport, puis vos relevés/attestations.
+          </AppText>
           <View style={{ height: Tokens.space.md }} />
-          <PrimaryButton title="Add document" onPress={() => router.push("/documents/add")} />
+          <PrimaryButton title="Ajouter un document" onPress={() => router.push("/documents/add")} />
         </GlassCard>
       )}
     </Screen>
@@ -118,15 +122,15 @@ export default function DocumentsScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { marginTop: 6, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
+  title: {},
+  subtitle: { marginTop: 6 },
+  cardTitle: {},
+  body: { marginTop: Tokens.space.sm },
   rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  docCard: { marginTop: Tokens.space.md, padding: Tokens.space.md, borderRadius: Tokens.radius.lg, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card2 },
+  docCard: { marginTop: Tokens.space.md, padding: Tokens.space.md, borderRadius: Tokens.radius.lg, borderWidth: 1 },
   docTop: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "space-between" },
-  docName: { color: Colors.text, fontSize: Tokens.font.size.md, fontWeight: Tokens.font.weight.bold },
-  docMeta: { marginTop: 4, color: Colors.faint, fontSize: Tokens.font.size.sm },
+  docName: {},
+  docMeta: { marginTop: 4 },
   actionsRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
 });
 

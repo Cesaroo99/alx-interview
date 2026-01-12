@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
-import { Colors } from "@/src/theme/colors";
+import { useColors } from "@/src/theme/colors";
 import { Tokens } from "@/src/theme/tokens";
+import { AppText } from "@/src/ui/AppText";
 import { GlassCard } from "@/src/ui/GlassCard";
 import { PrimaryButton } from "@/src/ui/PrimaryButton";
 import { Screen } from "@/src/ui/Screen";
@@ -14,6 +15,7 @@ function norm(s: any) {
 }
 
 export default function ProfileScreen() {
+  const colors = useColors();
   const { profile, setProfile } = useProfile();
   const [draft, setDraft] = useState(() => ({
     nationality: norm(profile?.nationality),
@@ -34,42 +36,68 @@ export default function ProfileScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Profil</Text>
-        <Text style={styles.subtitle}>Source unique de vérité. Complétez ici, l’app ne devrait pas vous redemander 2 fois la même chose.</Text>
+        <AppText variant="h1">Profil</AppText>
+        <AppText tone="muted">Source unique de vérité. Complétez ici, l’app ne devrait pas vous redemander 2 fois la même chose.</AppText>
       </View>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Informations principales</Text>
+        <AppText variant="h3">Informations principales</AppText>
         <View style={{ height: Tokens.space.md }} />
 
-        <Text style={styles.label}>Nationalité</Text>
-        <TextInput value={draft.nationality} onChangeText={(v) => setDraft((d) => ({ ...d, nationality: v }))} style={styles.input} placeholderTextColor="rgba(16,22,47,0.35)" />
-
-        <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Pays de résidence</Text>
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Nationalité
+        </AppText>
         <TextInput
-          value={draft.country_of_residence}
-          onChangeText={(v) => setDraft((d) => ({ ...d, country_of_residence: v }))}
-          style={styles.input}
-          placeholderTextColor="rgba(16,22,47,0.35)"
+          value={draft.nationality}
+          onChangeText={(v) => setDraft((d) => ({ ...d, nationality: v }))}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
+          placeholderTextColor={colors.faint}
         />
 
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Âge</Text>
-        <TextInput value={draft.age} onChangeText={(v) => setDraft((d) => ({ ...d, age: v }))} style={styles.input} placeholder="Ex: 28" placeholderTextColor="rgba(16,22,47,0.35)" />
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Pays de résidence
+        </AppText>
+        <TextInput
+          value={draft.country_of_residence}
+          onChangeText={(v) => setDraft((d) => ({ ...d, country_of_residence: v }))}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
+          placeholderTextColor={colors.faint}
+        />
 
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Profession</Text>
-        <TextInput value={draft.profession} onChangeText={(v) => setDraft((d) => ({ ...d, profession: v }))} style={styles.input} placeholderTextColor="rgba(16,22,47,0.35)" />
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Âge
+        </AppText>
+        <TextInput
+          value={draft.age}
+          onChangeText={(v) => setDraft((d) => ({ ...d, age: v }))}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
+          placeholder="Ex: 28"
+          placeholderTextColor={colors.faint}
+        />
 
         <View style={{ height: Tokens.space.md }} />
-        <Text style={styles.label}>Destination / zone (indice)</Text>
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Profession
+        </AppText>
+        <TextInput
+          value={draft.profession}
+          onChangeText={(v) => setDraft((d) => ({ ...d, profession: v }))}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
+          placeholderTextColor={colors.faint}
+        />
+
+        <View style={{ height: Tokens.space.md }} />
+        <AppText variant="caption" tone="faint" style={styles.label}>
+          Destination / zone (indice)
+        </AppText>
         <TextInput
           value={draft.destination_region_hint}
           onChangeText={(v) => setDraft((d) => ({ ...d, destination_region_hint: v }))}
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card2, color: colors.text }]}
           placeholder="Ex: Zone Schengen"
-          placeholderTextColor="rgba(16,22,47,0.35)"
+          placeholderTextColor={colors.faint}
         />
 
         <View style={{ height: Tokens.space.lg }} />
@@ -92,12 +120,18 @@ export default function ProfileScreen() {
             style={{ flex: 1, opacity: incomplete ? 0.6 : 1 }}
           />
         </View>
-        {incomplete ? <Text style={styles.hint}>Profil incomplet: ajoutez nationalité, âge, profession et pays de résidence.</Text> : null}
+        {incomplete ? (
+          <AppText variant="caption" tone="warning" style={styles.hint}>
+            Profil incomplet: ajoutez nationalité, âge, profession et pays de résidence.
+          </AppText>
+        ) : null}
       </GlassCard>
 
       <GlassCard>
-        <Text style={styles.cardTitle}>Onboarding</Text>
-        <Text style={styles.body}>Si vous préférez le parcours guidé, vous pouvez relancer l’onboarding.</Text>
+        <AppText variant="h3">Onboarding</AppText>
+        <AppText tone="muted" style={styles.body}>
+          Si vous préférez le parcours guidé, vous pouvez relancer l’onboarding.
+        </AppText>
         <View style={{ height: Tokens.space.md }} />
         <PrimaryButton title="Ouvrir l’onboarding" variant="ghost" onPress={() => router.push("/onboarding")} />
       </GlassCard>
@@ -107,23 +141,19 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   header: { gap: 8 },
-  title: { color: Colors.text, fontSize: Tokens.font.size.xxl, fontWeight: Tokens.font.weight.black },
-  subtitle: { color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  cardTitle: { color: Colors.text, fontSize: Tokens.font.size.lg, fontWeight: Tokens.font.weight.bold },
-  body: { marginTop: Tokens.space.sm, color: Colors.muted, fontSize: Tokens.font.size.md, lineHeight: 22 },
-  label: { marginTop: Tokens.space.sm, color: Colors.faint, fontSize: Tokens.font.size.sm, fontWeight: Tokens.font.weight.semibold },
+  title: {},
+  subtitle: {},
+  cardTitle: {},
+  body: { marginTop: Tokens.space.sm },
+  label: { marginTop: Tokens.space.sm },
   input: {
     marginTop: 6,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card2,
-    color: Colors.text,
     borderRadius: Tokens.radius.lg,
     paddingHorizontal: Tokens.space.md,
     paddingVertical: Tokens.space.md,
-    fontSize: Tokens.font.size.md,
   },
   row2: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  hint: { marginTop: Tokens.space.sm, color: Colors.warning, fontSize: Tokens.font.size.sm, lineHeight: 20 },
+  hint: { marginTop: Tokens.space.sm },
 });
 
